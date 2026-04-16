@@ -169,6 +169,39 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .lock-btn:active{transform:scale(.98)}
 .lock-footer{font-size:11px;color:var(--text3);text-align:center}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+
+.skill-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none}
+.skill-chip.selected{color:#fff}
+.skill-chip:not(.selected){background:var(--surface2);color:var(--text2);border-color:var(--border)}
+.skill-chip:not(.selected):hover{border-color:var(--border2);color:var(--text)}
+.star-row{display:flex;gap:4px}
+.star{font-size:18px;cursor:pointer;color:var(--border2);transition:color .1s;line-height:1}
+.star.on{color:#EF9F27}
+.star:hover{color:#EF9F27}
+.section-row2{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:18px}
+.radar-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.spider-canvas{width:100%;aspect-ratio:1;max-width:260px;margin:0 auto;display:block}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
+.impact-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.impact-task{font-size:13px;font-weight:500;color:var(--text)}
+.impact-date{font-size:11px;color:var(--text3);white-space:nowrap}
+.impact-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.impact-metric{background:var(--surface2);border-radius:var(--r-md);padding:8px 10px;text-align:center}
+.impact-metric-val{font-size:16px;font-weight:500;color:var(--text)}
+.impact-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.qual-section{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qual-item{background:var(--surface2);border-radius:var(--r-md);padding:8px 10px}
+.qual-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.qual-text{font-size:12px;color:var(--text2);line-height:1.5}
+.export-btn{padding:6px 12px;font-size:11px;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);font-weight:500;transition:all .12s}
+.export-btn:hover{background:var(--surface2);color:var(--text)}
+.skill-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.designer-radar-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.designer-radar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.drc-name{font-size:12px;font-weight:500;color:var(--text)}
+.project-skill-list{display:flex;flex-direction:column;gap:8px}
+.psk-row{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--border);font-size:12px}
+.psk-row:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -189,6 +222,9 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" onclick="go('reports')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 9V7M7 9V5M9 9V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Reports</div>
       <div class="nl">Team</div>
       <div class="ni" onclick="go('capacity')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 12c0-2 1.567-3.5 3.5-3.5S8.5 10 8.5 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M12 12c0-1.5-1.2-2.8-2.5-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Capacity</div>
+      <div class="nl">Growth</div>
+      <div class="ni" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
+      <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1 9,5 13,5.5 10,8.5 10.8,13 7,11 3.2,13 4,8.5 1,5.5 5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
     </div>
     <div class="timer-mini">
       <div class="tm-l">Timer</div>
@@ -248,6 +284,10 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
         </div>
       </div>
       <div class="mfield">
+        <label>Skills practiced</label>
+        <div id="skill-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px"></div>
+      </div>
+      <div class="mfield">
         <label>Notes (optional)</label>
         <textarea id="f-notes" placeholder="Any context for the team…"></textarea>
       </div>
@@ -263,6 +303,16 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 
 <script>
 const SB='https://jthtaiqwsznazjdtahcs.supabase.co';
+const SKILLS=[
+  {name:'Interaction Design',color:'#378ADD'},
+  {name:'Visual Design',     color:'#7F77DD'},
+  {name:'UX Research',       color:'#1D9E75'},
+  {name:'Design Systems',    color:'#EF9F27'},
+  {name:'Prototyping',       color:'#E24B4A'},
+  {name:'Content / Writing', color:'#D4537E'},
+];
+let selectedSkills=[];
+let uxLogs=[],skillRatings=[];
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHRhaXF3c3puYXpqZHRhaGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTk2NDUsImV4cCI6MjA5MTg3NTY0NX0.gRJ2YDdSZj-DnkSS3rfhLEcRaqz7a-HIqgqKv-pAOT8';
 const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 const HR={...H,'Prefer':'return=representation'};
@@ -295,11 +345,13 @@ function toast(msg,dur=2200){
 
 async function loadAll(){
   try{
-    [DESIGNERS,tasks,timeLogs,requests]=await Promise.all([
+    [DESIGNERS,tasks,timeLogs,requests,uxLogs,skillRatings]=await Promise.all([
       sb('designers?select=*&order=avatar_index'),
-      sb('tasks?select=*&order=created_at.desc'),
+      sb('tasks?select=*&order=sort_order.asc,created_at.desc'),
       sb('time_logs?select=*&order=created_at.desc'),
       sb('requests?select=*&order=created_at.desc'),
+      sb('ux_logs?select=*&order=created_at.desc'),
+      sb('skill_ratings?select=*&order=created_at.desc'),
     ]);
     updateBadge();
     document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
@@ -325,9 +377,9 @@ function getLoad(){
 function go(v){
   currentView=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5};
+  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7};
   document.querySelectorAll('.ni')[map[v]]?.classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills'};
   document.getElementById('viewTitle').textContent=titles[v];
   render();
 }
@@ -340,6 +392,8 @@ function render(){
   else if(currentView==='timelog')  c.innerHTML=renderTimelog();
   else if(currentView==='reports')  c.innerHTML=renderReports();
   else if(currentView==='capacity') c.innerHTML=renderCapacity();
+  else if(currentView==='uximpact') c.innerHTML=renderUXImpact();
+  else if(currentView==='skills')   {c.innerHTML=renderSkills();drawAllSpiders();}
 }
 
 function renderMetrics(){
@@ -619,6 +673,20 @@ function renderNameOpts(){
 
 function pickName(name){selectedName=name;document.getElementById('f-newname').value='';renderNameOpts();}
 
+function renderSkillChips(){
+  const c=document.getElementById('skill-chips');
+  if(!c) return;
+  c.innerHTML=SKILLS.map(s=>`<span class="skill-chip${selectedSkills.includes(s.name)?' selected':''}"
+    style="${selectedSkills.includes(s.name)?`background:${s.color};border-color:${s.color}`:''}"
+    onclick="toggleSkill('${s.name}')">${s.name}</span>`).join('');
+}
+
+function toggleSkill(name){
+  const i=selectedSkills.indexOf(name);
+  if(i>=0) selectedSkills.splice(i,1); else selectedSkills.push(name);
+  renderSkillChips();
+}
+
 async function submitTask(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){document.getElementById('f-name').style.borderColor='var(--accent)';setTimeout(()=>document.getElementById('f-name').style.borderColor='',1500);return;}
@@ -639,6 +707,7 @@ async function submitTask(){
     effort:parseInt(document.getElementById('f-effort').value),
     jira_ref:document.getElementById('f-jira').value.trim()||'—',
     notes:document.getElementById('f-notes').value.trim(),
+    skills:selectedSkills,
     risk:false,risk_note:'',logged_mins:0
   };
   try{
@@ -731,6 +800,7 @@ document.addEventListener('drop',e=>{
     const fi=tasks.findIndex(t=>t.id===dragId),ti=tasks.findIndex(t=>t.id===r.dataset.id);
     if(fi>=0&&ti>=0){const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);}
     render();
+    saveSortOrder();
   }
   dragId=null;
 });
@@ -738,8 +808,328 @@ document.addEventListener('drop',e=>{
 // Keyboard shortcuts
 document.addEventListener('keydown',e=>{
   if(e.key==='n'&&!e.metaKey&&!e.ctrlKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) openAddTask();
-  if(e.key==='Escape') closeModal();
-  if(e.key==='r'&&!e.metaKey&&!e.ctrlKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){loadAll();toast('Refreshing…');}
+  if(e.key==='Escape'){closeModal();closeUXModal();closeSkillModal();}
+  if(e.key==='r'&&!e.metaKey&&!e.ctrlKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+// ═══════════════════════════════════════════════════════
+//  UX IMPACT VIEW
+// ═══════════════════════════════════════════════════════
+function renderUXImpact(){
+  const logs=uxLogs||[];
+  return`<div class="section-row">
+    <span class="st">UX impact log</span>
+    <div style="display:flex;gap:8px">
+      <button class="export-btn" onclick="exportUXCSV()">Export CSV</button>
+      <button class="btn accent" onclick="openUXLogModal()">+ Log impact</button>
+    </div>
+  </div>
+  ${logs.length===0
+    ?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:48px;text-align:center;color:var(--text3);font-size:13px">No impact logs yet.<br><br><button class="btn accent" onclick="openUXLogModal()">Log your first one</button></div>`
+    :logs.map(l=>`<div class="impact-card">
+      <div class="impact-head">
+        <div>
+          <div class="impact-task">${l.task_name||'Unknown task'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${l.designer_name} · Went live ${l.went_live_at||'—'}</div>
+        </div>
+        <div class="impact-date"></div>
+      </div>
+      ${(l.task_success_rate!=null||l.time_on_task_secs!=null||l.drop_off_rate!=null||l.csat_score!=null)?`
+      <div class="impact-grid">
+        ${l.task_success_rate!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:var(--green)">${Math.round(l.task_success_rate)}%</div><div class="impact-metric-label">Task success</div></div>`:''}
+        ${l.time_on_task_secs!=null?`<div class="impact-metric"><div class="impact-metric-val">${Math.round(l.time_on_task_secs)}s</div><div class="impact-metric-label">Time on task</div></div>`:''}
+        ${l.drop_off_rate!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:${l.drop_off_rate>30?'var(--red)':'var(--text)'}">${Math.round(l.drop_off_rate)}%</div><div class="impact-metric-label">Drop-off</div></div>`:''}
+        ${l.csat_score!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:var(--amber)">${Number(l.csat_score).toFixed(1)}</div><div class="impact-metric-label">CSAT</div></div>`:''}
+        ${l.sample_size!=null?`<div class="impact-metric"><div class="impact-metric-val">${l.sample_size}</div><div class="impact-metric-label">Sample</div></div>`:''}
+      </div>`:''}
+      <div class="qual-section">
+        ${l.observations?`<div class="qual-item"><div class="qual-label">Observations</div><div class="qual-text">${l.observations}</div></div>`:''}
+        ${l.user_feedback?`<div class="qual-item"><div class="qual-label">User feedback</div><div class="qual-text">${l.user_feedback}</div></div>`:''}
+        ${l.issues_found?`<div class="qual-item"><div class="qual-label">Issues found</div><div class="qual-text">${l.issues_found}</div></div>`:''}
+        ${l.what_worked?`<div class="qual-item"><div class="qual-label">What worked</div><div class="qual-text">${l.what_worked}</div></div>`:''}
+      </div>
+    </div>`).join('')}
+  ${renderAI('uximpact')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SKILLS VIEW
+// ═══════════════════════════════════════════════════════
+function renderSkills(){
+  const ratings=skillRatings||[];
+  const designers=(DESIGNERS||[]).map(d=>d.name);
+  return`<div class="section-row">
+    <span class="st">Skills</span>
+    <div style="display:flex;gap:8px">
+      <button class="export-btn" onclick="exportSkillsCSV()">Export CSV</button>
+      <button class="btn accent" onclick="openSkillRatingModal()">+ Rate skills</button>
+    </div>
+  </div>
+  <div class="section-row2" style="margin-top:0"><span style="font-size:12px;font-weight:500;color:var(--text)">By designer</span></div>
+  <div class="designer-radar-grid" id="designerRadarGrid">
+    ${designers.map((d,i)=>`<div class="designer-radar-card">
+      <div class="avatar ${AV[i%AV.length]}" style="width:32px;height:32px;font-size:11px">${iniFor(d)}</div>
+      <div class="drc-name">${d}</div>
+      <canvas class="spider-canvas" id="spider-${d.replace(/\s+/g,'_')}" width="220" height="220"></canvas>
+    </div>`).join('')}
+  </div>
+  <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">By project / task</span></div>
+  <div class="panel">
+    <div class="ph"><span class="pt">Skills per task</span></div>
+    ${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).length===0
+      ?`<div class="empty-state">No skills tagged yet — tag skills when adding tasks</div>`
+      :`<div class="project-skill-list">${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).map(t=>`<div class="psk-row">
+        <div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">${t.designer_name}</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${(t.skills||[]).map(s=>{const sk=SKILLS.find(x=>x.name===s);return`<span class="skill-chip selected" style="background:${sk?sk.color:'#888'};border-color:${sk?sk.color:'#888'}">${s}</span>`;}).join('')}</div>
+      </div>`).join('')}</div>`}
+  </div>
+  ${ratings.length>0?`
+  <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">Rating history</span></div>
+  <div class="panel"><table>
+    <thead><tr>
+      <th style="width:28%">Task</th><th style="width:18%">Designer</th>
+      <th style="width:18%">Skill</th><th style="width:12%">Self</th>
+      <th style="width:12%">Head</th><th style="width:12%">Date</th>
+    </tr></thead>
+    <tbody>${ratings.map(r=>`<tr class="tr">
+      <td style="font-weight:500">${r.task_name||'—'}</td>
+      <td style="color:var(--text2)">${r.designer_name}</td>
+      <td>${(()=>{const sk=SKILLS.find(x=>x.name===r.skill);return sk?`<span class="skill-chip selected" style="background:${sk.color};border-color:${sk.color}">${r.skill}</span>`:r.skill;})()}</td>
+      <td>${renderStarsStatic(r.self_rating)}</td>
+      <td>${renderStarsStatic(r.head_rating)}</td>
+      <td style="color:var(--text3)">${r.rated_at||'—'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`:''}
+  ${renderAI('skills')}`;
+}
+
+function renderStarsStatic(n){
+  if(!n) return '<span style="color:var(--text3);font-size:11px">—</span>';
+  return Array.from({length:5},(_,i)=>`<span style="color:${i<n?'#EF9F27':'var(--border2)'}">★</span>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SPIDER CHART DRAWING
+// ═══════════════════════════════════════════════════════
+function drawAllSpiders(){
+  (DESIGNERS||[]).forEach(d=>drawSpider(d.name));
+}
+
+function drawSpider(designerName){
+  const canvasId='spider-'+designerName.replace(/\s+/g,'_');
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,R=Math.min(W,H)*0.38;
+  const n=SKILLS.length;
+  const ratings=skillRatings||[];
+  ctx.clearRect(0,0,W,H);
+
+  // Compute average ratings per skill for this designer
+  const skillVals=SKILLS.map(s=>{
+    const rs=ratings.filter(r=>r.designer_name===designerName&&r.skill===s.name);
+    if(!rs.length) return 0;
+    const avg=rs.reduce((a,r)=>a+(r.head_rating||r.self_rating||0),0)/rs.length;
+    return Math.min(avg/5,1);
+  });
+
+  const angles=SKILLS.map((_,i)=>(-Math.PI/2)+(2*Math.PI/n)*i);
+
+  // Grid rings
+  const isDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const gridColor=isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
+  const labelColor=isDark?'rgba(255,255,255,0.45)':'rgba(0,0,0,0.4)';
+  [0.2,0.4,0.6,0.8,1].forEach(pct=>{
+    ctx.beginPath();
+    angles.forEach((a,i)=>{
+      const x=cx+Math.cos(a)*R*pct,y=cy+Math.sin(a)*R*pct;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.closePath();ctx.strokeStyle=gridColor;ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Spokes
+  angles.forEach(a=>{
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);
+    ctx.strokeStyle=gridColor;ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Data polygon
+  ctx.beginPath();
+  skillVals.forEach((v,i)=>{
+    const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle='rgba(55,138,221,0.18)';ctx.fill();
+  ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.stroke();
+
+  // Dots
+  skillVals.forEach((v,i)=>{
+    const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);
+    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle='#378ADD';ctx.fill();
+  });
+
+  // Labels
+  ctx.font='10px DM Sans,sans-serif';ctx.fillStyle=labelColor;ctx.textAlign='center';
+  SKILLS.forEach((s,i)=>{
+    const a=angles[i],lx=cx+Math.cos(a)*(R+18),ly=cy+Math.sin(a)*(R+18);
+    const short=s.name.split(' ')[0];
+    ctx.fillText(short,lx,ly+3);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  UX LOG MODAL
+// ═══════════════════════════════════════════════════════
+let uxTaskId=null,uxTaskName='';
+
+function openUXLogModal(){
+  const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
+  const sel=parseInt(prompt('Which task went live?\n'+opts,'1'));
+  const t=(tasks||[])[sel-1];
+  if(!t) return;
+  uxTaskId=t.id;uxTaskName=t.name;
+
+  const overlay=document.getElementById('uxModalOverlay');
+  document.getElementById('ux-task-label').textContent=t.name;
+  document.getElementById('ux-designer-label').textContent=t.designer_name;
+  overlay.classList.add('open');
+}
+
+function closeUXModal(){document.getElementById('uxModalOverlay').classList.remove('open');}
+
+async function submitUXLog(){
+  const btn=document.getElementById('uxSubmitBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  const t=tasks.find(x=>x.id===uxTaskId);
+  const payload={
+    task_id:uxTaskId,
+    task_name:uxTaskName,
+    designer_name:t?t.designer_name:'—',
+    went_live_at:document.getElementById('ux-live-date').value||null,
+    observations:document.getElementById('ux-observations').value.trim()||null,
+    user_feedback:document.getElementById('ux-feedback').value.trim()||null,
+    issues_found:document.getElementById('ux-issues').value.trim()||null,
+    what_worked:document.getElementById('ux-worked').value.trim()||null,
+    task_success_rate:parseFloat(document.getElementById('ux-success').value)||null,
+    time_on_task_secs:parseFloat(document.getElementById('ux-time').value)||null,
+    drop_off_rate:parseFloat(document.getElementById('ux-dropoff').value)||null,
+    csat_score:parseFloat(document.getElementById('ux-csat').value)||null,
+    sample_size:parseInt(document.getElementById('ux-sample').value)||null,
+  };
+  try{
+    const res=await sb('ux_logs',{method:'POST',headers:HR,body:JSON.stringify(payload)});
+    if(res&&res[0]) uxLogs.unshift(res[0]);
+    if(t){t.status='done';await sb(`tasks?id=eq.${t.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({status:'done',went_live_at:payload.went_live_at})});}
+    closeUXModal();render();toast('Impact logged');
+  }catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='Save log';
+}
+
+// ═══════════════════════════════════════════════════════
+//  SKILL RATING MODAL
+// ═══════════════════════════════════════════════════════
+let ratingTaskId=null,selfRatings={},headRatings={};
+
+function openSkillRatingModal(){
+  const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
+  const sel=parseInt(prompt('Rate skills for which task?\n'+opts,'1'));
+  const t=(tasks||[])[sel-1];
+  if(!t) return;
+  ratingTaskId=t.id;selfRatings={};headRatings={};
+  document.getElementById('sr-task-label').textContent=t.name;
+  document.getElementById('sr-designer-label').textContent=t.designer_name;
+  const skCont=document.getElementById('sr-skills-container');
+  const skillsToRate=t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
+  skCont.innerHTML=skillsToRate.map(s=>`
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text)">${s}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Self rating</div>
+          <div class="star-row" id="self-${s.replace(/\s+/g,'_')}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('self','${s}',${n})" id="self-${s.replace(/\s+/g,'_')}-${n}">★</span>`).join('')}</div>
+        </div>
+        <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Head rating</div>
+          <div class="star-row" id="head-${s.replace(/\s+/g,'_')}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('head','${s}',${n})" id="head-${s.replace(/\s+/g,'_')}-${n}">★</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  document.getElementById('srModalOverlay').classList.add('open');
+}
+
+function setRating(type,skill,val){
+  if(type==='self') selfRatings[skill]=val; else headRatings[skill]=val;
+  const key=skill.replace(/\s+/g,'_');
+  [1,2,3,4,5].forEach(n=>{
+    const el=document.getElementById(`${type}-${key}-${n}`);
+    if(el) el.classList.toggle('on',n<=val);
+  });
+}
+
+function closeSkillModal(){document.getElementById('srModalOverlay').classList.remove('open');}
+
+async function submitSkillRatings(){
+  const btn=document.getElementById('srSubmitBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  const t=tasks.find(x=>x.id===ratingTaskId);
+  const skills=t&&t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
+  const today=new Date().toISOString().split('T')[0];
+  const entries=skills.map(s=>({
+    task_id:ratingTaskId,task_name:t?t.name:'—',
+    designer_name:t?t.designer_name:'—',
+    skill:s,self_rating:selfRatings[s]||null,
+    head_rating:headRatings[s]||null,rated_at:today
+  })).filter(e=>e.self_rating||e.head_rating);
+  if(!entries.length){toast('Rate at least one skill');btn.disabled=false;btn.textContent='Save ratings';return;}
+  try{
+    const res=await sb('skill_ratings',{method:'POST',headers:HR,body:JSON.stringify(entries)});
+    if(res) skillRatings.unshift(...res);
+    closeSkillModal();render();toast('Skill ratings saved');
+  }catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='Save ratings';
+}
+
+// ═══════════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════════
+function exportUXCSV(){
+  const logs=uxLogs||[];
+  if(!logs.length){toast('No data to export');return;}
+  const headers=['Task','Designer','Went live','Success %','Time on task (s)','Drop-off %','CSAT','Sample','Observations','User feedback','Issues found','What worked'];
+  const rows=logs.map(l=>[l.task_name,l.designer_name,l.went_live_at,l.task_success_rate,l.time_on_task_secs,l.drop_off_rate,l.csat_score,l.sample_size,l.observations,l.user_feedback,l.issues_found,l.what_worked].map(v=>v==null?'':`"${String(v).replace(/"/g,'""')}"`));
+  downloadCSV([headers,...rows],'ux_impact.csv');
+}
+
+function exportSkillsCSV(){
+  const ratings=skillRatings||[];
+  if(!ratings.length){toast('No data to export');return;}
+  const headers=['Task','Designer','Skill','Self rating','Head rating','Date'];
+  const rows=ratings.map(r=>[r.task_name,r.designer_name,r.skill,r.self_rating,r.head_rating,r.rated_at].map(v=>v==null?'':`"${String(v).replace(/"/g,'""')}"`));
+  downloadCSV([headers,...rows],'skill_ratings.csv');
+}
+
+function downloadCSV(rows,filename){
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=filename;a.click();
+}
+
+async function saveSortOrder(){
+  try{
+    const updates=tasks.map((t,i)=>
+      fetch(`${SB}/rest/v1/tasks?id=eq.${t.id}`,{
+        method:'PATCH',
+        headers:{...H,'Prefer':'return=minimal'},
+        body:JSON.stringify({sort_order:i})
+      })
+    );
+    await Promise.all(updates);
+    toast('Order saved');
+  }catch(e){console.warn('Sort order save failed:',e);}
+}
+
+loadAll();toast('Refreshing…');}
 });
 
 // Auto-refresh inbox every 30s
@@ -801,6 +1191,66 @@ initLock();
     </div>
     <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
     <div class="lock-footer">Design team access only</div>
+  </div>
+</div>
+
+<!-- UX IMPACT LOG MODAL -->
+<div class="modal-overlay" id="uxModalOverlay" onclick="if(event.target===this)closeUXModal()">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <div class="modal-head">
+      <span class="modal-title">Log UX impact</span>
+      <button class="modal-close" onclick="closeUXModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div style="font-size:12px;font-weight:500" id="ux-task-label">Task name</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="ux-designer-label">Designer</div>
+      </div>
+      <div class="mfield">
+        <label>Date went live</label>
+        <input type="date" id="ux-live-date"/>
+      </div>
+      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:4px 0 8px">Quantitative</div>
+      <div class="mrow">
+        <div class="mfield"><label>Task success rate (%)</label><input type="number" id="ux-success" placeholder="e.g. 78" min="0" max="100"/></div>
+        <div class="mfield"><label>Time on task (secs)</label><input type="number" id="ux-time" placeholder="e.g. 45"/></div>
+      </div>
+      <div class="mrow">
+        <div class="mfield"><label>Drop-off rate (%)</label><input type="number" id="ux-dropoff" placeholder="e.g. 22" min="0" max="100"/></div>
+        <div class="mfield"><label>CSAT score (1–5)</label><input type="number" id="ux-csat" placeholder="e.g. 4.2" min="1" max="5" step="0.1"/></div>
+      </div>
+      <div class="mfield"><label>Sample size</label><input type="number" id="ux-sample" placeholder="Number of users tested"/></div>
+      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 8px">Qualitative</div>
+      <div class="mfield"><label>Observations</label><textarea id="ux-observations" placeholder="What did you observe during testing or post-launch?"></textarea></div>
+      <div class="mfield"><label>User feedback</label><textarea id="ux-feedback" placeholder="Direct quotes or themes from user feedback"></textarea></div>
+      <div class="mfield"><label>Issues found</label><textarea id="ux-issues" placeholder="Usability issues, bugs, friction points"></textarea></div>
+      <div class="mfield"><label>What worked well</label><textarea id="ux-worked" placeholder="What went well, patterns to repeat"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeUXModal()">Cancel</button>
+      <button class="btn accent" id="uxSubmitBtn" onclick="submitUXLog()">Save log</button>
+    </div>
+  </div>
+</div>
+
+<!-- SKILL RATING MODAL -->
+<div class="modal-overlay" id="srModalOverlay" onclick="if(event.target===this)closeSkillModal()">
+  <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto">
+    <div class="modal-head">
+      <span class="modal-title">Rate skills</span>
+      <button class="modal-close" onclick="closeSkillModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div style="font-size:12px;font-weight:500" id="sr-task-label">Task name</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="sr-designer-label">Designer</div>
+      </div>
+      <div id="sr-skills-container" style="margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeSkillModal()">Cancel</button>
+      <button class="btn accent" id="srSubmitBtn" onclick="submitSkillRatings()">Save ratings</button>
+    </div>
   </div>
 </div>
 </body>
