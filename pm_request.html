@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Request — Design Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F6F3;--surface:#fff;--surface2:#F2F1EE;--border:#E5E3DE;--border2:#D0CEC8;
+  --text:#1A1917;--text2:#6B6860;--text3:#A09E99;
+  --accent:#E24B4A;--accent-dark:#B83A39;
+  --blue:#185FA5;--blue-light:#E6F1FB;
+  --green:#1D9E75;--green-light:#E1F5EE;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --r-md:8px;--r-lg:12px;--r-xl:20px;
+  --font:'DM Sans',sans-serif;
+}
+html,body{min-height:100%;background:var(--bg);font-family:var(--font);color:var(--text)}
+body{display:flex;flex-direction:column;align-items:center;padding:40px 16px 60px}
+.header{width:100%;max-width:520px;margin-bottom:32px}
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:24px}
+.logomark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-name{font-size:14px;font-weight:500}
+.form-title{font-size:24px;font-weight:500;letter-spacing:-.03em;margin-bottom:6px}
+.form-sub{font-size:14px;color:var(--text2);line-height:1.6}
+.card{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden}
+.card-body{padding:24px;display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:6px}
+label.field-label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.req{color:var(--accent);margin-left:2px}
+.field input,.field select,.field textarea{padding:9px 11px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--font);transition:border-color .15s,background .15s;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);background:var(--surface)}
+.field input::placeholder,.field textarea::placeholder{color:var(--text3)}
+.field textarea{resize:none;height:88px;line-height:1.6}
+.field input.err,.field select.err,.field textarea.err{border-color:var(--accent)!important;background:var(--red-light)!important}
+.hint{font-size:11px;color:var(--text3)}
+.char-count{font-size:10px;color:var(--text3);text-align:right}
+.urgency-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.urgency-opt{position:relative}
+.urgency-opt input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.ul{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 8px;border:1px solid var(--border2);border-radius:var(--r-md);cursor:pointer;transition:all .15s;background:var(--surface2)}
+.ul:hover{background:var(--surface)}
+.urgency-opt input:checked+.ul{border-width:1.5px}
+.urgency-opt.ulow input:checked+.ul{border-color:var(--green);background:var(--green-light)}
+.urgency-opt.umed input:checked+.ul{border-color:#EF9F27;background:var(--amber-light)}
+.urgency-opt.uhi input:checked+.ul{border-color:var(--accent);background:var(--red-light)}
+.udot{width:8px;height:8px;border-radius:50%}
+.utxt{font-size:12px;font-weight:500}
+.ulow .udot{background:var(--green)}.ulow .utxt{color:var(--green)}
+.umed .udot{background:#EF9F27}.umed .utxt{color:var(--amber)}
+.uhi .udot{background:var(--accent)}.uhi .utxt{color:var(--red)}
+.card-footer{padding:16px 24px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.footer-note{font-size:11px;color:var(--text3);line-height:1.5}
+.submit-btn{padding:10px 22px;font-size:13px;font-weight:500;border:none;border-radius:var(--r-md);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.submit-btn:hover{background:var(--accent-dark)}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.err-banner{background:var(--red-light);border:1px solid #F09595;border-radius:var(--r-md);padding:10px 14px;font-size:12px;color:var(--red);display:none}
+.success{width:100%;max-width:520px;text-align:center;padding:48px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);display:none}
+.success-icon{width:48px;height:48px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.success-title{font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:8px}
+.success-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:24px}
+.success-detail{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;text-align:left;margin-bottom:24px}
+.sd-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.sd-row:last-child{border-bottom:none}
+.sd-k{color:var(--text3);flex-shrink:0}
+.sd-v{color:var(--text);font-weight:500;text-align:right}
+.another-btn{padding:9px 20px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text);cursor:pointer;font-family:var(--font);transition:all .15s}
+.another-btn:hover{background:var(--surface2)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="logomark">
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg>
+    </div>
+    <span class="brand-name">Design Radar</span>
+  </div>
+  <div class="form-title">Submit a design request</div>
+  <div class="form-sub">Fill in the details and the design team will review and assign it shortly.</div>
+</div>
+
+<div class="card" id="formCard">
+  <div class="card-body">
+    <div class="err-banner" id="errBanner"></div>
+
+    <div class="field">
+      <label class="field-label">Your name<span class="req">*</span></label>
+      <input type="text" id="f-pm" placeholder="e.g. Sneha Kulkarni" autocomplete="name"/>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Product<span class="req">*</span></label>
+      <select id="f-product">
+        <option value="">Select product…</option>
+        <option>Axis Bank – Freecharge</option>
+        <option>Ventura Securities</option>
+        <option>Drip Capital</option>
+        <option>Tradehub B2B</option>
+        <option>Subzero Design System</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Request title<span class="req">*</span></label>
+      <input type="text" id="f-title" placeholder="e.g. Redesign KYC onboarding flow" maxlength="80" oninput="uc('f-title','tc',80)"/>
+      <div class="char-count" id="tc">0 / 80</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Description<span class="req">*</span></label>
+      <textarea id="f-desc" placeholder="What needs to be designed? Include context, user problem, and any reference links…" maxlength="500" oninput="uc('f-desc','dc',500)"></textarea>
+      <div class="char-count" id="dc">0 / 500</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Urgency<span class="req">*</span></label>
+      <div class="urgency-row">
+        <div class="urgency-opt ulow">
+          <input type="radio" name="urgency" id="u-low" value="low">
+          <label class="ul" for="u-low"><div class="udot"></div><span class="utxt">Low</span></label>
+        </div>
+        <div class="urgency-opt umed">
+          <input type="radio" name="urgency" id="u-med" value="medium" checked>
+          <label class="ul" for="u-med"><div class="udot"></div><span class="utxt">Medium</span></label>
+        </div>
+        <div class="urgency-opt uhi">
+          <input type="radio" name="urgency" id="u-hi" value="high">
+          <label class="ul" for="u-hi"><div class="udot"></div><span class="utxt">High</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Deadline</label>
+      <input type="date" id="f-deadline"/>
+      <div class="hint">Leave blank if flexible</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Jira / Linear ticket</label>
+      <input type="text" id="f-jira" placeholder="e.g. MFD-114 (optional)"/>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <div class="footer-note">Goes straight into the design team's inbox.<br>You'll hear back within 1 working day.</div>
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit request</button>
+  </div>
+</div>
+
+<div class="success" id="successCard">
+  <div class="success-icon">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11.5l5 5 9-9" stroke="#1D9E75" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="success-title">Request submitted</div>
+  <div class="success-sub">The design team has received your request and will assign it shortly.</div>
+  <div class="success-detail" id="successDetail"></div>
+  <button class="another-btn" onclick="resetForm()">Submit another request</button>
+</div>
+
+<script>
+const SB='https://jthtaiqwsznazjdtahcs.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHRhaXF3c3puYXpqZHRhaGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTk2NDUsImV4cCI6MjA5MTg3NTY0NX0.gRJ2YDdSZj-DnkSS3rfhLEcRaqz7a-HIqgqKv-pAOT8';
+const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
+
+function uc(i,c,m){document.getElementById(c).textContent=document.getElementById(i).value.length+' / '+m;}
+
+function validate(){
+  document.querySelectorAll('.err').forEach(e=>e.classList.remove('err'));
+  document.getElementById('errBanner').style.display='none';
+  let ok=true;
+  ['f-pm','f-product','f-title','f-desc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el.value.trim()){el.classList.add('err');ok=false;}
+  });
+  if(!ok){const b=document.getElementById('errBanner');b.textContent='Please fill in all required fields.';b.style.display='block';}
+  return ok;
+}
+
+async function submitForm(){
+  if(!validate()) return;
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='Submitting…';
+  const payload={
+    pm_name:     document.getElementById('f-pm').value.trim(),
+    product:     document.getElementById('f-product').value,
+    title:       document.getElementById('f-title').value.trim(),
+    description: document.getElementById('f-desc').value.trim(),
+    urgency:     document.querySelector('input[name=urgency]:checked')?.value||'medium',
+    deadline:    document.getElementById('f-deadline').value||null,
+    jira_ref:    document.getElementById('f-jira').value.trim()||null,
+    assigned:false,read:false
+  };
+  try{
+    const res=await fetch(`${SB}/rest/v1/requests`,{method:'POST',headers:H,body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error(await res.text());
+    showSuccess(payload);
+  }catch(e){
+    console.error(e);
+    const b=document.getElementById('errBanner');
+    b.textContent='Could not submit — please try again or contact the design team.';
+    b.style.display='block';
+    btn.disabled=false;btn.textContent='Submit request';
+  }
+}
+
+function showSuccess(d){
+  document.getElementById('formCard').style.display='none';
+  document.getElementById('successCard').style.display='block';
+  const uc2={low:'var(--green)',medium:'var(--amber)',high:'var(--red)'};
+  const ul={low:'Low',medium:'Medium',high:'High'};
+  const rows=[
+    {k:'From',v:d.pm_name},{k:'Product',v:d.product},{k:'Request',v:d.title},
+    {k:'Urgency',v:`<span style="color:${uc2[d.urgency]};font-weight:500">${ul[d.urgency]}</span>`},
+    d.deadline?{k:'Deadline',v:new Date(d.deadline+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}:null,
+    d.jira_ref?{k:'Jira ref',v:d.jira_ref}:null,
+  ].filter(Boolean);
+  document.getElementById('successDetail').innerHTML=rows.map(r=>`<div class="sd-row"><span class="sd-k">${r.k}</span><span class="sd-v">${r.v}</span></div>`).join('');
+}
+
+function resetForm(){
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('successCard').style.display='none';
+  document.getElementById('submitBtn').disabled=false;
+  document.getElementById('submitBtn').textContent='Submit request';
+  ['f-pm','f-title','f-desc','f-jira','f-deadline'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-product').value='';
+  document.getElementById('u-med').checked=true;
+  document.getElementById('tc').textContent='0 / 80';
+  document.getElementById('dc').textContent='0 / 500';
+  document.getElementById('errBanner').style.display='none';
+}
+</script>
+</body>
+</html>
