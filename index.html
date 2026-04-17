@@ -886,19 +886,8 @@ function renderSkills(){
   </div>
   <div class="section-row2" style="margin-top:0"><span style="font-size:12px;font-weight:500;color:var(--text)">By designer</span></div>
   <div class="designer-radar-grid" id="designerRadarGrid">
-    ${designers.map((d,i)=>{
-      const hasRatings=(skillRatings||[]).some(r=>r.designer_name===d);
-      return`<div class="designer-radar-card">
-        <div class="avatar ${AV[i%AV.length]}" style="width:32px;height:32px;font-size:11px">${iniFor(d)}</div>
-        <div class="drc-name">${d}</div>
-        ${hasRatings
-          ?`<canvas class="spider-canvas" id="spider-${d.replace(/\s+/g,'_')}" width="220" height="220"></canvas>`
-          :`<div style="width:180px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%">
-              <div style="font-size:11px;color:var(--text3);text-align:center;padding:0 24px;line-height:1.5">Rate skills to<br>see chart</div>
-              <button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRatingModal()">Rate →</button>
-            </div>`}
-      </div>`;
-    }).join('')}
+    ${buildDesignerRadarCards(designers)}
+  </div>
   </div>
   <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">By project / task</span></div>
   <div class="panel">
@@ -942,6 +931,23 @@ function renderStarsStatic(n){
 // ═══════════════════════════════════════════════════════
 //  SPIDER CHART DRAWING
 // ═══════════════════════════════════════════════════════
+function spiderId(name){return 'spider-'+name.split('').map(c=>/\s/.test(c)?'_':c).join('');}
+function slug(s){return s.split('').map(c=>/\s/.test(c)?'_':c).join('');}
+
+function buildDesignerRadarCards(designers){
+  return (designers||[]).map((d,i)=>{
+    const hasRatings=(skillRatings||[]).some(r=>r.designer_name===d);
+    const sid=spiderId(d);
+    const av=AV[i%AV.length];
+    const ini=iniFor(d);
+    if(hasRatings){
+      return '<div class="designer-radar-card"><div class="avatar '+av+'" style="width:32px;height:32px;font-size:11px">'+ini+'</div><div class="drc-name">'+d+'</div><canvas class="spider-canvas" id="'+sid+'" width="220" height="220"></canvas></div>';
+    } else {
+      return '<div class="designer-radar-card"><div class="avatar '+av+'" style="width:32px;height:32px;font-size:11px">'+ini+'</div><div class="drc-name">'+d+'</div><div style="width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%"><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 20px;line-height:1.5">Rate skills to see chart</div><button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRatingModal()">Rate \u2192</button></div></div>';
+    }
+  }).join('');
+}
+
 function drawAllSpiders(){
   (DESIGNERS||[]).forEach(d=>drawSpider(d.name));
 }
@@ -1081,10 +1087,10 @@ function openSkillRatingModal(){
       <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text)">${s}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Self rating</div>
-          <div class="star-row" id="self-${s.replace(/\s+/g,'_')}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('self','${s}',${n})" id="self-${s.replace(/\s+/g,'_')}-${n}">★</span>`).join('')}</div>
+          <div class="star-row" id="self-${slug(s)}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('self','${s}',${n})" id="self-${slug(s)}-${n}">★</span>`).join('')}</div>
         </div>
         <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Head rating</div>
-          <div class="star-row" id="head-${s.replace(/\s+/g,'_')}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('head','${s}',${n})" id="head-${s.replace(/\s+/g,'_')}-${n}">★</span>`).join('')}</div>
+          <div class="star-row" id="head-${slug(s)}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('head','${s}',${n})" id="head-${slug(s)}-${n}">★</span>`).join('')}</div>
         </div>
       </div>
     </div>`).join('');
