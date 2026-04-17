@@ -345,14 +345,15 @@ function toast(msg,dur=2200){
 
 async function loadAll(){
   try{
-    [DESIGNERS,tasks,timeLogs,requests,uxLogs,skillRatings]=await Promise.all([
+    [DESIGNERS,tasks,timeLogs,requests]=await Promise.all([
       sb('designers?select=*&order=avatar_index'),
       sb('tasks?select=*&order=sort_order.asc,created_at.desc'),
       sb('time_logs?select=*&order=created_at.desc'),
       sb('requests?select=*&order=created_at.desc'),
-      sb('ux_logs?select=*&order=created_at.desc'),
-      sb('skill_ratings?select=*&order=created_at.desc'),
     ]);
+    // Load UX/skills tables separately so they don't break main load
+    try{ uxLogs=await sb('ux_logs?select=*&order=created_at.desc'); }catch(e){ uxLogs=[]; }
+    try{ skillRatings=await sb('skill_ratings?select=*&order=created_at.desc'); }catch(e){ skillRatings=[]; }
     updateBadge();
     document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
     render();
