@@ -393,7 +393,7 @@ function render(){
   else if(currentView==='reports')  c.innerHTML=renderReports();
   else if(currentView==='capacity') c.innerHTML=renderCapacity();
   else if(currentView==='uximpact') c.innerHTML=renderUXImpact();
-  else if(currentView==='skills')   {c.innerHTML=renderSkills();drawAllSpiders();}
+  else if(currentView==='skills')   {c.innerHTML=renderSkills();setTimeout(drawAllSpiders,50);}
 }
 
 function renderMetrics(){
@@ -823,7 +823,28 @@ function renderUXImpact(){
     </div>
   </div>
   ${logs.length===0
-    ?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:48px;text-align:center;color:var(--text3);font-size:13px">No impact logs yet.<br><br><button class="btn accent" onclick="openUXLogModal()">Log your first one</button></div>`
+    ?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 32px;text-align:center">
+        <div style="width:44px;height:44px;border-radius:12px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 16l4-4 3 3 5-6 4 3" stroke="#185FA5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="18" height="18" rx="3" stroke="#185FA5" stroke-width="1.6"/></svg>
+        </div>
+        <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px">No impact logs yet</div>
+        <div style="font-size:13px;color:var(--text2);max-width:320px;margin:0 auto 20px;line-height:1.6">After a feature goes live, log UX data here — task success rates, drop-offs, CSAT, and qualitative observations.</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:24px">
+          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
+            <div style="font-size:18px;font-weight:500;color:var(--green)">78%</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Task success</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
+            <div style="font-size:18px;font-weight:500;color:var(--blue)">42s</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Time on task</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
+            <div style="font-size:18px;font-weight:500;color:var(--amber)">4.2</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">CSAT score</div>
+          </div>
+        </div>
+        <button class="btn accent" onclick="openUXLogModal()">Log your first impact</button>
+      </div>`
     :logs.map(l=>`<div class="impact-card">
       <div class="impact-head">
         <div>
@@ -865,17 +886,29 @@ function renderSkills(){
   </div>
   <div class="section-row2" style="margin-top:0"><span style="font-size:12px;font-weight:500;color:var(--text)">By designer</span></div>
   <div class="designer-radar-grid" id="designerRadarGrid">
-    ${designers.map((d,i)=>`<div class="designer-radar-card">
-      <div class="avatar ${AV[i%AV.length]}" style="width:32px;height:32px;font-size:11px">${iniFor(d)}</div>
-      <div class="drc-name">${d}</div>
-      <canvas class="spider-canvas" id="spider-${d.replace(/\s+/g,'_')}" width="220" height="220"></canvas>
-    </div>`).join('')}
+    ${designers.map((d,i)=>{
+      const hasRatings=(skillRatings||[]).some(r=>r.designer_name===d);
+      return`<div class="designer-radar-card">
+        <div class="avatar ${AV[i%AV.length]}" style="width:32px;height:32px;font-size:11px">${iniFor(d)}</div>
+        <div class="drc-name">${d}</div>
+        ${hasRatings
+          ?`<canvas class="spider-canvas" id="spider-${d.replace(/\s+/g,'_')}" width="220" height="220"></canvas>`
+          :`<div style="width:180px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%">
+              <div style="font-size:11px;color:var(--text3);text-align:center;padding:0 24px;line-height:1.5">Rate skills to<br>see chart</div>
+              <button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRatingModal()">Rate →</button>
+            </div>`}
+      </div>`;
+    }).join('')}
   </div>
   <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">By project / task</span></div>
   <div class="panel">
     <div class="ph"><span class="pt">Skills per task</span></div>
     ${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).length===0
-      ?`<div class="empty-state">No skills tagged yet — tag skills when adding tasks</div>`
+      ?`<div style="padding:24px;text-align:center">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:12px">No skills tagged yet</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Tag skills when adding a task, or edit existing tasks to add skills</div>
+          <button class="btn accent" onclick="openAddTask()">+ Add a task with skills</button>
+        </div>`
       :`<div class="project-skill-list">${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).map(t=>`<div class="psk-row">
         <div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">${t.designer_name}</div></div>
         <div style="display:flex;flex-wrap:wrap;gap:4px">${(t.skills||[]).map(s=>{const sk=SKILLS.find(x=>x.name===s);return`<span class="skill-chip selected" style="background:${sk?sk.color:'#888'};border-color:${sk?sk.color:'#888'}">${s}</span>`;}).join('')}</div>
@@ -1000,6 +1033,7 @@ function openUXLogModal(){
 function closeUXModal(){document.getElementById('uxModalOverlay').classList.remove('open');}
 
 async function submitUXLog(){
+  if(!uxTaskId){toast('Please select a task first');return;}
   const btn=document.getElementById('uxSubmitBtn');
   btn.disabled=true;btn.textContent='Saving…';
   const t=tasks.find(x=>x.id===uxTaskId);
@@ -1071,6 +1105,7 @@ function closeSkillModal(){document.getElementById('srModalOverlay').classList.r
 async function submitSkillRatings(){
   const btn=document.getElementById('srSubmitBtn');
   btn.disabled=true;btn.textContent='Saving…';
+  if(!ratingTaskId){toast('Please select a task first');btn.disabled=false;btn.textContent='Save ratings';return;}
   const t=tasks.find(x=>x.id===ratingTaskId);
   const skills=t&&t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
   const today=new Date().toISOString().split('T')[0];
@@ -1202,9 +1237,13 @@ initLock();
       <button class="modal-close" onclick="closeUXModal()">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
-        <div style="font-size:12px;font-weight:500" id="ux-task-label">Task name</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="ux-designer-label">Designer</div>
+      <div class="mfield">
+        <label>Task</label>
+        <select id="ux-task-select" onchange="onUXTaskSelect()"><option value="">Select a task…</option></select>
+      </div>
+      <div id="ux-task-info" style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;margin-top:-8px;display:flex;gap:8px;min-height:32px;align-items:center">
+        <div style="font-size:12px;font-weight:500;flex:1" id="ux-task-label"></div>
+        <div style="font-size:11px;color:var(--text3)" id="ux-designer-label"></div>
       </div>
       <div class="mfield">
         <label>Date went live</label>
@@ -1241,11 +1280,15 @@ initLock();
       <button class="modal-close" onclick="closeSkillModal()">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
-        <div style="font-size:12px;font-weight:500" id="sr-task-label">Task name</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="sr-designer-label">Designer</div>
+      <div class="mfield">
+        <label>Task</label>
+        <select id="sr-task-select" onchange="onSRTaskSelect()"><option value="">Select a task…</option></select>
       </div>
-      <div id="sr-skills-container" style="margin-top:4px"></div>
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;margin-top:-8px;display:flex;gap:8px;min-height:32px;align-items:center">
+        <div style="font-size:12px;font-weight:500;flex:1" id="sr-task-label"></div>
+        <div style="font-size:11px;color:var(--text3)" id="sr-designer-label"></div>
+      </div>
+      <div id="sr-skills-container" style="margin-top:8px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeSkillModal()">Cancel</button>
