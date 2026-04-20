@@ -17,7 +17,7 @@
   --amber:#854F0B;--amber-light:#FAEEDA;
   --red:#A32D2D;--red-light:#FCEBEB;
   --purple:#3C3489;--purple-light:#EEEDFE;
-  --r-md:8px;--r-lg:12px;--r-xl:16px;
+  --r-md:8px;--r-lg:12px;
   --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
 }
 html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--text)}
@@ -29,11 +29,9 @@ html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t
 .nav{padding:8px;flex:1;overflow-y:auto}
 .nl{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;padding:10px 8px 4px}
 .ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--r-md);font-size:13px;color:var(--text2);cursor:pointer;transition:all .12s;user-select:none}
-.ni svg{flex-shrink:0;opacity:.7}
 .ni:hover{background:var(--surface2);color:var(--text)}
 .ni.active{background:var(--surface2);color:var(--text);font-weight:500}
-.ni.active svg{opacity:1}
-.nbadge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center}
+.nbadge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;display:none}
 .timer-mini{margin:0 8px 12px;background:var(--surface2);border-radius:var(--r-lg);padding:11px 12px;border:1px solid var(--border)}
 .tm-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .tm-d{font-size:20px;font-weight:500;color:var(--text);font-family:var(--mono);letter-spacing:.02em}
@@ -61,7 +59,6 @@ html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t
 .ph{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between}
 .pt{font-size:12px;font-weight:500}
 .pa{font-size:11px;color:var(--blue);cursor:pointer;background:none;border:none;font-family:var(--font);padding:0;font-weight:500}
-.pa:hover{opacity:.75}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 th{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:9px 13px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2)}
 td{padding:9px 13px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle}
@@ -79,9 +76,8 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .s-review{background:var(--amber-light);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
 .ds-sel{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--surface2);color:var(--text);font-family:var(--font);cursor:pointer;width:100%}
-.ds-sel:focus{outline:none}
-.bar-bg{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-.bar-fill{height:4px;border-radius:2px;transition:width .4s}
+.bar-bg{height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex:1}
+.bar-fill{height:4px;border-radius:2px}
 .bf-blue{background:#378ADD}.bf-green{background:var(--green)}.bf-amber{background:#EF9F27}.bf-red{background:var(--accent)}.bf-purple{background:#7F77DD}
 .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
 .av0{background:var(--blue-light);color:var(--blue)}.av1{background:var(--green-light);color:var(--green)}
@@ -90,7 +86,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .log-row:last-child{border-bottom:none}
 .log-row:hover{background:var(--surface2)}
 .log-dur{font-size:12px;font-weight:500;font-family:var(--mono);min-width:44px;text-align:right}
-.play-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .12s}
+.play-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .play-btn:hover{background:var(--surface2)}
 .two-col{display:grid;grid-template-columns:1fr 288px;gap:14px;margin-bottom:14px}
 .section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -100,12 +96,11 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .fb:hover{background:var(--surface2);color:var(--text)}
 .fb.active{background:var(--text);color:var(--surface);border-color:var(--text)}
 .inbox-item{padding:10px 14px;border-bottom:1px solid var(--border);transition:background .12s}
-.inbox-item:last-child{border-bottom:none}
 .inbox-item:hover{background:var(--surface2)}
+.inbox-item:last-child{border-bottom:none}
 .ii-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
 .ii-dot.read{background:var(--border2)}
 .assign-btn{font-size:10px;background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--r-md);padding:3px 8px;cursor:pointer;font-family:var(--font);font-weight:500}
-.assign-btn:hover{opacity:.8}
 .ai-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:4px}
 .ai-head{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:7px}
 .ai-pulse{width:7px;height:7px;border-radius:50%;background:var(--green)}
@@ -116,25 +111,21 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .chip:hover{background:var(--surface2);color:var(--text)}
 .ai-ir{display:flex;gap:7px;padding:10px 14px;border-top:1px solid var(--border)}
 .ai-inp{flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--font)}
-.ai-inp:focus{outline:none;border-color:var(--border2)}
+.ai-inp:focus{outline:none}
 .thinking{display:flex;gap:4px;align-items:center;padding:4px 0}
 .td2{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:blink 1.1s ease-in-out infinite}
 .td2:nth-child(2){animation-delay:.18s}.td2:nth-child(3){animation-delay:.36s}
 @keyframes blink{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
-.loading-state{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text3);font-size:13px;gap:8px}
-.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--text2);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty-state{padding:32px;text-align:center;font-size:12px;color:var(--text3)}
 .modal-overlay{position:fixed;inset:0;background:rgba(26,25,23,.45);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .18s}
 .modal-overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:480px;max-width:calc(100vw - 32px);overflow:hidden;transform:translateY(8px) scale(.98);transition:transform .18s}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:480px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;transform:translateY(8px) scale(.98);transition:transform .18s}
 .modal-overlay.open .modal{transform:translateY(0) scale(1)}
-.modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
 .modal-title{font-size:15px;font-weight:500;letter-spacing:-.01em}
 .modal-close{width:28px;height:28px;border-radius:var(--r-md);border:1px solid var(--border);background:transparent;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .12s;font-family:var(--font)}
 .modal-close:hover{background:var(--surface2)}
 .modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
 .mfield{display:flex;flex-direction:column;gap:5px}
 .mrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mfield label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
@@ -145,67 +136,47 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .name-opt{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:var(--r-md);cursor:pointer;transition:background .12s}
 .name-opt:hover{background:var(--surface2)}
 .name-opt.selected{background:var(--blue-light)}
-.name-opt input[type=radio]{accent-color:var(--blue);cursor:pointer}
 .or-add{display:flex;align-items:center;gap:8px;margin-top:4px}
 .or-add input{flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--font)}
 .or-add input:focus{outline:none;border-color:var(--blue)}
 .or-add input::placeholder{color:var(--text3)}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:var(--surface);padding:9px 18px;border-radius:var(--r-lg);font-size:12px;font-weight:500;opacity:0;transition:all .25s;z-index:2000;white-space:nowrap}
+.skill-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none;margin:2px}
+.skill-chip.off{background:var(--surface2);color:var(--text2);border-color:var(--border)}
+.skill-chip.off:hover{border-color:var(--border2)}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:12px}
+.impact-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.im{background:var(--surface2);border-radius:var(--r-md);padding:8px 10px;text-align:center}
+.im-val{font-size:16px;font-weight:500}
+.im-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.qual-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.qual-box{background:var(--surface2);border-radius:var(--r-md);padding:10px}
+.qual-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.qual-text{font-size:12px;color:var(--text2);line-height:1.5}
+.spider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.spider-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.star{font-size:16px;cursor:pointer;transition:color .1s}
+.star.on{color:#EF9F27}
+.star.off{color:var(--border2)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:var(--surface);padding:9px 18px;border-radius:var(--r-lg);font-size:12px;font-weight:500;opacity:0;transition:all .25s;z-index:2000;white-space:nowrap;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-.lock-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:24px}
+.empty{padding:40px;text-align:center;font-size:13px;color:var(--text3)}
+.lock-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
 .lock-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:16px}
 .lock-logo{width:44px;height:44px;border-radius:12px;background:var(--accent);display:flex;align-items:center;justify-content:center}
-.lock-title{font-size:16px;font-weight:500;letter-spacing:-.02em;color:var(--text);text-align:center;margin-bottom:-8px}
-.lock-sub{font-size:12px;color:var(--text2);text-align:center;line-height:1.5}
-.lock-input-wrap{width:100%;display:flex;flex-direction:column;gap:8px}
-.lock-input{width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--mono);letter-spacing:.18em;text-align:center;transition:border-color .15s,background .15s}
+.lock-title{font-size:16px;font-weight:500;color:var(--text)}
+.lock-sub{font-size:12px;color:var(--text2);text-align:center;line-height:1.5;margin-top:-8px}
+.lock-input{width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--mono);letter-spacing:.18em;text-align:center;transition:all .15s}
 .lock-input:focus{outline:none;border-color:var(--blue);background:var(--surface)}
-.lock-input.shake{animation:shake .35s ease}
-.lock-input.error{border-color:var(--accent)!important;background:var(--red-light)!important}
+.lock-input.err{border-color:var(--accent);background:var(--red-light)}
 .lock-err{font-size:12px;color:var(--red);text-align:center;min-height:16px;font-weight:500}
 .lock-btn{width:100%;padding:10px;font-size:13px;font-weight:500;border:none;border-radius:var(--r-md);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font);transition:all .15s}
 .lock-btn:hover{background:var(--accent-dark)}
-.lock-btn:active{transform:scale(.98)}
-.lock-footer{font-size:11px;color:var(--text3);text-align:center}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
-
-.skill-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none}
-.skill-chip.selected{color:#fff}
-.skill-chip:not(.selected){background:var(--surface2);color:var(--text2);border-color:var(--border)}
-.skill-chip:not(.selected):hover{border-color:var(--border2);color:var(--text)}
-.star-row{display:flex;gap:4px}
-.star{font-size:18px;cursor:pointer;color:var(--border2);transition:color .1s;line-height:1}
-.star.on{color:#EF9F27}
-.star:hover{color:#EF9F27}
-.section-row2{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:18px}
-.radar-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.spider-canvas{width:100%;aspect-ratio:1;max-width:260px;margin:0 auto;display:block}
-.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
-.impact-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
-.impact-task{font-size:13px;font-weight:500;color:var(--text)}
-.impact-date{font-size:11px;color:var(--text3);white-space:nowrap}
-.impact-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.impact-metric{background:var(--surface2);border-radius:var(--r-md);padding:8px 10px;text-align:center}
-.impact-metric-val{font-size:16px;font-weight:500;color:var(--text)}
-.impact-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
-.qual-section{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.qual-item{background:var(--surface2);border-radius:var(--r-md);padding:8px 10px}
-.qual-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
-.qual-text{font-size:12px;color:var(--text2);line-height:1.5}
-.export-btn{padding:6px 12px;font-size:11px;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);font-weight:500;transition:all .12s}
-.export-btn:hover{background:var(--surface2);color:var(--text)}
-.skill-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
-.designer-radar-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
-.designer-radar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px}
-.drc-name{font-size:12px;font-weight:500;color:var(--text)}
-.project-skill-list{display:flex;flex-direction:column;gap:8px}
-.psk-row{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--border);font-size:12px}
-.psk-row:last-child{border-bottom:none}
+.lock-footer{font-size:11px;color:var(--text3)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.shake{animation:shake .35s ease}
 </style>
 </head>
 <body>
-
 <div class="app">
   <div class="sidebar">
     <div class="logo">
@@ -216,7 +187,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni active" onclick="go('dashboard')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/></svg>Dashboard</div>
       <div class="nl">Work</div>
       <div class="ni" onclick="go('sprint')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Sprint tasks</div>
-      <div class="ni" onclick="go('inbox')" id="inboxNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.1"/><path d="M2 7h3l1.5 2h1L9 7h3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>PM requests<span class="nbadge" id="inboxBadge" style="display:none">0</span></div>
+      <div class="ni" onclick="go('inbox')" id="inboxNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.1"/><path d="M2 7h3l1.5 2h1L9 7h3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>PM requests<span class="nbadge" id="inboxBadge">0</span></div>
       <div class="nl">Time</div>
       <div class="ni" onclick="go('timelog')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7.5" r="5" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v3l2 1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M5.5 1.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Time log</div>
       <div class="ni" onclick="go('reports')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 9V7M7 9V5M9 9V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Reports</div>
@@ -224,7 +195,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" onclick="go('capacity')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 12c0-2 1.567-3.5 3.5-3.5S8.5 10 8.5 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M12 12c0-1.5-1.2-2.8-2.5-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Capacity</div>
       <div class="nl">Growth</div>
       <div class="ni" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
-      <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1 9,5 13,5.5 10,8.5 10.8,13 7,11 3.2,13 4,8.5 1,5.5 5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
+      <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
     </div>
     <div class="timer-mini">
       <div class="tm-l">Timer</div>
@@ -236,505 +207,611 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       </div>
     </div>
   </div>
-
   <div class="main">
     <div class="topbar">
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
-      <button class="btn" onclick="quickAddTime()">+ Log time</button>
+      <button class="btn" onclick="quickLog()">+ Log time</button>
       <button class="btn accent" onclick="openAddTask()">+ Add task</button>
     </div>
-    <div class="content" id="content"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
+    <div class="content" id="content"><div class="empty">Loading…</div></div>
   </div>
 </div>
 
 <!-- ADD TASK MODAL -->
-<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+<div class="modal-overlay" id="moAdd" onclick="if(event.target===this)closeModal('moAdd')">
   <div class="modal">
-    <div class="modal-head">
-      <span class="modal-title">Add task</span>
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
+    <div class="modal-head"><span class="modal-title">Add task</span><button class="modal-close" onclick="closeModal('moAdd')">&#x2715;</button></div>
     <div class="modal-body">
-      <div class="mfield">
-        <label>Task name</label>
-        <input type="text" id="f-name" placeholder="e.g. MF redesign – onboarding flow"/>
-      </div>
+      <div class="mfield"><label>Task name</label><input type="text" id="f-name" placeholder="e.g. Dark mode pass"/></div>
       <div class="mfield">
         <label>Assign to designer</label>
         <div class="name-options" id="name-options"></div>
-        <div class="or-add">
-          <input type="text" id="f-newname" placeholder="Or type a new name…"/>
-        </div>
+        <div class="or-add"><input type="text" id="f-newname" placeholder="Or type a new name…"/></div>
       </div>
       <div class="mrow">
-        <div class="mfield"><label>Priority</label>
-          <select id="f-priority"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select>
-        </div>
-        <div class="mfield"><label>Status</label>
-          <select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="review">Review</option><option value="done">Done</option></select>
-        </div>
+        <div class="mfield"><label>Priority</label><select id="f-priority"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+        <div class="mfield"><label>Status</label><select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="review">Review</option><option value="done">Done</option></select></div>
       </div>
       <div class="mrow">
-        <div class="mfield"><label>Effort (pts)</label>
-          <select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select>
-        </div>
-        <div class="mfield"><label>Jira ref</label>
-          <input type="text" id="f-jira" placeholder="e.g. MFD-113"/>
-        </div>
+        <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
+        <div class="mfield"><label>Jira ref</label><input type="text" id="f-jira" placeholder="e.g. VEN-91"/></div>
       </div>
-      <div class="mfield">
-        <label>Skills practiced</label>
-        <div id="skill-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px"></div>
-      </div>
-      <div class="mfield">
-        <label>Notes (optional)</label>
-        <textarea id="f-notes" placeholder="Any context for the team…"></textarea>
-      </div>
+      <div class="mfield"><label>Skills practiced</label><div id="skill-chips" style="display:flex;flex-wrap:wrap;margin-top:2px"></div></div>
+      <div class="mfield"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Context for the team…"></textarea></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn accent" id="submitTaskBtn" onclick="submitTask()">Add task</button>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('moAdd')">Cancel</button><button class="btn accent" id="btnAddTask" onclick="submitTask()">Add task</button></div>
+  </div>
+</div>
+
+<!-- UX LOG MODAL -->
+<div class="modal-overlay" id="moUX" onclick="if(event.target===this)closeModal('moUX')">
+  <div class="modal" style="width:540px">
+    <div class="modal-head"><span class="modal-title">Log UX impact</span><button class="modal-close" onclick="closeModal('moUX')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="mfield"><label>Task</label><select id="ux-task" onchange="onUXTask()"><option value="">Select task…</option></select></div>
+      <div id="ux-task-info" style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;min-height:32px">
+        <span id="ux-task-name" style="font-size:12px;font-weight:500"></span>
+        <span id="ux-designer" style="font-size:11px;color:var(--text3);margin-left:8px"></span>
+      </div>
+      <div class="mfield"><label>Date went live</label><input type="date" id="ux-date"/></div>
+      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Quantitative</div>
+      <div class="mrow">
+        <div class="mfield"><label>Task success (%)</label><input type="number" id="ux-success" placeholder="e.g. 78" min="0" max="100"/></div>
+        <div class="mfield"><label>Time on task (s)</label><input type="number" id="ux-time" placeholder="e.g. 45"/></div>
+      </div>
+      <div class="mrow">
+        <div class="mfield"><label>Drop-off (%)</label><input type="number" id="ux-dropoff" placeholder="e.g. 22" min="0" max="100"/></div>
+        <div class="mfield"><label>CSAT (1–5)</label><input type="number" id="ux-csat" placeholder="e.g. 4.2" min="1" max="5" step="0.1"/></div>
+      </div>
+      <div class="mfield"><label>Sample size</label><input type="number" id="ux-sample" placeholder="Users tested"/></div>
+      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Qualitative</div>
+      <div class="mfield"><label>Observations</label><textarea id="ux-obs" placeholder="What did you observe?"></textarea></div>
+      <div class="mfield"><label>User feedback</label><textarea id="ux-feedback" placeholder="Direct quotes or themes"></textarea></div>
+      <div class="mfield"><label>Issues found</label><textarea id="ux-issues" placeholder="Usability issues, friction points"></textarea></div>
+      <div class="mfield"><label>What worked well</label><textarea id="ux-worked" placeholder="Patterns to repeat"></textarea></div>
     </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('moUX')">Cancel</button><button class="btn accent" id="btnUX" onclick="submitUXLog()">Save log</button></div>
+  </div>
+</div>
+
+<!-- SKILL RATING MODAL -->
+<div class="modal-overlay" id="moSkill" onclick="if(event.target===this)closeModal('moSkill')">
+  <div class="modal" style="width:520px">
+    <div class="modal-head"><span class="modal-title">Rate skills</span><button class="modal-close" onclick="closeModal('moSkill')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="mfield"><label>Task</label><select id="sk-task" onchange="onSKTask()"><option value="">Select task…</option></select></div>
+      <div id="sk-task-info" style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;min-height:32px">
+        <span id="sk-task-name" style="font-size:12px;font-weight:500"></span>
+        <span id="sk-designer" style="font-size:11px;color:var(--text3);margin-left:8px"></span>
+      </div>
+      <div id="sk-skills-container"></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('moSkill')">Cancel</button><button class="btn accent" id="btnSkill" onclick="submitSkillRatings()">Save ratings</button></div>
+  </div>
+</div>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
+    <div class="lock-title">Design Radar</div>
+    <div class="lock-sub">Enter the team passcode to continue</div>
+    <input class="lock-input" id="lockInput" type="password" placeholder="••••••••" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')checkPasscode()"/>
+    <div class="lock-err" id="lockErr"></div>
+    <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
+    <div class="lock-footer">Design team access only</div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const SB='https://jthtaiqwsznazjdtahcs.supabase.co';
-const SKILLS=[
+const SB = 'https://jthtaiqwsznazjdtahcs.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHRhaXF3c3puYXpqZHRhaGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTk2NDUsImV4cCI6MjA5MTg3NTY0NX0.gRJ2YDdSZj-DnkSS3rfhLEcRaqz7a-HIqgqKv-pAOT8';
+const H = {'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+const HR = Object.assign({},H,{'Prefer':'return=representation'});
+
+const SKILLS = [
   {name:'Interaction Design',color:'#378ADD'},
-  {name:'Visual Design',     color:'#7F77DD'},
-  {name:'UX Research',       color:'#1D9E75'},
-  {name:'Design Systems',    color:'#EF9F27'},
-  {name:'Prototyping',       color:'#E24B4A'},
-  {name:'Content / Writing', color:'#D4537E'},
+  {name:'Visual Design',color:'#7F77DD'},
+  {name:'UX Research',color:'#1D9E75'},
+  {name:'Design Systems',color:'#EF9F27'},
+  {name:'Prototyping',color:'#E24B4A'},
+  {name:'Content / Writing',color:'#D4537E'}
 ];
-let selectedSkills=[];
-let uxLogs=[],skillRatings=[];
-const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHRhaXF3c3puYXpqZHRhaGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTk2NDUsImV4cCI6MjA5MTg3NTY0NX0.gRJ2YDdSZj-DnkSS3rfhLEcRaqz7a-HIqgqKv-pAOT8';
-const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
-const HR={...H,'Prefer':'return=representation'};
+const AV = ['av0','av1','av2','av3','av4'];
 
-async function sb(path,opts={}){
-  const res=await fetch(`${SB}/rest/v1/${path}`,{headers:H,...opts});
-  if(!res.ok){const t=await res.text();throw new Error(t);}
-  const ct=res.headers.get('content-type')||'';
-  return ct.includes('json')&&res.status!==204?res.json():null;
-}
-
-let DESIGNERS=[],tasks=[],timeLogs=[],requests=[];
-let currentView='dashboard',sprintFilter='all',logFilter='all';
-let selectedName='';
-let timerRunning=false,timerSecs=0,timerTaskId=null,timerTaskName='',timerInterval=null;
+let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[];
+let view='dashboard', sfilt='all', lfilt='all';
+let selName='', selSkills=[];
+let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
 let dragId=null;
+let uxTaskId=null, skTaskId=null;
+let skSelf={}, skHead={};
 
-const AV=['av0','av1','av2','av3','av4'];
-function avFor(name){const d=DESIGNERS.find(x=>x.name===name);return d?AV[d.avatar_index%AV.length]:'av0';}
-function iniFor(name){const d=DESIGNERS.find(x=>x.name===name);return d?d.initials:name.slice(0,2).toUpperCase();}
-
-function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;}
-function fmtMins(m){if(!m||m<1)return'0m';if(m<60)return`${m}m`;const h=Math.floor(m/60),r=m%60;return r>0?`${h}h ${r}m`:`${h}h`;}
-function fmtDate(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}catch{return iso;}}
-
-function toast(msg,dur=2200){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),dur);
+async function api(path, opts) {
+  const res = await fetch(SB+'/rest/v1/'+path, Object.assign({headers:H}, opts||{}));
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  const ct = res.headers.get('content-type')||'';
+  return (ct.includes('json') && res.status !== 204) ? res.json() : null;
 }
 
+function fmtT(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');}
+function fmtM(m){if(!m||m<1)return'0m';if(m<60)return m+'m';const h=Math.floor(m/60),r=m%60;return r?h+'h '+r+'m':h+'h';}
+function fmtD(iso){try{return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}catch{return iso||'—';}}
+function avFor(n){const d=DESIGNERS.find(x=>x.name===n);return d?AV[d.avatar_index%AV.length]:'av0';}
+function iniFor(n){const d=DESIGNERS.find(x=>x.name===n);return d?d.initials:n?n.slice(0,2).toUpperCase():'?';}
+function slugify(s){return s.replace(/\s+/g,'_');}
+
+function toast(msg,dur){dur=dur||2200;const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+
+// ── LOCK ──────────────────────────────────────────────
+const PASS = 'MISTAKES';
+function checkPasscode(){
+  const inp=document.getElementById('lockInput');
+  const err=document.getElementById('lockErr');
+  if(inp.value.trim().toUpperCase()===PASS){
+    sessionStorage.setItem('dr_ok','1');
+    const ls=document.getElementById('lockScreen');
+    ls.style.opacity='0';ls.style.transition='opacity .3s';
+    setTimeout(()=>ls.style.display='none',300);
+  } else {
+    inp.classList.add('err','shake');
+    err.textContent='Wrong passcode.';
+    setTimeout(()=>{inp.classList.remove('err','shake');err.textContent='';inp.value='';inp.focus();},1200);
+  }
+}
+function initLock(){
+  if(sessionStorage.getItem('dr_ok')==='1'){document.getElementById('lockScreen').style.display='none';}
+  else{setTimeout(()=>document.getElementById('lockInput').focus(),100);}
+}
+
+// ── DATA LOAD ─────────────────────────────────────────
 async function loadAll(){
   try{
-    [DESIGNERS,tasks,timeLogs,requests]=await Promise.all([
-      sb('designers?select=*&order=avatar_index'),
-      sb('tasks?select=*&order=sort_order.asc,created_at.desc'),
-      sb('time_logs?select=*&order=created_at.desc'),
-      sb('requests?select=*&order=created_at.desc'),
+    [DESIGNERS,tasks,timeLogs,requests] = await Promise.all([
+      api('designers?select=*&order=avatar_index'),
+      api('tasks?select=*&order=sort_order.asc,created_at.desc'),
+      api('time_logs?select=*&order=created_at.desc'),
+      api('requests?select=*&order=created_at.desc')
     ]);
-    // Load UX/skills tables separately so they don't break main load
-    try{ uxLogs=await sb('ux_logs?select=*&order=created_at.desc'); }catch(e){ uxLogs=[]; }
-    try{ skillRatings=await sb('skill_ratings?select=*&order=created_at.desc'); }catch(e){ skillRatings=[]; }
-    updateBadge();
-    document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-    render();
-  }catch(e){
-    document.getElementById('content').innerHTML=`<div class="empty-state" style="color:var(--red)">Could not connect to Supabase.<br><small>${e.message}</small></div>`;
+  } catch(e){
+    document.getElementById('content').innerHTML='<div class="empty" style="color:var(--red)">Could not connect to Supabase.<br><small>'+e.message+'</small></div>';
+    return;
   }
+  try{uxLogs=await api('ux_logs?select=*&order=created_at.desc');}catch(e){uxLogs=[];}
+  try{skillRatings=await api('skill_ratings?select=*&order=created_at.desc');}catch(e){skillRatings=[];}
+  document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  updateBadge();
+  render();
 }
 
 function updateBadge(){
   const u=(requests||[]).filter(r=>!r.assigned).length;
   const b=document.getElementById('inboxBadge');
-  if(b){b.textContent=u;b.style.display=u>0?'':'none';}
+  if(b){b.textContent=u;b.style.display=u>0?'inline':'none';}
 }
 
-function getLoad(){
-  const l={};
-  (DESIGNERS||[]).forEach(d=>{l[d.name]={effort:0,count:0,tasks:[],mins:0}});
-  (tasks||[]).forEach(t=>{if(l[t.designer_name]){l[t.designer_name].effort+=t.effort;l[t.designer_name].count++;l[t.designer_name].tasks.push(t);l[t.designer_name].mins+=t.logged_mins||0;}});
-  return l;
-}
-
+// ── NAVIGATION ───────────────────────────────────────
 function go(v){
-  currentView=v;
+  view=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7};
-  document.querySelectorAll('.ni')[map[v]]?.classList.add('active');
+  const nis=document.querySelectorAll('.ni');
+  if(nis[map[v]])nis[map[v]].classList.add('active');
   const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills'};
-  document.getElementById('viewTitle').textContent=titles[v];
+  document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
 
 function render(){
   const c=document.getElementById('content');
-  if(currentView==='dashboard')     c.innerHTML=renderDash();
-  else if(currentView==='sprint')   c.innerHTML=renderSprint();
-  else if(currentView==='inbox')    c.innerHTML=renderInbox();
-  else if(currentView==='timelog')  c.innerHTML=renderTimelog();
-  else if(currentView==='reports')  c.innerHTML=renderReports();
-  else if(currentView==='capacity') c.innerHTML=renderCapacity();
-  else if(currentView==='uximpact') c.innerHTML=renderUXImpact();
-  else if(currentView==='skills')   {c.innerHTML=renderSkills();setTimeout(drawAllSpiders,50);}
+  if(view==='dashboard')c.innerHTML=vDash();
+  else if(view==='sprint')c.innerHTML=vSprint();
+  else if(view==='inbox')c.innerHTML=vInbox();
+  else if(view==='timelog')c.innerHTML=vTimelog();
+  else if(view==='reports')c.innerHTML=vReports();
+  else if(view==='capacity')c.innerHTML=vCapacity();
+  else if(view==='uximpact')c.innerHTML=vUXImpact();
+  else if(view==='skills'){c.innerHTML=vSkills();setTimeout(drawAllSpiders,60);}
 }
 
-function renderMetrics(){
+// ── HELPERS ───────────────────────────────────────────
+function getLoad(){
+  const l={};
+  (DESIGNERS||[]).forEach(d=>{l[d.name]={effort:0,count:0,tasks:[],mins:0};});
+  (tasks||[]).forEach(t=>{if(l[t.designer_name]){l[t.designer_name].effort+=t.effort;l[t.designer_name].count++;l[t.designer_name].tasks.push(t);l[t.designer_name].mins+=(t.logged_mins||0);}});
+  return l;
+}
+
+function metrics(){
   const load=getLoad();
   const over=Object.values(load).filter(l=>l.effort>=8).length;
   const risk=(tasks||[]).filter(t=>t.risk).length;
   const ua=(requests||[]).filter(r=>!r.assigned).length;
   const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
-  return`<div class="metrics">
-    <div class="mc ${risk>0?'red':'green'}"><div class="mc-l">At risk</div><div class="mc-v">${risk}</div><div class="mc-s">${risk>0?'tasks flagged':'all clear'}</div></div>
-    <div class="mc ${over>0?'amber':'green'}"><div class="mc-l">Overloaded</div><div class="mc-v">${over}</div><div class="mc-s">designers</div></div>
-    <div class="mc ${ua>0?'amber':'green'}"><div class="mc-l">PM requests</div><div class="mc-v">${ua}</div><div class="mc-s">unassigned</div></div>
-    <div class="mc blue"><div class="mc-l">Hours logged</div><div class="mc-v">${Math.round(totalMins/60)}h</div><div class="mc-s">${(timeLogs||[]).length} sessions</div></div>
-  </div>`;
+  return '<div class="metrics">'
+    +'<div class="mc '+(risk>0?'red':'green')+'"><div class="mc-l">At risk</div><div class="mc-v">'+risk+'</div><div class="mc-s">'+(risk>0?'tasks flagged':'all clear')+'</div></div>'
+    +'<div class="mc '+(over>0?'amber':'green')+'"><div class="mc-l">Overloaded</div><div class="mc-v">'+over+'</div><div class="mc-s">designers</div></div>'
+    +'<div class="mc '+(ua>0?'amber':'green')+'"><div class="mc-l">PM requests</div><div class="mc-v">'+ua+'</div><div class="mc-s">unassigned</div></div>'
+    +'<div class="mc blue"><div class="mc-l">Hours logged</div><div class="mc-v">'+Math.round(totalMins/60)+'h</div><div class="mc-s">'+((timeLogs||[]).length)+' sessions</div></div>'
+    +'</div>';
 }
 
-function renderDash(){
-  const riskTasks=(tasks||[]).filter(t=>t.risk);
-  const recentLogs=(timeLogs||[]).slice(0,4);
+function aiPanel(ctx){
+  const ph=ctx==='inbox'?'Who should take this?':ctx==='capacity'?'Who has bandwidth?':ctx==='uximpact'?'Summarise UX findings...':ctx==='skills'?'Who is strongest in...':'Ask about the sprint...';
+  return '<div class="ai-wrap"><div class="ai-head"><div class="ai-pulse"></div><span style="font-size:12px;font-weight:500">Radar AI</span><span style="font-size:11px;color:var(--text3);margin-left:4px">design assistant</span></div>'
+    +'<div class="ai-body" id="aiBody">Ask me about bandwidth, risks, time, skill gaps, or get a standup summary.</div>'
+    +'<div class="chips"><button class="chip" onclick="askAI(\'bandwidth\')">Who has bandwidth?</button><button class="chip" onclick="askAI(\'risks\')">Flag risks</button><button class="chip" onclick="askAI(\'time\')">Time breakdown</button><button class="chip" onclick="askAI(\'standup\')">Standup summary</button></div>'
+    +'<div class="ai-ir"><input class="ai-inp" id="aiInput" placeholder="'+ph+'" onkeydown="if(event.key===\'Enter\')sendAI()"/><button class="btn" onclick="sendAI()">Ask</button></div>'
+    +'</div>';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function vDash(){
+  const riskT=(tasks||[]).filter(t=>t.risk);
+  const recentL=(timeLogs||[]).slice(0,4);
   const load=getLoad();
-  const weekNames=['Mon','Tue','Wed','Thu','Fri'];
-  const designerMins=Object.entries(load).map(([n,l])=>({n,m:l.mins})).sort((a,b)=>b.m-a.m);
-  const maxM=Math.max(1,...designerMins.map(d=>d.m));
-  return renderMetrics()+`<div class="two-col">
-    <div>
-      <div class="panel" style="margin-bottom:14px">
-        <div class="ph"><span class="pt">Risk flags</span><button class="pa" onclick="go('sprint')">All tasks →</button></div>
-        ${riskTasks.length===0?`<div class="empty-state">No risks flagged</div>`:`<table><thead><tr><th style="width:42%">Task</th><th style="width:20%">Designer</th><th style="width:38%">Risk</th></tr></thead><tbody>${riskTasks.map(t=>`<tr class="tr"><td><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">${t.jira_ref}</div></td><td style="color:var(--text2)">${t.designer_name}</td><td><span class="risk-pill"><svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1L9 9H1L5 1z" stroke="#A32D2D" stroke-width="1.1"/></svg>${t.risk_note}</span></td></tr>`).join('')}</tbody></table>`}
-      </div>
-      <div class="panel">
-        <div class="ph"><span class="pt">Recent time entries</span><button class="pa" onclick="go('timelog')">Full log →</button></div>
-        ${recentLogs.length===0?`<div class="empty-state">No time logged yet</div>`:recentLogs.map(l=>`<div class="log-row"><div class="avatar ${avFor(l.designer_name)}">${iniFor(l.designer_name)}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">${l.task_name||'Unknown'}</div><div style="font-size:10px;color:var(--text3)">${l.designer_name} · ${fmtDate(l.created_at)} · ${l.note}</div></div><div class="log-dur">${fmtMins(l.mins)}</div></div>`).join('')}
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="panel">
-        <div class="ph"><span class="pt">Team hours</span></div>
-        <div style="padding:12px 14px 8px">
-          <div style="display:flex;align-items:flex-end;gap:6px;height:64px">
-            ${designerMins.slice(0,5).map(d=>{const pct=Math.round((d.m/maxM)*100)||2;return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="font-size:9px;color:var(--text2);font-weight:500">${fmtMins(d.m)}</div><div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:${pct}%;min-height:3px"></div><div style="font-size:9px;color:var(--text3)">${d.n.slice(0,3)}</div></div>`;}).join('')}
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="ph"><span class="pt">Incoming requests</span><button class="pa" onclick="go('inbox')">See all →</button></div>
-        ${(requests||[]).filter(r=>!r.assigned).length===0?`<div class="empty-state">No pending requests</div>`:(requests||[]).filter(r=>!r.assigned).slice(0,3).map(r=>`<div class="inbox-item"><div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:3px"><div class="ii-dot${r.read?' read':''}"></div><span style="font-size:12px;font-weight:500;flex:1">${r.title}</span></div><div style="padding-left:13px;font-size:10px;color:var(--text3)">${r.pm_name} · ${r.product} · <span class="badge ${r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl'}">${r.urgency}</span></div></div>`).join('')}
-      </div>
-    </div>
-  </div>${renderAI()}`;
+  const dm=Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins);
+  const maxM=Math.max(1,...dm.map(d=>d[1].mins));
+  let riskRows='<div class="empty">No risks flagged</div>';
+  if(riskT.length>0){riskRows='<table><thead><tr><th style="width:42%">Task</th><th style="width:20%">Designer</th><th style="width:38%">Risk</th></tr></thead><tbody>'+riskT.map(t=>'<tr class="tr"><td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.jira_ref+'</div></td><td style="color:var(--text2)">'+t.designer_name+'</td><td><span class="risk-pill">'+t.risk_note+'</span></td></tr>').join('')+'</tbody></table>';}
+  let logRows='<div class="empty">No time logged yet</div>';
+  if(recentL.length>0){logRows=recentL.map(l=>'<div class="log-row"><div class="avatar '+avFor(l.designer_name)+'">'+iniFor(l.designer_name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+l.task_name+'</div><div style="font-size:10px;color:var(--text3)">'+l.designer_name+' · '+fmtD(l.created_at)+' · '+l.note+'</div></div><div class="log-dur">'+fmtM(l.mins)+'</div></div>').join('');}
+  const barCols=dm.slice(0,5).map(d=>{const pct=Math.round((d[1].mins/maxM)*100)||2;return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="font-size:9px;color:var(--text2);font-weight:500">'+fmtM(d[1].mins)+'</div><div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:3px"></div><div style="font-size:9px;color:var(--text3)">'+d[0].slice(0,3)+'</div></div>';}).join('');
+  const reqCards=(requests||[]).filter(r=>!r.assigned).slice(0,3).map(r=>'<div class="inbox-item"><div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:3px"><div class="ii-dot'+(r.read?' read':'')+'"></div><span style="font-size:12px;font-weight:500;flex:1">'+r.title+'</span></div><div style="padding-left:13px;font-size:10px;color:var(--text3)">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span></div></div>').join('')||'<div class="empty">No pending requests</div>';
+  return metrics()
+    +'<div class="two-col">'
+    +'<div><div class="panel" style="margin-bottom:14px"><div class="ph"><span class="pt">Risk flags</span><button class="pa" onclick="go(\'sprint\')">All tasks →</button></div>'+riskRows+'</div>'
+    +'<div class="panel"><div class="ph"><span class="pt">Recent time entries</span><button class="pa" onclick="go(\'timelog\')">Full log →</button></div>'+logRows+'</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:14px">'
+    +'<div class="panel"><div class="ph"><span class="pt">Team hours</span></div><div style="padding:12px 14px 8px"><div style="display:flex;align-items:flex-end;gap:6px;height:64px">'+barCols+'</div></div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">Incoming requests</span><button class="pa" onclick="go(\'inbox\')">See all →</button></div>'+reqCards+'</div>'
+    +'</div></div>'
+    +aiPanel();
 }
 
-function renderSprint(){
+// ── SPRINT ────────────────────────────────────────────
+function vSprint(){
   let filtered=(tasks||[]);
-  if(sprintFilter==='risk') filtered=filtered.filter(t=>t.risk);
-  else if(sprintFilter==='inprogress') filtered=filtered.filter(t=>t.status==='inprogress');
-  else if(sprintFilter==='review') filtered=filtered.filter(t=>t.status==='review');
-  return`<div class="section-row"><span class="st">Sprint tasks</span><div class="filters">
-    <button class="fb ${sprintFilter==='all'?'active':''}" onclick="setSF('all',this)">All</button>
-    <button class="fb ${sprintFilter==='inprogress'?'active':''}" onclick="setSF('inprogress',this)">In progress</button>
-    <button class="fb ${sprintFilter==='review'?'active':''}" onclick="setSF('review',this)">Review</button>
-    <button class="fb ${sprintFilter==='risk'?'active':''}" onclick="setSF('risk',this)">At risk</button>
-  </div></div>
-  <div class="panel"><div style="overflow-x:auto"><table>
-    <thead><tr>
-      <th style="width:26%">Task</th><th style="width:9%">Priority</th><th style="width:10%">Status</th>
-      <th style="width:14%">Designer</th><th style="width:7%">Effort</th>
-      <th style="width:11%">Logged</th><th style="width:8%">Jira</th><th style="width:15%">Risk</th>
-    </tr></thead>
-    <tbody id="taskBody">${filtered.map(t=>taskRow(t)).join('')}</tbody>
-  </table></div></div>`;
+  if(sfilt==='risk')filtered=filtered.filter(t=>t.risk);
+  else if(sfilt==='inprogress')filtered=filtered.filter(t=>t.status==='inprogress');
+  else if(sfilt==='review')filtered=filtered.filter(t=>t.status==='review');
+  const rows=filtered.map(t=>{
+    const dOpts=DESIGNERS.map(d=>'<option value="'+d.name+'"'+(d.name===t.designer_name?' selected':'')+'>'+d.name+'</option>').join('');
+    const est=t.effort*120;const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
+    return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
+      +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+'</div></td>'
+      +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
+      +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status)+'</span></td>'
+      +'<td><select class="ds-sel" onchange="reassign(\''+t.id+'\',this.value)">'+dOpts+'</select></td>'
+      +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
+      +'<td><div style="font-size:11px;font-weight:500;margin-bottom:3px">'+fmtM(t.logged_mins||0)+'</div><div style="display:flex;align-items:center;gap:4px"><div class="bar-bg"><div class="bar-fill bf-blue" style="width:'+pct+'%"></div></div></div></td>'
+      +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
+      +'<td>'+(t.risk?'<span class="risk-pill">'+t.risk_note+'</span>':'<span style="font-size:11px;color:var(--text3)">—</span>')+'</td>'
+      +'</tr>';
+  }).join('');
+  return '<div class="section-row"><span class="st">Sprint tasks</span><div class="filters">'
+    +'<button class="fb '+(sfilt==='all'?'active':'')+'" onclick="setSF(\'all\',this)">All</button>'
+    +'<button class="fb '+(sfilt==='inprogress'?'active':'')+'" onclick="setSF(\'inprogress\',this)">In progress</button>'
+    +'<button class="fb '+(sfilt==='review'?'active':'')+'" onclick="setSF(\'review\',this)">Review</button>'
+    +'<button class="fb '+(sfilt==='risk'?'active':'')+'" onclick="setSF(\'risk\',this)">At risk</button>'
+    +'</div></div>'
+    +'<div class="panel"><div style="overflow-x:auto"><table><thead><tr>'
+    +'<th style="width:25%">Task</th><th style="width:9%">Priority</th><th style="width:10%">Status</th>'
+    +'<th style="width:14%">Designer</th><th style="width:7%">Effort</th><th style="width:10%">Logged</th><th style="width:8%">Jira</th><th style="width:17%">Risk</th>'
+    +'</tr></thead><tbody id="taskBody">'+rows+'</tbody></table></div></div>';
 }
 
-function taskRow(t){
-  const dOpts=(DESIGNERS||[]).map(d=>`<option value="${d.name}"${d.name===t.designer_name?' selected':''}>${d.name}</option>`).join('');
-  const est=t.effort*120;
-  const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
-  return`<tr class="task-row" draggable="true" data-id="${t.id}">
-    <td><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">PM: ${t.pm||'—'}</div></td>
-    <td><span class="badge ${t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl'}">${t.priority}</span></td>
-    <td><span class="badge s-${t.status}">${t.status==='inprogress'?'in progress':t.status}</span></td>
-    <td><select class="ds-sel" onchange="reassign('${t.id}',this.value)">${dOpts}</select></td>
-    <td style="color:var(--text2)">${t.effort}pt</td>
-    <td><div style="font-size:11px;font-weight:500;margin-bottom:3px">${fmtMins(t.logged_mins||0)}</div><div style="display:flex;align-items:center;gap:4px"><div class="bar-bg"><div class="bar-fill bf-blue" style="width:${pct}%"></div></div></div></td>
-    <td><span style="font-size:11px;color:var(--blue)">${t.jira_ref||'—'}</span></td>
-    <td>${t.risk?`<span class="risk-pill"><svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1L9 9H1L5 1z" stroke="#A32D2D" stroke-width="1.1"/></svg>${t.risk_note}</span>`:`<span style="font-size:11px;color:var(--text3)">—</span>`}</td>
-  </tr>`;
+// ── INBOX ─────────────────────────────────────────────
+function vInbox(){
+  const rows=(requests||[]).map(r=>'<div class="inbox-item">'
+    +'<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">'
+    +'<div class="ii-dot'+(r.read?' read':'')+'"></div>'
+    +'<span style="font-size:13px;font-weight:500;flex:1">'+r.title+'</span>'
+    +(r.assigned?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>':'<button class="assign-btn" onclick="markAssigned(\''+r.id+'\')">Assign →</button>')
+    +'</div>'
+    +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
+    +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5">'+r.description+'</div>':'')
+    +'</div>').join('')||'<div class="empty">No requests yet — share pm_request.html with your PMs</div>';
+  return '<div class="section-row"><span class="st">PM requests</span><button class="btn" style="font-size:11px" onclick="loadAll()">Refresh</button></div>'
+    +'<div class="panel">'+rows+'</div>'+aiPanel('inbox');
 }
 
-function renderInbox(){
-  const reqs=requests||[];
-  return`<div class="section-row"><span class="st">PM requests</span><button class="btn" style="font-size:11px" onclick="loadAll()">Refresh</button></div>
-  <div class="panel">
-    ${reqs.length===0?`<div class="empty-state">No requests yet — share pm_request.html with your PMs</div>`:
-    reqs.map(r=>`<div class="inbox-item">
-      <div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">
-        <div class="ii-dot${r.read?' read':''}"></div>
-        <div style="flex:1"><span style="font-size:13px;font-weight:500">${r.title}</span></div>
-        ${r.assigned?`<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500;white-space:nowrap">assigned</span>`:`<button class="assign-btn" onclick="markAssigned('${r.id}')">Assign →</button>`}
-      </div>
-      <div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">${r.pm_name} · ${r.product} · <span class="badge ${r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl'}">${r.urgency}</span>${r.deadline?` · Due ${fmtDate(r.deadline)}`:''}</div>
-      ${r.description?`<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5">${r.description}</div>`:''}
-    </div>`).join('')}
-  </div>${renderAI('inbox')}`;
-}
-
-function renderTimelog(){
-  const logs=(logFilter!=='all'?(timeLogs||[]).filter(l=>l.designer_name===logFilter):(timeLogs||[]));
+// ── TIME LOG ──────────────────────────────────────────
+function vTimelog(){
+  const logs=lfilt!=='all'?(timeLogs||[]).filter(l=>l.designer_name===lfilt):(timeLogs||[]);
   const grouped={};
-  logs.forEach(l=>{const d=l.logged_date||fmtDate(l.created_at);if(!grouped[d])grouped[d]=[];grouped[d].push(l);});
-  return`<div class="section-row"><span class="st">Time log</span>
-    <div class="filters">
-      <button class="fb ${logFilter==='all'?'active':''}" onclick="setLF('all',this)">All</button>
-      ${(DESIGNERS||[]).map(d=>`<button class="fb ${logFilter===d.name?'active':''}" onclick="setLF('${d.name}',this)">${d.name}</button>`).join('')}
-    </div>
-  </div>
-  ${Object.entries(grouped).length===0?`<div class="empty-state">No time logged yet</div>`:Object.entries(grouped).map(([date,ls])=>{
+  logs.forEach(l=>{const d=l.logged_date||fmtD(l.created_at);if(!grouped[d])grouped[d]=[];grouped[d].push(l);});
+  const rows=Object.entries(grouped).map(([date,ls])=>{
     const total=ls.reduce((s,l)=>s+l.mins,0);
-    return`<div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between"><span>${date}</span><span>${fmtMins(total)}</span></div>
-      <div class="panel">${ls.map(l=>`<div class="log-row">
-        <div class="avatar ${avFor(l.designer_name)}">${iniFor(l.designer_name)}</div>
-        <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">${l.task_name||'Unknown'}</div><div style="font-size:10px;color:var(--text3)">${l.designer_name} · ${l.note}</div></div>
-        <div class="log-dur">${fmtMins(l.mins)}</div>
-        <button class="play-btn" onclick="resumeFromLog('${l.task_id}','${(l.task_name||'').replace(/'/g,"\\'")}')" title="Resume">
-          <svg width="9" height="10" viewBox="0 0 9 10" fill="none"><path d="M2 1.5l5 3.5-5 3.5V1.5z" fill="currentColor"/></svg>
-        </button>
-      </div>`).join('')}</div>
-    </div>`;
-  }).join('')}`;
+    return '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between"><span>'+date+'</span><span>'+fmtM(total)+'</span></div>'
+      +'<div class="panel">'+ls.map(l=>'<div class="log-row"><div class="avatar '+avFor(l.designer_name)+'">'+iniFor(l.designer_name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+(l.task_name||'Unknown')+'</div><div style="font-size:10px;color:var(--text3)">'+l.designer_name+' · '+l.note+'</div></div><div class="log-dur">'+fmtM(l.mins)+'</div><button class="play-btn" onclick="resumeFromLog(\''+l.task_id+'\',\''+l.task_name+'\')" title="Resume"><svg width="9" height="10" viewBox="0 0 9 10" fill="none"><path d="M2 1.5l5 3.5-5 3.5V1.5z" fill="currentColor"/></svg></button></div>').join('')+'</div></div>';
+  }).join('')||'<div class="empty">No time logged yet</div>';
+  const dBtns=[(DESIGNERS||[]).map(d=>'<button class="fb '+(lfilt===d.name?'active':'')+'" onclick="setLF(\''+d.name+'\',this)">'+d.name+'</button>').join('')].join('');
+  return '<div class="section-row"><span class="st">Time log</span><div class="filters"><button class="fb '+(lfilt==='all'?'active':'')+'" onclick="setLF(\'all\',this)">All</button>'+dBtns+'</div></div>'+rows;
 }
 
-function renderReports(){
+// ── REPORTS ───────────────────────────────────────────
+function vReports(){
   const load=getLoad();
   const totalMins=Object.values(load).reduce((s,l)=>s+l.mins,0);
-  const barColors=['bf-blue','bf-green','bf-purple','bf-amber','bf-red'];
+  const bcs=['bf-blue','bf-green','bf-purple','bf-amber','bf-red'];
   const mostActive=Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins)[0];
-  return`<div class="section-row"><span class="st">Reports</span></div>
-  <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-    <div class="mc blue"><div class="mc-l">Total hours</div><div class="mc-v">${Math.round(totalMins/60)}h</div><div class="mc-s">${(timeLogs||[]).length} entries</div></div>
-    <div class="mc"><div class="mc-l">Avg per designer</div><div class="mc-v">${DESIGNERS.length?Math.round(totalMins/60/DESIGNERS.length):0}h</div><div class="mc-s">this sprint</div></div>
-    <div class="mc green"><div class="mc-l">Most active</div><div class="mc-v" style="font-size:15px">${mostActive?mostActive[0]:'—'}</div><div class="mc-s">${mostActive?fmtMins(mostActive[1].mins):'0m'}</div></div>
-  </div>
-  <div class="panel" style="margin-bottom:14px">
-    <div class="ph"><span class="pt">Time by designer</span></div>
-    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-      ${(DESIGNERS||[]).map((d,i)=>{const info=load[d.name];const pct=totalMins>0?Math.round((info.mins/totalMins)*100):0;return`<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="avatar ${AV[i%AV.length]}">${d.initials}</div><span style="font-size:12px;font-weight:500;flex:1">${d.name}</span><span style="font-size:12px;font-weight:500">${fmtMins(info.mins)}</span><span style="font-size:11px;color:var(--text3);min-width:28px;text-align:right">${pct}%</span></div><div style="display:flex;align-items:center;gap:8px"><div class="bar-bg"><div class="bar-fill ${barColors[i%5]}" style="width:${pct}%"></div></div></div></div>`;}).join('')}
-    </div>
-  </div>
-  <div class="panel">
-    <div class="ph"><span class="pt">Time by task</span></div>
-    ${(tasks||[]).filter(t=>(t.logged_mins||0)>0).length===0?`<div class="empty-state">No time logged yet</div>`:`<table><thead><tr><th style="width:40%">Task</th><th style="width:20%">Designer</th><th style="width:20%">Logged</th><th style="width:20%">vs estimate</th></tr></thead><tbody>${(tasks||[]).filter(t=>(t.logged_mins||0)>0).sort((a,b)=>(b.logged_mins||0)-(a.logged_mins||0)).map(t=>{const est=t.effort*120;const over=(t.logged_mins||0)>est;return`<tr class="tr"><td><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">${t.jira_ref}</div></td><td style="color:var(--text2)">${t.designer_name}</td><td style="font-weight:500">${fmtMins(t.logged_mins||0)}</td><td><span style="font-size:11px;${over?'color:var(--red)':'color:var(--green)'}">${over?'↑ over est.':'↓ on track'}</span></td></tr>`;}).join('')}</tbody></table>`}
-  </div>`;
+  const designerBars=(DESIGNERS||[]).map((d,i)=>{const info=load[d.name];const pct=totalMins>0?Math.round((info.mins/totalMins)*100):0;return '<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="avatar '+AV[i%AV.length]+'">'+d.initials+'</div><span style="font-size:12px;font-weight:500;flex:1">'+d.name+'</span><span style="font-size:12px;font-weight:500">'+fmtM(info.mins)+'</span><span style="font-size:11px;color:var(--text3);min-width:28px;text-align:right">'+pct+'%</span></div><div style="display:flex;align-items:center;gap:8px"><div class="bar-bg"><div class="bar-fill '+bcs[i%5]+'" style="width:'+pct+'%"></div></div></div></div>';}).join('');
+  const taskRows=(tasks||[]).filter(t=>(t.logged_mins||0)>0).sort((a,b)=>(b.logged_mins||0)-(a.logged_mins||0)).map(t=>{const est=t.effort*120;const over=(t.logged_mins||0)>est;return '<tr class="tr"><td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.jira_ref+'</div></td><td style="color:var(--text2)">'+t.designer_name+'</td><td style="font-weight:500">'+fmtM(t.logged_mins||0)+'</td><td><span style="font-size:11px;'+(over?'color:var(--red)':'color:var(--green)')+'">'+(over?'↑ over est.':'↓ on track')+'</span></td></tr>';}).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">No time logged</td></tr>';
+  return '<div class="section-row"><span class="st">Reports</span></div>'
+    +'<div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">'
+    +'<div class="mc blue"><div class="mc-l">Total hours</div><div class="mc-v">'+Math.round(totalMins/60)+'h</div><div class="mc-s">'+((timeLogs||[]).length)+' entries</div></div>'
+    +'<div class="mc"><div class="mc-l">Avg per designer</div><div class="mc-v">'+(DESIGNERS.length?Math.round(totalMins/60/DESIGNERS.length):0)+'h</div><div class="mc-s">this sprint</div></div>'
+    +'<div class="mc green"><div class="mc-l">Most active</div><div class="mc-v" style="font-size:15px">'+(mostActive?mostActive[0]:'—')+'</div><div class="mc-s">'+(mostActive?fmtM(mostActive[1].mins):'')+'</div></div>'
+    +'</div>'
+    +'<div class="panel" style="margin-bottom:14px"><div class="ph"><span class="pt">Time by designer</span></div><div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">'+designerBars+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">Time by task</span></div><table><thead><tr><th style="width:40%">Task</th><th style="width:20%">Designer</th><th style="width:20%">Logged</th><th style="width:20%">vs estimate</th></tr></thead><tbody>'+taskRows+'</tbody></table></div>';
 }
 
-function renderCapacity(){
+// ── CAPACITY ──────────────────────────────────────────
+function vCapacity(){
   const load=getLoad();
-  return`<div class="section-row"><span class="st">Team capacity</span></div>
-  <div class="panel">
-    <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
-      ${(DESIGNERS||[]).length===0?`<div class="empty-state">No designers loaded</div>`:(DESIGNERS||[]).map((d,i)=>{const l=load[d.name];const pct=Math.min(Math.round((l.effort/10)*100),100);const over=l.effort>=8,avail=l.effort<=4;const fc=over?'bf-red':pct>=60?'bf-amber':'bf-green';return`<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div class="avatar ${AV[i%AV.length]}">${d.initials}</div><span style="font-size:13px;font-weight:500;flex:1">${d.name}</span><span style="font-size:11px;color:var(--text3)">${l.count} tasks · ${l.effort}/10 pts · ${fmtMins(l.mins)}</span>${over?`<span style="font-size:10px;background:var(--red-light);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>`:avail?`<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>`:''}</div><div style="padding-left:36px"><div style="display:flex;align-items:center;gap:8px"><div class="bar-bg"><div class="bar-fill ${fc}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--text3);min-width:28px">${pct}%</span></div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${l.tasks.map(t=>`<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">${t.name.length>20?t.name.slice(0,20)+'…':t.name}</span>`).join('')}</div></div></div>`;}).join('')}
-    </div>
-  </div>${renderAI('capacity')}`;
+  const cards=(DESIGNERS||[]).map((d,i)=>{
+    const l=load[d.name];const pct=Math.min(Math.round((l.effort/10)*100),100);
+    const over=l.effort>=8,avail=l.effort<=4;
+    const fc=over?'bf-red':pct>=60?'bf-amber':'bf-green';
+    const tag=over?'<span style="font-size:10px;background:var(--red-light);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>':avail?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>':'';
+    const chips=l.tasks.map(t=>'<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">'+(t.name.length>20?t.name.slice(0,20)+'…':t.name)+'</span>').join('');
+    return '<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div class="avatar '+AV[i%AV.length]+'">'+d.initials+'</div><span style="font-size:13px;font-weight:500;flex:1">'+d.name+'</span><span style="font-size:11px;color:var(--text3)">'+l.count+' tasks · '+l.effort+'/10 pts · '+fmtM(l.mins)+'</span>'+tag+'</div><div style="padding-left:36px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="bar-bg"><div class="bar-fill '+fc+'" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--text3);min-width:28px">'+pct+'%</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div></div>';
+  }).join('');
+  return '<div class="section-row"><span class="st">Team capacity</span></div><div class="panel"><div style="padding:14px">'+cards+'</div></div>'+aiPanel('capacity');
 }
 
-function renderAI(ctx){
-  const ph=ctx==='inbox'?'Who should take this?':ctx==='capacity'?'Who has bandwidth?':'Ask about time, risks, or the sprint...';
-  return`<div class="ai-wrap">
-    <div class="ai-head"><div class="ai-pulse"></div><span style="font-size:12px;font-weight:500">Radar AI</span><span style="font-size:11px;color:var(--text3);margin-left:4px">design assistant</span></div>
-    <div class="ai-body" id="aiBody">Ask me about bandwidth, risks, time distribution, or get a standup summary.</div>
-    <div class="chips">
-      <button class="chip" onclick="askAI('bandwidth')">Who has bandwidth?</button>
-      <button class="chip" onclick="askAI('risks')">Flag risks</button>
-      <button class="chip" onclick="askAI('time')">Time breakdown</button>
-      <button class="chip" onclick="askAI('standup')">Standup summary</button>
-    </div>
-    <div class="ai-ir"><input class="ai-inp" id="aiInput" placeholder="${ph}" onkeydown="if(event.key==='Enter')sendAI()"/><button class="btn" onclick="sendAI()">Ask</button></div>
-  </div>`;
-}
-
-function buildAIContext(){
-  const load=getLoad();
-  const risk=(tasks||[]).filter(t=>t.risk);
-  const ua=(requests||[]).filter(r=>!r.assigned).length;
-  const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
-  const avail=Object.entries(load).filter(([,l])=>l.effort<=4).map(([n])=>n);
-  const over=Object.entries(load).filter(([,l])=>l.effort>=8).map(([n])=>n);
-  return{load,risk,ua,totalMins,avail,over};
-}
-
-const AI_RESPONSES={
-  bandwidth(){
-    const{avail,over,load}=buildAIContext();
-    const lines=Object.entries(load).sort((a,b)=>a[1].effort-b[1].effort).map(([n,l])=>`• <b>${n}</b> — ${l.effort}/10 pts (${Math.round(l.effort/10*100)}% load)`).join('<br>');
-    return`<b>Current capacity:</b><br><br>${lines}<br><br>${avail.length>0?`<b>Available now:</b> ${avail.join(', ')}`:'All designers are at medium to full capacity.'} ${over.length>0?`<br><b>Overloaded:</b> ${over.join(', ')} — avoid routing new work to them.`:''}`;
-  },
-  risks(){
-    const{risk,ua}=buildAIContext();
-    if(risk.length===0&&ua===0) return'No risks detected. All tasks are on track and all requests are assigned.';
-    let out='';
-    if(risk.length>0) out+=`<b>${risk.length} task${risk.length>1?'s':''} flagged:</b><br><br>`+risk.map((t,i)=>`${i+1}. <b>${t.name}</b> — ${t.risk_note} (${t.designer_name})`).join('<br>');
-    if(ua>0) out+=`${out?'<br><br>':''}${ua} PM request${ua>1?'s are':' is'} unassigned in the inbox.`;
-    return out;
-  },
-  time(){
-    const{load,totalMins}=buildAIContext();
-    const lines=Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins).map(([n,l])=>`• <b>${n}</b> — ${fmtMins(l.mins)} across ${l.count} task${l.count!==1?'s':''}`).join('<br>');
-    return`<b>Time breakdown (${fmtMins(totalMins)} total):</b><br><br>${lines||'No time logged yet.'}`;
-  },
-  standup(){
-    const{risk,ua,totalMins}=buildAIContext();
-    const done=(tasks||[]).filter(t=>t.status==='done');
-    const inReview=(tasks||[]).filter(t=>t.status==='review');
-    const inProgress=(tasks||[]).filter(t=>t.status==='inprogress');
-    return`<b>Standup summary:</b><br><br>`+
-      (done.length?`<b>Done:</b> ${done.map(t=>t.name).join(', ')}<br>`:'')+(inReview.length?`<b>Review:</b> ${inReview.map(t=>t.name).join(', ')}<br>`:'')+(inProgress.length?`<b>In progress:</b> ${inProgress.map(t=>t.name).join(', ')}<br>`:'')+
-      `<br><b>Risks:</b> ${risk.length>0?risk.map(t=>t.name).join(', '):'None'}<br><b>PM requests:</b> ${ua} unassigned<br><b>Time logged:</b> ${fmtMins(totalMins)} total`;
+// ── UX IMPACT ─────────────────────────────────────────
+function vUXImpact(){
+  const logs=uxLogs||[];
+  let content='';
+  if(logs.length===0){
+    content='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px;text-align:center">'
+      +'<div style="width:44px;height:44px;border-radius:12px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 16l4-4 3 3 5-6 4 3" stroke="#185FA5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="18" height="18" rx="3" stroke="#185FA5" stroke-width="1.6"/></svg></div>'
+      +'<div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px">No impact logs yet</div>'
+      +'<div style="font-size:13px;color:var(--text2);max-width:320px;margin:0 auto 20px;line-height:1.6">After a feature goes live, log UX data here — task success rates, drop-offs, CSAT, and observations.</div>'
+      +'<div style="display:flex;gap:10px;justify-content:center;margin-bottom:24px">'
+      +'<div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:center"><div style="font-size:18px;font-weight:500;color:var(--green)">78%</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Task success</div></div>'
+      +'<div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:center"><div style="font-size:18px;font-weight:500;color:var(--blue)">42s</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Time on task</div></div>'
+      +'<div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:center"><div style="font-size:18px;font-weight:500;color:var(--amber)">4.2</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">CSAT score</div></div>'
+      +'</div><button class="btn accent" onclick="openUXLog()">Log your first impact</button></div>';
+  } else {
+    content=logs.map(l=>{
+      let qnums='';
+      if(l.task_success_rate!=null||l.time_on_task_secs!=null||l.drop_off_rate!=null||l.csat_score!=null){
+        qnums='<div class="impact-metrics">'
+          +(l.task_success_rate!=null?'<div class="im"><div class="im-val" style="color:var(--green)">'+Math.round(l.task_success_rate)+'%</div><div class="im-label">Success</div></div>':'')
+          +(l.time_on_task_secs!=null?'<div class="im"><div class="im-val">'+Math.round(l.time_on_task_secs)+'s</div><div class="im-label">Time on task</div></div>':'')
+          +(l.drop_off_rate!=null?'<div class="im"><div class="im-val" style="color:'+(l.drop_off_rate>30?'var(--red)':'var(--text)')+'">'+Math.round(l.drop_off_rate)+'%</div><div class="im-label">Drop-off</div></div>':'')
+          +(l.csat_score!=null?'<div class="im"><div class="im-val" style="color:var(--amber)">'+Number(l.csat_score).toFixed(1)+'</div><div class="im-label">CSAT</div></div>':'')
+          +(l.sample_size!=null?'<div class="im"><div class="im-val">'+l.sample_size+'</div><div class="im-label">Sample</div></div>':'')
+          +'</div>';
+      }
+      let quals='';
+      if(l.observations||l.user_feedback||l.issues_found||l.what_worked){
+        quals='<div class="qual-grid">'
+          +(l.observations?'<div class="qual-box"><div class="qual-label">Observations</div><div class="qual-text">'+l.observations+'</div></div>':'')
+          +(l.user_feedback?'<div class="qual-box"><div class="qual-label">User feedback</div><div class="qual-text">'+l.user_feedback+'</div></div>':'')
+          +(l.issues_found?'<div class="qual-box"><div class="qual-label">Issues found</div><div class="qual-text">'+l.issues_found+'</div></div>':'')
+          +(l.what_worked?'<div class="qual-box"><div class="qual-label">What worked</div><div class="qual-text">'+l.what_worked+'</div></div>':'')
+          +'</div>';
+      }
+      return '<div class="impact-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px"><div><div style="font-size:13px;font-weight:500">'+l.task_name+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">'+l.designer_name+' · Went live '+(l.went_live_at||'—')+'</div></div></div>'+qnums+quals+'</div>';
+    }).join('');
   }
-};
-
-function askAI(type){
-  const b=document.getElementById('aiBody');if(!b)return;
-  b.innerHTML=`<div class="thinking"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div>`;
-  setTimeout(()=>{
-    const fn=AI_RESPONSES[type];
-    b.innerHTML=fn?fn():'Ask me about bandwidth, risks, time, or the sprint status.';
-  },600);
+  return '<div class="section-row"><span class="st">UX impact log</span><div style="display:flex;gap:8px"><button class="btn" onclick="exportUXCSV()">Export CSV</button><button class="btn accent" onclick="openUXLog()">+ Log impact</button></div></div>'
+    +content+aiPanel('uximpact');
 }
 
-function sendAI(){
-  const inp=document.getElementById('aiInput');
-  if(!inp||!inp.value.trim())return;
-  const v=inp.value.toLowerCase();inp.value='';
-  if(v.includes('bandwidth')||v.includes('free')||v.includes('availab')) return askAI('bandwidth');
-  if(v.includes('risk')||v.includes('flag')) return askAI('risks');
-  if(v.includes('time')||v.includes('hours')||v.includes('log')) return askAI('time');
-  if(v.includes('standup')||v.includes('summar')||v.includes('week')) return askAI('standup');
-  askAI('risks');
+// ── SKILLS ────────────────────────────────────────────
+function vSkills(){
+  const designers=(DESIGNERS||[]).map(d=>d.name);
+  const spiderCards=designers.map((d,i)=>{
+    const hasR=(skillRatings||[]).some(r=>r.designer_name===d);
+    const sid='spider_'+slugify(d);
+    const inner=hasR
+      ?'<canvas id="'+sid+'" width="200" height="200" style="width:100%;max-width:200px"></canvas>'
+      :'<div style="width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%"><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 20px;line-height:1.5">Rate skills to see chart</div><button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRate()">Rate</button></div>';
+    return '<div class="spider-card"><div class="avatar '+AV[i%AV.length]+'" style="width:32px;height:32px;font-size:11px">'+iniFor(d)+'</div><div style="font-size:12px;font-weight:500">'+d+'</div>'+inner+'</div>';
+  }).join('');
+  const taskSkills=(tasks||[]).filter(t=>t.skills&&t.skills.length>0);
+  const taskRows=taskSkills.length===0?'<div class="empty">No skills tagged — tag skills when adding tasks</div>'
+    :taskSkills.map(t=>{
+      const chips=t.skills.map(s=>{const sk=SKILLS.find(x=>x.name===s);return '<span class="skill-chip" style="background:'+(sk?sk.color:'#888')+';color:#fff;border-color:'+(sk?sk.color:'#888')+'">'+s+'</span>';}).join('');
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.designer_name+'</div></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div>';
+    }).join('');
+  const ratingRows=(skillRatings||[]).length===0?''
+    :'<div style="margin-top:14px"><div class="section-row"><span class="st">Rating history</span></div><div class="panel"><table><thead><tr><th style="width:28%">Task</th><th style="width:18%">Designer</th><th style="width:18%">Skill</th><th style="width:12%">Self</th><th style="width:12%">Head</th><th style="width:12%">Date</th></tr></thead><tbody>'
+    +(skillRatings||[]).map(r=>{const sk=SKILLS.find(x=>x.name===r.skill);const chip=sk?'<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>':r.skill;return '<tr class="tr"><td style="font-weight:500">'+(r.task_name||'—')+'</td><td style="color:var(--text2)">'+r.designer_name+'</td><td>'+chip+'</td><td>'+starsHtml(r.self_rating)+'</td><td>'+starsHtml(r.head_rating)+'</td><td style="color:var(--text3)">'+(r.rated_at||'—')+'</td></tr>';}).join('')
+    +'</tbody></table></div></div>';
+  return '<div class="section-row"><span class="st">Skills</span><div style="display:flex;gap:8px"><button class="btn" onclick="exportSkillsCSV()">Export CSV</button><button class="btn accent" onclick="openSkillRate()">+ Rate skills</button></div></div>'
+    +'<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px">By designer</div>'
+    +'<div class="spider-grid">'+spiderCards+'</div>'
+    +'<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px">By task</div>'
+    +'<div class="panel"><div>'+taskRows+'</div></div>'
+    +ratingRows
+    +aiPanel('skills');
 }
 
-function setSF(f,btn){sprintFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
-function setLF(f,btn){logFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
-
-async function reassign(id,designer){
-  try{
-    await sb(`tasks?id=eq.${id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({designer_name:designer})});
-    const t=tasks.find(x=>x.id===id);if(t)t.designer_name=designer;
-    render();toast('Reassigned to '+designer);
-  }catch(e){toast('Error: '+e.message);}
+function starsHtml(n){
+  if(!n)return '<span style="color:var(--text3);font-size:11px">—</span>';
+  return [1,2,3,4,5].map(i=>'<span style="color:'+(i<=n?'#EF9F27':'var(--border2)')+'">★</span>').join('');
 }
 
-async function markAssigned(id){
-  try{
-    await sb(`requests?id=eq.${id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({assigned:true,read:true})});
-    const r=requests.find(x=>x.id===id);if(r){r.assigned=true;r.read=true;}
-    updateBadge();render();toast('Marked as assigned');
-  }catch(e){toast('Error: '+e.message);}
+// ── SPIDER CHART ──────────────────────────────────────
+function drawAllSpiders(){(DESIGNERS||[]).forEach(d=>drawSpider(d.name));}
+
+function drawSpider(name){
+  const sid='spider_'+slugify(name);
+  const canvas=document.getElementById(sid);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,R=Math.min(W,H)*0.36;
+  const n=SKILLS.length;
+  const vals=SKILLS.map(s=>{
+    const rs=(skillRatings||[]).filter(r=>r.designer_name===name&&r.skill===s.name);
+    if(!rs.length)return 0;
+    return Math.min(rs.reduce((a,r)=>a+(r.head_rating||r.self_rating||0),0)/rs.length/5,1);
+  });
+  const angles=SKILLS.map((_,i)=>-Math.PI/2+(2*Math.PI/n)*i);
+  const dm=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const gc=dm?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
+  const lc=dm?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.38)';
+  ctx.clearRect(0,0,W,H);
+  [0.2,0.4,0.6,0.8,1].forEach(p=>{ctx.beginPath();angles.forEach((a,i)=>{const x=cx+Math.cos(a)*R*p,y=cy+Math.sin(a)*R*p;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.closePath();ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.stroke();});
+  angles.forEach(a=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.stroke();});
+  ctx.beginPath();
+  vals.forEach((v,i)=>{const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.closePath();ctx.fillStyle='rgba(55,138,221,0.18)';ctx.fill();ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.stroke();
+  vals.forEach((v,i)=>{const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle='#378ADD';ctx.fill();});
+  ctx.font='10px DM Sans,sans-serif';ctx.fillStyle=lc;ctx.textAlign='center';
+  SKILLS.forEach((s,i)=>{const a=angles[i];ctx.fillText(s.name.split(' ')[0],cx+Math.cos(a)*(R+18),cy+Math.sin(a)*(R+18)+3);});
 }
 
-// --- ADD TASK MODAL ---
+// ── MODALS ────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
 function openAddTask(){
-  selectedName='';
-  ['f-name','f-jira','f-notes','f-newname'].forEach(id=>document.getElementById(id).value='');
+  selName='';selSkills=[];
+  ['f-name','f-jira','f-notes','f-newname'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-priority').value='medium';
   document.getElementById('f-status').value='todo';
   document.getElementById('f-effort').value='2';
-  renderNameOpts();
-  document.getElementById('modalOverlay').classList.add('open');
+  renderNameOpts();renderSkillChips();
+  openModal('moAdd');
   setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
 
-function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
-
 function renderNameOpts(){
-  const container=document.getElementById('name-options');
-  container.innerHTML=(DESIGNERS||[]).map(d=>`<label class="name-opt${selectedName===d.name?' selected':''}" onclick="pickName('${d.name}')"><input type="radio" name="assignee" value="${d.name}"${selectedName===d.name?' checked':''}><span style="font-size:13px">${d.name}</span></label>`).join('');
+  const c=document.getElementById('name-options');
+  if(!c)return;
+  c.innerHTML=(DESIGNERS||[]).map(d=>'<label class="name-opt'+(selName===d.name?' selected':'')+'" onclick="pickName(\''+d.name+'\')"><input type="radio" name="assignee" value="'+d.name+'"'+(selName===d.name?' checked':'')+'>'+d.name+'</label>').join('');
 }
-
-function pickName(name){selectedName=name;document.getElementById('f-newname').value='';renderNameOpts();}
+function pickName(n){selName=n;document.getElementById('f-newname').value='';renderNameOpts();}
 
 function renderSkillChips(){
   const c=document.getElementById('skill-chips');
-  if(!c) return;
-  c.innerHTML=SKILLS.map(s=>`<span class="skill-chip${selectedSkills.includes(s.name)?' selected':''}"
-    style="${selectedSkills.includes(s.name)?`background:${s.color};border-color:${s.color}`:''}"
-    onclick="toggleSkill('${s.name}')">${s.name}</span>`).join('');
+  if(!c)return;
+  c.innerHTML=SKILLS.map(s=>'<span class="skill-chip '+(selSkills.includes(s.name)?'':'off')+'" style="'+(selSkills.includes(s.name)?'background:'+s.color+';color:#fff;border-color:'+s.color:'')+'" onclick="toggleSkill(\''+s.name+'\')">'+s.name+'</span>').join('');
 }
-
-function toggleSkill(name){
-  const i=selectedSkills.indexOf(name);
-  if(i>=0) selectedSkills.splice(i,1); else selectedSkills.push(name);
-  renderSkillChips();
-}
+function toggleSkill(n){const i=selSkills.indexOf(n);if(i>=0)selSkills.splice(i,1);else selSkills.push(n);renderSkillChips();}
 
 async function submitTask(){
   const name=document.getElementById('f-name').value.trim();
-  if(!name){document.getElementById('f-name').style.borderColor='var(--accent)';setTimeout(()=>document.getElementById('f-name').style.borderColor='',1500);return;}
-  const btn=document.getElementById('submitTaskBtn');
-  btn.disabled=true;btn.textContent='Adding…';
-  const newName=document.getElementById('f-newname').value.trim();
-  const designer=newName||selectedName||'—';
-  if(newName&&!(DESIGNERS||[]).find(d=>d.name===newName)){
-    try{
-      const nd=await sb('designers',{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify({name:newName,initials:newName.slice(0,2).toUpperCase(),avatar_index:DESIGNERS.length%5})});
-      if(nd&&nd[0]) DESIGNERS.push(nd[0]);
-    }catch(e){console.warn('Could not add designer:',e);}
+  if(!name){toast('Please enter a task name');return;}
+  const btn=document.getElementById('btnAddTask');btn.disabled=true;btn.textContent='Adding…';
+  const newN=document.getElementById('f-newname').value.trim();
+  const designer=newN||selName||'—';
+  if(newN&&!DESIGNERS.find(d=>d.name===newN)){
+    try{const nd=await api('designers',{method:'POST',headers:HR,body:JSON.stringify({name:newN,initials:newN.slice(0,2).toUpperCase(),avatar_index:DESIGNERS.length%5})});if(nd&&nd[0])DESIGNERS.push(nd[0]);}catch(e){}
   }
-  const payload={
-    name,pm:'—',designer_name:designer,
-    priority:document.getElementById('f-priority').value,
-    status:document.getElementById('f-status').value,
-    effort:parseInt(document.getElementById('f-effort').value),
-    jira_ref:document.getElementById('f-jira').value.trim()||'—',
-    notes:document.getElementById('f-notes').value.trim(),
-    skills:selectedSkills,
-    risk:false,risk_note:'',logged_mins:0
-  };
-  try{
-    const res=await sb('tasks',{method:'POST',headers:HR,body:JSON.stringify(payload)});
-    if(res&&res[0]) tasks.unshift(res[0]);
-    closeModal();render();toast('Task added');
-  }catch(e){toast('Error: '+e.message);}
+  const payload={name,pm:'—',designer_name:designer,priority:document.getElementById('f-priority').value,status:document.getElementById('f-status').value,effort:parseInt(document.getElementById('f-effort').value),jira_ref:document.getElementById('f-jira').value.trim()||'—',notes:document.getElementById('f-notes').value.trim(),skills:selSkills,risk:false,risk_note:'',logged_mins:0,sort_order:0};
+  try{const res=await api('tasks',{method:'POST',headers:HR,body:JSON.stringify(payload)});if(res&&res[0])tasks.unshift(res[0]);closeModal('moAdd');render();toast('Task added');}
+  catch(e){toast('Error: '+e.message);}
   btn.disabled=false;btn.textContent='Add task';
 }
 
-// --- TIMER ---
+// UX Log modal
+function openUXLog(){
+  uxTaskId=null;
+  const sel=document.getElementById('ux-task');
+  sel.innerHTML='<option value="">Select task…</option>'+(tasks||[]).map(t=>'<option value="'+t.id+'">'+t.name+'</option>').join('');
+  document.getElementById('ux-task-name').textContent='';
+  document.getElementById('ux-designer').textContent='';
+  ['ux-date','ux-success','ux-time','ux-dropoff','ux-csat','ux-sample','ux-obs','ux-feedback','ux-issues','ux-worked'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  openModal('moUX');
+}
+function onUXTask(){
+  const sel=document.getElementById('ux-task');
+  const t=(tasks||[]).find(x=>x.id===sel.value);
+  if(t){uxTaskId=t.id;document.getElementById('ux-task-name').textContent=t.name;document.getElementById('ux-designer').textContent=t.designer_name;}
+}
+async function submitUXLog(){
+  if(!uxTaskId){toast('Please select a task');return;}
+  const btn=document.getElementById('btnUX');btn.disabled=true;btn.textContent='Saving…';
+  const t=(tasks||[]).find(x=>x.id===uxTaskId);
+  const payload={task_id:uxTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',went_live_at:document.getElementById('ux-date').value||null,observations:document.getElementById('ux-obs').value.trim()||null,user_feedback:document.getElementById('ux-feedback').value.trim()||null,issues_found:document.getElementById('ux-issues').value.trim()||null,what_worked:document.getElementById('ux-worked').value.trim()||null,task_success_rate:parseFloat(document.getElementById('ux-success').value)||null,time_on_task_secs:parseFloat(document.getElementById('ux-time').value)||null,drop_off_rate:parseFloat(document.getElementById('ux-dropoff').value)||null,csat_score:parseFloat(document.getElementById('ux-csat').value)||null,sample_size:parseInt(document.getElementById('ux-sample').value)||null};
+  try{const res=await api('ux_logs',{method:'POST',headers:HR,body:JSON.stringify(payload)});if(res&&res[0])uxLogs.unshift(res[0]);closeModal('moUX');render();toast('Impact logged');}
+  catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='Save log';
+}
+
+// Skill rating modal
+function openSkillRate(){
+  skTaskId=null;skSelf={};skHead={};
+  const sel=document.getElementById('sk-task');
+  sel.innerHTML='<option value="">Select task…</option>'+(tasks||[]).map(t=>'<option value="'+t.id+'">'+t.name+'</option>').join('');
+  document.getElementById('sk-task-name').textContent='';
+  document.getElementById('sk-designer').textContent='';
+  document.getElementById('sk-skills-container').innerHTML='';
+  openModal('moSkill');
+}
+function onSKTask(){
+  const sel=document.getElementById('sk-task');
+  const t=(tasks||[]).find(x=>x.id===sel.value);
+  if(!t)return;
+  skTaskId=t.id;skSelf={};skHead={};
+  document.getElementById('sk-task-name').textContent=t.name;
+  document.getElementById('sk-designer').textContent=t.designer_name;
+  const skillsToRate=t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
+  const html=skillsToRate.map(s=>{
+    const selfStars=[1,2,3,4,5].map(n=>'<span class="star off" id="self_'+slugify(s)+'_'+n+'" onclick="setStar(\'self\',\''+s+'\','+n+')">★</span>').join('');
+    const headStars=[1,2,3,4,5].map(n=>'<span class="star off" id="head_'+slugify(s)+'_'+n+'" onclick="setStar(\'head\',\''+s+'\','+n+')">★</span>').join('');
+    return '<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:500;margin-bottom:8px">'+s+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">Self rating</div><div>'+selfStars+'</div></div><div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">Head rating</div><div>'+headStars+'</div></div></div></div>';
+  }).join('');
+  document.getElementById('sk-skills-container').innerHTML=html;
+}
+function setStar(type,skill,val){
+  if(type==='self')skSelf[skill]=val;else skHead[skill]=val;
+  const sid=slugify(skill);
+  [1,2,3,4,5].forEach(n=>{const el=document.getElementById(type+'_'+sid+'_'+n);if(el){el.classList.toggle('on',n<=val);el.classList.toggle('off',n>val);}});
+}
+async function submitSkillRatings(){
+  if(!skTaskId){toast('Please select a task');return;}
+  const btn=document.getElementById('btnSkill');btn.disabled=true;btn.textContent='Saving…';
+  const t=(tasks||[]).find(x=>x.id===skTaskId);
+  const skillsToRate=t&&t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
+  const today=new Date().toISOString().split('T')[0];
+  const entries=skillsToRate.filter(s=>skSelf[s]||skHead[s]).map(s=>({task_id:skTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',skill:s,self_rating:skSelf[s]||null,head_rating:skHead[s]||null,rated_at:today}));
+  if(!entries.length){toast('Rate at least one skill');btn.disabled=false;btn.textContent='Save ratings';return;}
+  try{const res=await api('skill_ratings',{method:'POST',headers:HR,body:JSON.stringify(entries)});if(res)skillRatings.unshift(...res);closeModal('moSkill');render();toast('Skill ratings saved');}
+  catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='Save ratings';
+}
+
+// ── ACTIONS ───────────────────────────────────────────
+function setSF(f,btn){sfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+function setLF(f,btn){lfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+
+async function reassign(id,designer){
+  try{await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({designer_name:designer})});const t=tasks.find(x=>x.id===id);if(t)t.designer_name=designer;render();toast('Reassigned to '+designer);}
+  catch(e){toast('Error: '+e.message);}
+}
+
+async function markAssigned(id){
+  try{await api('requests?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({assigned:true,read:true})});const r=requests.find(x=>x.id===id);if(r){r.assigned=true;r.read=true;}updateBadge();render();toast('Marked as assigned');}
+  catch(e){toast('Error: '+e.message);}
+}
+
+// ── TIMER ─────────────────────────────────────────────
+function fmtT(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');}
+
 function toggleTimer(){
-  if(!timerRunning){
-    const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-    const sel=prompt('Select task number:\n'+opts,'1');
-    if(!sel) return;
-    const idx=parseInt(sel)-1;
-    const t=(tasks||[])[idx];
-    if(!t) return;
-    timerTaskId=t.id;timerTaskName=t.name;timerRunning=true;
+  if(!timerOn){
+    const opts=(tasks||[]).map((t,i)=>(i+1)+'. '+t.name).join('\n');
+    const sel=parseInt(prompt('Select task:\n'+opts,'1'));
+    const t=(tasks||[])[sel-1];if(!t)return;
+    timerTaskId=t.id;timerTaskName=t.name;timerOn=true;
     document.getElementById('sideTimerBtn').textContent='Pause';
     document.getElementById('sideTimerBtn').classList.add('running');
     document.getElementById('sideTimerTask').textContent=t.name.length>22?t.name.slice(0,22)+'…':t.name;
-    timerInterval=setInterval(()=>{timerSecs++;document.getElementById('sideTimer').textContent=fmtTime(timerSecs);},1000);
-  }else{
-    clearInterval(timerInterval);timerInterval=null;timerRunning=false;
+    timerInt=setInterval(()=>{timerSecs++;document.getElementById('sideTimer').textContent=fmtT(timerSecs);},1000);
+  } else {
+    clearInterval(timerInt);timerInt=null;timerOn=false;
     document.getElementById('sideTimerBtn').textContent='Resume';
     document.getElementById('sideTimerBtn').classList.remove('running');
   }
@@ -745,563 +822,94 @@ async function stopTimer(){
     const mins=Math.max(1,Math.round(timerSecs/60));
     const note=prompt('Note for this session:','Design work')||'Timer session';
     const t=(tasks||[]).find(x=>x.id===timerTaskId);
-    await saveTimeLog(timerTaskId,timerTaskName,t?.designer_name||'—',mins,note);
+    await saveLog(timerTaskId,timerTaskName,t?t.designer_name:'—',mins,note);
   }
-  clearInterval(timerInterval);timerInterval=null;timerRunning=false;timerSecs=0;timerTaskId=null;timerTaskName='';
+  clearInterval(timerInt);timerInt=null;timerOn=false;timerSecs=0;timerTaskId=null;timerTaskName='';
   document.getElementById('sideTimer').textContent='00:00:00';
   document.getElementById('sideTimerBtn').textContent='Start';
   document.getElementById('sideTimerBtn').classList.remove('running');
   document.getElementById('sideTimerTask').textContent='No task running';
 }
 
-async function saveTimeLog(taskId,taskName,designerName,mins,note){
+async function saveLog(taskId,taskName,designerName,mins,note){
   try{
     const today=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-    const log={task_id:taskId,task_name:taskName,designer_name:designerName,mins,note,logged_date:today};
-    const res=await sb('time_logs',{method:'POST',headers:HR,body:JSON.stringify(log)});
-    if(res&&res[0]) timeLogs.unshift(res[0]);
+    const res=await api('time_logs',{method:'POST',headers:HR,body:JSON.stringify({task_id:taskId,task_name:taskName,designer_name:designerName,mins,note,logged_date:today})});
+    if(res&&res[0])timeLogs.unshift(res[0]);
     const tk=(tasks||[]).find(x=>x.id===taskId);
-    if(tk){
-      tk.logged_mins=(tk.logged_mins||0)+mins;
-      await sb(`tasks?id=eq.${taskId}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({logged_mins:tk.logged_mins})});
-    }
-    render();toast(fmtMins(mins)+' logged');
+    if(tk){tk.logged_mins=(tk.logged_mins||0)+mins;await api('tasks?id=eq.'+taskId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({logged_mins:tk.logged_mins})});}
+    render();toast(fmtM(mins)+' logged');
   }catch(e){toast('Error saving log: '+e.message);}
 }
 
-async function quickAddTime(){
-  const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-  const sel=parseInt(prompt('Task number:\n'+opts,'1'));
-  const t=(tasks||[])[sel-1];
-  if(!t) return;
-  const mins=parseInt(prompt('Minutes?','60')||'0');
-  if(!mins||mins<=0) return;
+async function quickLog(){
+  const opts=(tasks||[]).map((t,i)=>(i+1)+'. '+t.name).join('\n');
+  const sel=parseInt(prompt('Task:\n'+opts,'1'));
+  const t=(tasks||[])[sel-1];if(!t)return;
+  const mins=parseInt(prompt('Minutes?','60')||'0');if(!mins||mins<=0)return;
   const note=prompt('Note:','Design work')||'Manual entry';
-  await saveTimeLog(t.id,t.name,t.designer_name,mins,note);
+  await saveLog(t.id,t.name,t.designer_name,mins,note);
 }
 
 function resumeFromLog(taskId,taskName){
-  if(timerRunning) stopTimer();
-  const t=(tasks||[]).find(x=>x.id===taskId);
-  if(!t) return;
-  timerTaskId=taskId;timerTaskName=taskName||t.name;timerRunning=true;timerSecs=0;
+  if(timerOn)stopTimer();
+  const t=(tasks||[]).find(x=>x.id===taskId);if(!t)return;
+  timerTaskId=taskId;timerTaskName=taskName||t.name;timerOn=true;timerSecs=0;
   document.getElementById('sideTimerBtn').textContent='Pause';
   document.getElementById('sideTimerBtn').classList.add('running');
-  document.getElementById('sideTimerTask').textContent=timerTaskName.length>22?timerTaskName.slice(0,22)+'…':timerTaskName;
-  timerInterval=setInterval(()=>{timerSecs++;document.getElementById('sideTimer').textContent=fmtTime(timerSecs);},1000);
+  document.getElementById('sideTimerTask').textContent=(timerTaskName.length>22?timerTaskName.slice(0,22)+'…':timerTaskName);
+  timerInt=setInterval(()=>{timerSecs++;document.getElementById('sideTimer').textContent=fmtT(timerSecs);},1000);
 }
 
-// Drag and drop
+// ── SORT ORDER ────────────────────────────────────────
+async function saveSortOrder(){
+  try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
+  catch(e){console.warn('Sort order save failed:',e);}
+}
+
+// ── AI ────────────────────────────────────────────────
+function buildCtx(){
+  const load=getLoad();
+  const avail=Object.entries(load).filter(([,l])=>l.effort<=4).map(([n])=>n);
+  const over=Object.entries(load).filter(([,l])=>l.effort>=8).map(([n])=>n);
+  const risk=(tasks||[]).filter(t=>t.risk);
+  const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
+  return{load,avail,over,risk,totalMins};
+}
+const AI={
+  bandwidth(){const{avail,over,load}=buildCtx();return '<b>Capacity right now:</b><br><br>'+Object.entries(load).sort((a,b)=>a[1].effort-b[1].effort).map(([n,l])=>'• <b>'+n+'</b> — '+l.effort+'/10 pts').join('<br>')+'<br><br>'+(avail.length?'<b>Available:</b> '+avail.join(', '):'All at medium–high load.')+(over.length?'<br><b>Overloaded:</b> '+over.join(', '):' No one overloaded.');},
+  risks(){const{risk}=buildCtx();if(!risk.length)return 'No risks flagged right now.';return '<b>'+risk.length+' task'+(risk.length>1?'s':'')+' at risk:</b><br><br>'+risk.map((t,i)=>(i+1)+'. <b>'+t.name+'</b> — '+t.risk_note+' ('+t.designer_name+')').join('<br>');},
+  time(){const{load,totalMins}=buildCtx();return '<b>Time this sprint ('+fmtM(totalMins)+' total):</b><br><br>'+Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins).map(([n,l])=>'• <b>'+n+'</b> — '+fmtM(l.mins)+' across '+l.count+' tasks').join('<br>');},
+  standup(){const{risk}=buildCtx();const done=(tasks||[]).filter(t=>t.status==='done');const rev=(tasks||[]).filter(t=>t.status==='review');const inp=(tasks||[]).filter(t=>t.status==='inprogress');const ua=(requests||[]).filter(r=>!r.assigned).length;const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);return '<b>Standup summary:</b><br><br>'+(done.length?'<b>Done:</b> '+done.map(t=>t.name).join(', ')+'<br>':'')+(rev.length?'<b>Review:</b> '+rev.map(t=>t.name).join(', ')+'<br>':'')+(inp.length?'<b>In progress:</b> '+inp.map(t=>t.name).join(', ')+'<br>':'')+'<br><b>Risks:</b> '+(risk.length?risk.map(t=>t.name).join(', '):'None')+'<br><b>PM requests:</b> '+ua+' unassigned<br><b>Time logged:</b> '+fmtM(totalMins);}
+};
+function askAI(type){const b=document.getElementById('aiBody');if(!b)return;b.innerHTML='<div class="thinking"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div>';setTimeout(()=>{const fn=AI[type];b.innerHTML=fn?fn():'How can I help?';},600);}
+function sendAI(){const inp=document.getElementById('aiInput');if(!inp||!inp.value.trim())return;const v=inp.value.toLowerCase();inp.value='';if(v.includes('bandwidth')||v.includes('free')||v.includes('availab'))return askAI('bandwidth');if(v.includes('risk')||v.includes('flag'))return askAI('risks');if(v.includes('time')||v.includes('hours'))return askAI('time');askAI('standup');}
+
+// ── EXPORT ────────────────────────────────────────────
+function dlCSV(rows,name){const csv=rows.map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=name;a.click();}
+function exportUXCSV(){const logs=uxLogs||[];if(!logs.length){toast('No data');return;}dlCSV([['Task','Designer','Went live','Success %','Time on task','Drop-off %','CSAT','Sample','Observations','Feedback','Issues','What worked'],...logs.map(l=>[l.task_name,l.designer_name,l.went_live_at,l.task_success_rate,l.time_on_task_secs,l.drop_off_rate,l.csat_score,l.sample_size,l.observations,l.user_feedback,l.issues_found,l.what_worked].map(v=>v==null?'':'"'+String(v).replace(/"/g,'""')+'"'))],'ux_impact.csv');}
+function exportSkillsCSV(){const sr=skillRatings||[];if(!sr.length){toast('No data');return;}dlCSV([['Task','Designer','Skill','Self','Head','Date'],...sr.map(r=>[r.task_name,r.designer_name,r.skill,r.self_rating,r.head_rating,r.rated_at].map(v=>v==null?'':'"'+String(v).replace(/"/g,'""')+'"'))],'skill_ratings.csv');}
+
+// ── DRAG & DROP ───────────────────────────────────────
 document.addEventListener('dragstart',e=>{const r=e.target.closest('.task-row');if(r){dragId=r.dataset.id;r.classList.add('dragging');}});
 document.addEventListener('dragend',()=>{document.querySelectorAll('.task-row').forEach(r=>r.classList.remove('dragging','dragover'));});
 document.addEventListener('dragover',e=>{e.preventDefault();const r=e.target.closest('.task-row');if(r){document.querySelectorAll('.task-row').forEach(x=>x.classList.remove('dragover'));r.classList.add('dragover');}});
-document.addEventListener('drop',e=>{
-  e.preventDefault();const r=e.target.closest('.task-row');
-  if(r&&dragId&&dragId!==r.dataset.id){
-    const fi=tasks.findIndex(t=>t.id===dragId),ti=tasks.findIndex(t=>t.id===r.dataset.id);
-    if(fi>=0&&ti>=0){const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);}
-    render();
-    saveSortOrder();
-  }
-  dragId=null;
-});
+document.addEventListener('drop',e=>{e.preventDefault();const r=e.target.closest('.task-row');if(r&&dragId&&dragId!==r.dataset.id){const fi=tasks.findIndex(t=>t.id===dragId),ti=tasks.findIndex(t=>t.id===r.dataset.id);if(fi>=0&&ti>=0){const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);}render();saveSortOrder();}dragId=null;});
 
-// Keyboard shortcuts
+// ── KEYBOARD ──────────────────────────────────────────
 document.addEventListener('keydown',e=>{
-  if(e.key==='n'&&!e.metaKey&&!e.ctrlKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) openAddTask();
-  if(e.key==='Escape'){closeModal();closeUXModal();closeSkillModal();}
-  if(e.key==='r'&&!e.metaKey&&!e.ctrlKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
-// ═══════════════════════════════════════════════════════
-//  UX IMPACT VIEW
-// ═══════════════════════════════════════════════════════
-function renderUXImpact(){
-  const logs=uxLogs||[];
-  return`<div class="section-row">
-    <span class="st">UX impact log</span>
-    <div style="display:flex;gap:8px">
-      <button class="export-btn" onclick="exportUXCSV()">Export CSV</button>
-      <button class="btn accent" onclick="openUXLogModal()">+ Log impact</button>
-    </div>
-  </div>
-  ${logs.length===0
-    ?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 32px;text-align:center">
-        <div style="width:44px;height:44px;border-radius:12px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 16l4-4 3 3 5-6 4 3" stroke="#185FA5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="18" height="18" rx="3" stroke="#185FA5" stroke-width="1.6"/></svg>
-        </div>
-        <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px">No impact logs yet</div>
-        <div style="font-size:13px;color:var(--text2);max-width:320px;margin:0 auto 20px;line-height:1.6">After a feature goes live, log UX data here — task success rates, drop-offs, CSAT, and qualitative observations.</div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:24px">
-          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
-            <div style="font-size:18px;font-weight:500;color:var(--green)">78%</div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Task success</div>
-          </div>
-          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
-            <div style="font-size:18px;font-weight:500;color:var(--blue)">42s</div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">Time on task</div>
-          </div>
-          <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 14px;text-align:left;min-width:130px">
-            <div style="font-size:18px;font-weight:500;color:var(--amber)">4.2</div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">CSAT score</div>
-          </div>
-        </div>
-        <button class="btn accent" onclick="openUXLogModal()">Log your first impact</button>
-      </div>`
-    :logs.map(l=>`<div class="impact-card">
-      <div class="impact-head">
-        <div>
-          <div class="impact-task">${l.task_name||'Unknown task'}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${l.designer_name} · Went live ${l.went_live_at||'—'}</div>
-        </div>
-        <div class="impact-date"></div>
-      </div>
-      ${(l.task_success_rate!=null||l.time_on_task_secs!=null||l.drop_off_rate!=null||l.csat_score!=null)?`
-      <div class="impact-grid">
-        ${l.task_success_rate!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:var(--green)">${Math.round(l.task_success_rate)}%</div><div class="impact-metric-label">Task success</div></div>`:''}
-        ${l.time_on_task_secs!=null?`<div class="impact-metric"><div class="impact-metric-val">${Math.round(l.time_on_task_secs)}s</div><div class="impact-metric-label">Time on task</div></div>`:''}
-        ${l.drop_off_rate!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:${l.drop_off_rate>30?'var(--red)':'var(--text)'}">${Math.round(l.drop_off_rate)}%</div><div class="impact-metric-label">Drop-off</div></div>`:''}
-        ${l.csat_score!=null?`<div class="impact-metric"><div class="impact-metric-val" style="color:var(--amber)">${Number(l.csat_score).toFixed(1)}</div><div class="impact-metric-label">CSAT</div></div>`:''}
-        ${l.sample_size!=null?`<div class="impact-metric"><div class="impact-metric-val">${l.sample_size}</div><div class="impact-metric-label">Sample</div></div>`:''}
-      </div>`:''}
-      <div class="qual-section">
-        ${l.observations?`<div class="qual-item"><div class="qual-label">Observations</div><div class="qual-text">${l.observations}</div></div>`:''}
-        ${l.user_feedback?`<div class="qual-item"><div class="qual-label">User feedback</div><div class="qual-text">${l.user_feedback}</div></div>`:''}
-        ${l.issues_found?`<div class="qual-item"><div class="qual-label">Issues found</div><div class="qual-text">${l.issues_found}</div></div>`:''}
-        ${l.what_worked?`<div class="qual-item"><div class="qual-label">What worked</div><div class="qual-text">${l.what_worked}</div></div>`:''}
-      </div>
-    </div>`).join('')}
-  ${renderAI('uximpact')}`;
-}
-
-// ═══════════════════════════════════════════════════════
-//  SKILLS VIEW
-// ═══════════════════════════════════════════════════════
-function renderSkills(){
-  const ratings=skillRatings||[];
-  const designers=(DESIGNERS||[]).map(d=>d.name);
-  return`<div class="section-row">
-    <span class="st">Skills</span>
-    <div style="display:flex;gap:8px">
-      <button class="export-btn" onclick="exportSkillsCSV()">Export CSV</button>
-      <button class="btn accent" onclick="openSkillRatingModal()">+ Rate skills</button>
-    </div>
-  </div>
-  <div class="section-row2" style="margin-top:0"><span style="font-size:12px;font-weight:500;color:var(--text)">By designer</span></div>
-  <div class="designer-radar-grid" id="designerRadarGrid">
-    ${buildDesignerRadarCards(designers)}
-  </div>
-  </div>
-  <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">By project / task</span></div>
-  <div class="panel">
-    <div class="ph"><span class="pt">Skills per task</span></div>
-    ${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).length===0
-      ?`<div style="padding:24px;text-align:center">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:12px">No skills tagged yet</div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Tag skills when adding a task, or edit existing tasks to add skills</div>
-          <button class="btn accent" onclick="openAddTask()">+ Add a task with skills</button>
-        </div>`
-      :`<div class="project-skill-list">${(tasks||[]).filter(t=>t.skills&&t.skills.length>0).map(t=>`<div class="psk-row">
-        <div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:10px;color:var(--text3)">${t.designer_name}</div></div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px">${(t.skills||[]).map(s=>{const sk=SKILLS.find(x=>x.name===s);return`<span class="skill-chip selected" style="background:${sk?sk.color:'#888'};border-color:${sk?sk.color:'#888'}">${s}</span>`;}).join('')}</div>
-      </div>`).join('')}</div>`}
-  </div>
-  ${ratings.length>0?`
-  <div class="section-row2"><span style="font-size:12px;font-weight:500;color:var(--text)">Rating history</span></div>
-  <div class="panel"><table>
-    <thead><tr>
-      <th style="width:28%">Task</th><th style="width:18%">Designer</th>
-      <th style="width:18%">Skill</th><th style="width:12%">Self</th>
-      <th style="width:12%">Head</th><th style="width:12%">Date</th>
-    </tr></thead>
-    <tbody>${ratings.map(r=>`<tr class="tr">
-      <td style="font-weight:500">${r.task_name||'—'}</td>
-      <td style="color:var(--text2)">${r.designer_name}</td>
-      <td>${(()=>{const sk=SKILLS.find(x=>x.name===r.skill);return sk?`<span class="skill-chip selected" style="background:${sk.color};border-color:${sk.color}">${r.skill}</span>`:r.skill;})()}</td>
-      <td>${renderStarsStatic(r.self_rating)}</td>
-      <td>${renderStarsStatic(r.head_rating)}</td>
-      <td style="color:var(--text3)">${r.rated_at||'—'}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`:''}
-  ${renderAI('skills')}`;
-}
-
-function renderStarsStatic(n){
-  if(!n) return '<span style="color:var(--text3);font-size:11px">—</span>';
-  return Array.from({length:5},(_,i)=>`<span style="color:${i<n?'#EF9F27':'var(--border2)'}">★</span>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════
-//  SPIDER CHART DRAWING
-// ═══════════════════════════════════════════════════════
-function spiderId(name){return 'spider-'+name.split('').map(c=>/\s/.test(c)?'_':c).join('');}
-function slug(s){return s.split('').map(c=>/\s/.test(c)?'_':c).join('');}
-
-function buildDesignerRadarCards(designers){
-  return (designers||[]).map((d,i)=>{
-    const hasRatings=(skillRatings||[]).some(r=>r.designer_name===d);
-    const sid=spiderId(d);
-    const av=AV[i%AV.length];
-    const ini=iniFor(d);
-    if(hasRatings){
-      return '<div class="designer-radar-card"><div class="avatar '+av+'" style="width:32px;height:32px;font-size:11px">'+ini+'</div><div class="drc-name">'+d+'</div><canvas class="spider-canvas" id="'+sid+'" width="220" height="220"></canvas></div>';
-    } else {
-      return '<div class="designer-radar-card"><div class="avatar '+av+'" style="width:32px;height:32px;font-size:11px">'+ini+'</div><div class="drc-name">'+d+'</div><div style="width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%"><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 20px;line-height:1.5">Rate skills to see chart</div><button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRatingModal()">Rate \u2192</button></div></div>';
-    }
-  }).join('');
-}
-
-function drawAllSpiders(){
-  (DESIGNERS||[]).forEach(d=>drawSpider(d.name));
-}
-
-function drawSpider(designerName){
-  const canvasId='spider-'+designerName.replace(/\s+/g,'_');
-  const canvas=document.getElementById(canvasId);
-  if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,R=Math.min(W,H)*0.38;
-  const n=SKILLS.length;
-  const ratings=skillRatings||[];
-  ctx.clearRect(0,0,W,H);
-
-  // Compute average ratings per skill for this designer
-  const skillVals=SKILLS.map(s=>{
-    const rs=ratings.filter(r=>r.designer_name===designerName&&r.skill===s.name);
-    if(!rs.length) return 0;
-    const avg=rs.reduce((a,r)=>a+(r.head_rating||r.self_rating||0),0)/rs.length;
-    return Math.min(avg/5,1);
-  });
-
-  const angles=SKILLS.map((_,i)=>(-Math.PI/2)+(2*Math.PI/n)*i);
-
-  // Grid rings
-  const isDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
-  const gridColor=isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
-  const labelColor=isDark?'rgba(255,255,255,0.45)':'rgba(0,0,0,0.4)';
-  [0.2,0.4,0.6,0.8,1].forEach(pct=>{
-    ctx.beginPath();
-    angles.forEach((a,i)=>{
-      const x=cx+Math.cos(a)*R*pct,y=cy+Math.sin(a)*R*pct;
-      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-    });
-    ctx.closePath();ctx.strokeStyle=gridColor;ctx.lineWidth=1;ctx.stroke();
-  });
-
-  // Spokes
-  angles.forEach(a=>{
-    ctx.beginPath();ctx.moveTo(cx,cy);
-    ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);
-    ctx.strokeStyle=gridColor;ctx.lineWidth=1;ctx.stroke();
-  });
-
-  // Data polygon
-  ctx.beginPath();
-  skillVals.forEach((v,i)=>{
-    const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-  });
-  ctx.closePath();
-  ctx.fillStyle='rgba(55,138,221,0.18)';ctx.fill();
-  ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.stroke();
-
-  // Dots
-  skillVals.forEach((v,i)=>{
-    const a=angles[i],x=cx+Math.cos(a)*R*Math.max(v,0.05),y=cy+Math.sin(a)*R*Math.max(v,0.05);
-    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);
-    ctx.fillStyle='#378ADD';ctx.fill();
-  });
-
-  // Labels
-  ctx.font='10px DM Sans,sans-serif';ctx.fillStyle=labelColor;ctx.textAlign='center';
-  SKILLS.forEach((s,i)=>{
-    const a=angles[i],lx=cx+Math.cos(a)*(R+18),ly=cy+Math.sin(a)*(R+18);
-    const short=s.name.split(' ')[0];
-    ctx.fillText(short,lx,ly+3);
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-//  UX LOG MODAL
-// ═══════════════════════════════════════════════════════
-let uxTaskId=null,uxTaskName='';
-
-function openUXLogModal(){
-  const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-  const sel=parseInt(prompt('Which task went live?\n'+opts,'1'));
-  const t=(tasks||[])[sel-1];
-  if(!t) return;
-  uxTaskId=t.id;uxTaskName=t.name;
-
-  const overlay=document.getElementById('uxModalOverlay');
-  document.getElementById('ux-task-label').textContent=t.name;
-  document.getElementById('ux-designer-label').textContent=t.designer_name;
-  overlay.classList.add('open');
-}
-
-function closeUXModal(){document.getElementById('uxModalOverlay').classList.remove('open');}
-
-async function submitUXLog(){
-  if(!uxTaskId){toast('Please select a task first');return;}
-  const btn=document.getElementById('uxSubmitBtn');
-  btn.disabled=true;btn.textContent='Saving…';
-  const t=tasks.find(x=>x.id===uxTaskId);
-  const payload={
-    task_id:uxTaskId,
-    task_name:uxTaskName,
-    designer_name:t?t.designer_name:'—',
-    went_live_at:document.getElementById('ux-live-date').value||null,
-    observations:document.getElementById('ux-observations').value.trim()||null,
-    user_feedback:document.getElementById('ux-feedback').value.trim()||null,
-    issues_found:document.getElementById('ux-issues').value.trim()||null,
-    what_worked:document.getElementById('ux-worked').value.trim()||null,
-    task_success_rate:parseFloat(document.getElementById('ux-success').value)||null,
-    time_on_task_secs:parseFloat(document.getElementById('ux-time').value)||null,
-    drop_off_rate:parseFloat(document.getElementById('ux-dropoff').value)||null,
-    csat_score:parseFloat(document.getElementById('ux-csat').value)||null,
-    sample_size:parseInt(document.getElementById('ux-sample').value)||null,
-  };
-  try{
-    const res=await sb('ux_logs',{method:'POST',headers:HR,body:JSON.stringify(payload)});
-    if(res&&res[0]) uxLogs.unshift(res[0]);
-    if(t){t.status='done';await sb(`tasks?id=eq.${t.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({status:'done',went_live_at:payload.went_live_at})});}
-    closeUXModal();render();toast('Impact logged');
-  }catch(e){toast('Error: '+e.message);}
-  btn.disabled=false;btn.textContent='Save log';
-}
-
-// ═══════════════════════════════════════════════════════
-//  SKILL RATING MODAL
-// ═══════════════════════════════════════════════════════
-let ratingTaskId=null,selfRatings={},headRatings={};
-
-function openSkillRatingModal(){
-  const opts=(tasks||[]).map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-  const sel=parseInt(prompt('Rate skills for which task?\n'+opts,'1'));
-  const t=(tasks||[])[sel-1];
-  if(!t) return;
-  ratingTaskId=t.id;selfRatings={};headRatings={};
-  document.getElementById('sr-task-label').textContent=t.name;
-  document.getElementById('sr-designer-label').textContent=t.designer_name;
-  const skCont=document.getElementById('sr-skills-container');
-  const skillsToRate=t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
-  skCont.innerHTML=skillsToRate.map(s=>`
-    <div style="margin-bottom:12px">
-      <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text)">${s}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Self rating</div>
-          <div class="star-row" id="self-${slug(s)}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('self','${s}',${n})" id="self-${slug(s)}-${n}">★</span>`).join('')}</div>
-        </div>
-        <div><div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Head rating</div>
-          <div class="star-row" id="head-${slug(s)}">${[1,2,3,4,5].map(n=>`<span class="star" onclick="setRating('head','${s}',${n})" id="head-${slug(s)}-${n}">★</span>`).join('')}</div>
-        </div>
-      </div>
-    </div>`).join('');
-  document.getElementById('srModalOverlay').classList.add('open');
-}
-
-function setRating(type,skill,val){
-  if(type==='self') selfRatings[skill]=val; else headRatings[skill]=val;
-  const key=skill.replace(/\s+/g,'_');
-  [1,2,3,4,5].forEach(n=>{
-    const el=document.getElementById(`${type}-${key}-${n}`);
-    if(el) el.classList.toggle('on',n<=val);
-  });
-}
-
-function closeSkillModal(){document.getElementById('srModalOverlay').classList.remove('open');}
-
-async function submitSkillRatings(){
-  const btn=document.getElementById('srSubmitBtn');
-  btn.disabled=true;btn.textContent='Saving…';
-  if(!ratingTaskId){toast('Please select a task first');btn.disabled=false;btn.textContent='Save ratings';return;}
-  const t=tasks.find(x=>x.id===ratingTaskId);
-  const skills=t&&t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
-  const today=new Date().toISOString().split('T')[0];
-  const entries=skills.map(s=>({
-    task_id:ratingTaskId,task_name:t?t.name:'—',
-    designer_name:t?t.designer_name:'—',
-    skill:s,self_rating:selfRatings[s]||null,
-    head_rating:headRatings[s]||null,rated_at:today
-  })).filter(e=>e.self_rating||e.head_rating);
-  if(!entries.length){toast('Rate at least one skill');btn.disabled=false;btn.textContent='Save ratings';return;}
-  try{
-    const res=await sb('skill_ratings',{method:'POST',headers:HR,body:JSON.stringify(entries)});
-    if(res) skillRatings.unshift(...res);
-    closeSkillModal();render();toast('Skill ratings saved');
-  }catch(e){toast('Error: '+e.message);}
-  btn.disabled=false;btn.textContent='Save ratings';
-}
-
-// ═══════════════════════════════════════════════════════
-//  EXPORT
-// ═══════════════════════════════════════════════════════
-function exportUXCSV(){
-  const logs=uxLogs||[];
-  if(!logs.length){toast('No data to export');return;}
-  const headers=['Task','Designer','Went live','Success %','Time on task (s)','Drop-off %','CSAT','Sample','Observations','User feedback','Issues found','What worked'];
-  const rows=logs.map(l=>[l.task_name,l.designer_name,l.went_live_at,l.task_success_rate,l.time_on_task_secs,l.drop_off_rate,l.csat_score,l.sample_size,l.observations,l.user_feedback,l.issues_found,l.what_worked].map(v=>v==null?'':`"${String(v).replace(/"/g,'""')}"`));
-  downloadCSV([headers,...rows],'ux_impact.csv');
-}
-
-function exportSkillsCSV(){
-  const ratings=skillRatings||[];
-  if(!ratings.length){toast('No data to export');return;}
-  const headers=['Task','Designer','Skill','Self rating','Head rating','Date'];
-  const rows=ratings.map(r=>[r.task_name,r.designer_name,r.skill,r.self_rating,r.head_rating,r.rated_at].map(v=>v==null?'':`"${String(v).replace(/"/g,'""')}"`));
-  downloadCSV([headers,...rows],'skill_ratings.csv');
-}
-
-function downloadCSV(rows,filename){
-  const csv=rows.map(r=>r.join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=filename;a.click();
-}
-
-async function saveSortOrder(){
-  try{
-    const updates=tasks.map((t,i)=>
-      fetch(`${SB}/rest/v1/tasks?id=eq.${t.id}`,{
-        method:'PATCH',
-        headers:{...H,'Prefer':'return=minimal'},
-        body:JSON.stringify({sort_order:i})
-      })
-    );
-    await Promise.all(updates);
-    toast('Order saved');
-  }catch(e){console.warn('Sort order save failed:',e);}
-}
-
-loadAll();toast('Refreshing…');}
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+  if(e.key==='n')openAddTask();
+  if(e.key==='Escape'){['moAdd','moUX','moSkill'].forEach(id=>closeModal(id));}
+  if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
-// Auto-refresh inbox every 30s
-setInterval(async()=>{
-  try{
-    requests=await sb('requests?select=*&order=created_at.desc');
-    updateBadge();
-    if(currentView==='inbox') render();
-  }catch(e){}
-},30000);
+// ── AUTO REFRESH ──────────────────────────────────────
+setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
 
-loadAll();
-
-
-// ---- LOCK SCREEN ----
-const PASSCODE = 'MISTAKES';
-const SESSION_KEY = 'dr_unlocked';
-
-function checkPasscode(){
-  const val = document.getElementById('lockInput').value.trim().toUpperCase();
-  const inp = document.getElementById('lockInput');
-  const err = document.getElementById('lockErr');
-  if(val === PASSCODE){
-    sessionStorage.setItem(SESSION_KEY,'1');
-    const ls = document.getElementById('lockScreen');
-    ls.style.opacity='0';ls.style.transition='opacity .3s';
-    setTimeout(()=>ls.style.display='none',300);
-  } else {
-    inp.classList.add('shake','error');
-    err.textContent='Wrong passcode. Try again.';
-    setTimeout(()=>{inp.classList.remove('shake','error');err.textContent='';inp.value='';inp.focus();},1200);
-  }
-}
-
-function initLock(){
-  if(sessionStorage.getItem(SESSION_KEY)==='1'){
-    document.getElementById('lockScreen').style.display='none';
-  } else {
-    setTimeout(()=>document.getElementById('lockInput').focus(),100);
-  }
-}
-
+// ── INIT ──────────────────────────────────────────────
 initLock();
+loadAll();
 </script>
-
-<!-- LOCK SCREEN -->
-<div class="lock-screen" id="lockScreen">
-  <div class="lock-card">
-    <div class="lock-logo">
-      <svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg>
-    </div>
-    <div class="lock-title">Design Radar</div>
-    <div class="lock-sub">Enter the team passcode to continue</div>
-    <div class="lock-input-wrap">
-      <input class="lock-input" id="lockInput" type="password" placeholder="••••••••"
-        maxlength="20" autocomplete="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter')checkPasscode()"/>
-      <div class="lock-err" id="lockErr"></div>
-    </div>
-    <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
-    <div class="lock-footer">Design team access only</div>
-  </div>
-</div>
-
-<!-- UX IMPACT LOG MODAL -->
-<div class="modal-overlay" id="uxModalOverlay" onclick="if(event.target===this)closeUXModal()">
-  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
-    <div class="modal-head">
-      <span class="modal-title">Log UX impact</span>
-      <button class="modal-close" onclick="closeUXModal()">&#x2715;</button>
-    </div>
-    <div class="modal-body">
-      <div class="mfield">
-        <label>Task</label>
-        <select id="ux-task-select" onchange="onUXTaskSelect()"><option value="">Select a task…</option></select>
-      </div>
-      <div id="ux-task-info" style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;margin-top:-8px;display:flex;gap:8px;min-height:32px;align-items:center">
-        <div style="font-size:12px;font-weight:500;flex:1" id="ux-task-label"></div>
-        <div style="font-size:11px;color:var(--text3)" id="ux-designer-label"></div>
-      </div>
-      <div class="mfield">
-        <label>Date went live</label>
-        <input type="date" id="ux-live-date"/>
-      </div>
-      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:4px 0 8px">Quantitative</div>
-      <div class="mrow">
-        <div class="mfield"><label>Task success rate (%)</label><input type="number" id="ux-success" placeholder="e.g. 78" min="0" max="100"/></div>
-        <div class="mfield"><label>Time on task (secs)</label><input type="number" id="ux-time" placeholder="e.g. 45"/></div>
-      </div>
-      <div class="mrow">
-        <div class="mfield"><label>Drop-off rate (%)</label><input type="number" id="ux-dropoff" placeholder="e.g. 22" min="0" max="100"/></div>
-        <div class="mfield"><label>CSAT score (1–5)</label><input type="number" id="ux-csat" placeholder="e.g. 4.2" min="1" max="5" step="0.1"/></div>
-      </div>
-      <div class="mfield"><label>Sample size</label><input type="number" id="ux-sample" placeholder="Number of users tested"/></div>
-      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 8px">Qualitative</div>
-      <div class="mfield"><label>Observations</label><textarea id="ux-observations" placeholder="What did you observe during testing or post-launch?"></textarea></div>
-      <div class="mfield"><label>User feedback</label><textarea id="ux-feedback" placeholder="Direct quotes or themes from user feedback"></textarea></div>
-      <div class="mfield"><label>Issues found</label><textarea id="ux-issues" placeholder="Usability issues, bugs, friction points"></textarea></div>
-      <div class="mfield"><label>What worked well</label><textarea id="ux-worked" placeholder="What went well, patterns to repeat"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeUXModal()">Cancel</button>
-      <button class="btn accent" id="uxSubmitBtn" onclick="submitUXLog()">Save log</button>
-    </div>
-  </div>
-</div>
-
-<!-- SKILL RATING MODAL -->
-<div class="modal-overlay" id="srModalOverlay" onclick="if(event.target===this)closeSkillModal()">
-  <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto">
-    <div class="modal-head">
-      <span class="modal-title">Rate skills</span>
-      <button class="modal-close" onclick="closeSkillModal()">&#x2715;</button>
-    </div>
-    <div class="modal-body">
-      <div class="mfield">
-        <label>Task</label>
-        <select id="sr-task-select" onchange="onSRTaskSelect()"><option value="">Select a task…</option></select>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;margin-top:-8px;display:flex;gap:8px;min-height:32px;align-items:center">
-        <div style="font-size:12px;font-weight:500;flex:1" id="sr-task-label"></div>
-        <div style="font-size:11px;color:var(--text3)" id="sr-designer-label"></div>
-      </div>
-      <div id="sr-skills-container" style="margin-top:8px"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeSkillModal()">Cancel</button>
-      <button class="btn accent" id="srSubmitBtn" onclick="submitSkillRatings()">Save ratings</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
