@@ -196,6 +196,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="nl">Growth</div>
       <div class="ni" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
       <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
+      <div class="ni" onclick="go('tracker')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 1v4M9 1v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M4 8h2M4 10.5h4M8.5 8l1 1 1.5-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily tracker</div>
     </div>
     <div class="timer-mini">
       <div class="tm-l">Timer</div>
@@ -287,7 +288,48 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       </div>
       <div id="sk-skills-container"></div>
     </div>
+      <div id="sk-notes-wrap" style="display:none">
+        <div class="mfield"><label>Notes (optional)</label><textarea id="sk-notes" placeholder="Design decisions, growth observations, context…" style="height:72px"></textarea></div>
+      </div>
     <div class="modal-footer"><button class="btn" onclick="closeModal('moSkill')">Cancel</button><button class="btn accent" id="btnSkill" onclick="submitSkillRatings()">Save ratings</button></div>
+  </div>
+</div>
+
+
+<!-- EDIT RATING MODAL -->
+<div class="modal-overlay" id="moEditRating" onclick="if(event.target===this)closeModal('moEditRating')">
+  <div class="modal" style="width:480px">
+    <div class="modal-head"><span class="modal-title">Edit rating</span><button class="modal-close" onclick="closeModal('moEditRating')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px;margin-bottom:4px">
+        <span id="er-task" style="font-size:12px;font-weight:500"></span>
+        <span id="er-designer" style="font-size:11px;color:var(--text3);margin-left:8px"></span>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 12px" id="er-skill-display"></div>
+      <div class="mrow">
+        <div class="mfield"><label>Self rating</label><div id="er-self-stars" style="display:flex;gap:4px;margin-top:4px"></div></div>
+        <div class="mfield"><label>Head rating</label><div id="er-head-stars" style="display:flex;gap:4px;margin-top:4px"></div></div>
+      </div>
+      <div class="mfield"><label>Notes</label><textarea id="er-notes" placeholder="Design decisions, growth observations, context…" style="height:80px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteRating()">Delete</button>
+      <button class="btn" onclick="closeModal('moEditRating')">Cancel</button>
+      <button class="btn accent" id="btnEditRating" onclick="saveEditRating()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TODO MODAL -->
+<div class="modal-overlay" id="moTodo" onclick="if(event.target===this)closeModal('moTodo')">
+  <div class="modal" style="width:420px">
+    <div class="modal-head"><span class="modal-title">Add todo</span><button class="modal-close" onclick="closeModal('moTodo')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="mfield"><label>Designer</label><select id="todo-designer"><option value="">Select designer…</option></select></div>
+      <div class="mfield"><label>Date</label><input type="date" id="todo-date"/></div>
+      <div class="mfield"><label>Task</label><input type="text" id="todo-task" placeholder="e.g. Review onboarding wireframes"/></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('moTodo')">Cancel</button><button class="btn accent" onclick="submitTodo()">Add</button></div>
   </div>
 </div>
 
@@ -312,16 +354,18 @@ const H = {'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'applicatio
 const HR = Object.assign({},H,{'Prefer':'return=representation'});
 
 const SKILLS = [
-  {name:'Interaction Design',color:'#378ADD'},
-  {name:'Visual Design',color:'#7F77DD'},
-  {name:'UX Research',color:'#1D9E75'},
-  {name:'Design Systems',color:'#EF9F27'},
-  {name:'Prototyping',color:'#E24B4A'},
-  {name:'Content / Writing',color:'#D4537E'}
+  {name:'Interaction Design',             color:'#378ADD'},
+  {name:'Visual Design / Craft',          color:'#7F77DD'},
+  {name:'UX Research',                    color:'#1D9E75'},
+  {name:'Design Systems',                 color:'#EF9F27'},
+  {name:'Articulation of Design Decisions',color:'#E24B4A'},
+  {name:'Stakeholder Management',         color:'#D4537E'},
+  {name:'AI Tools',                       color:'#5DCAA5'},
+  {name:'Prototyping',                    color:'#BA7517'}
 ];
 const AV = ['av0','av1','av2','av3','av4'];
 
-let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[];
+let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[];
 let view='dashboard', sfilt='all', lfilt='all';
 let selName='', selSkills=[];
 let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
@@ -381,6 +425,7 @@ async function loadAll(){
   }
   try{uxLogs=await api('ux_logs?select=*&order=created_at.desc');}catch(e){uxLogs=[];}
   try{skillRatings=await api('skill_ratings?select=*&order=created_at.desc');}catch(e){skillRatings=[];}
+  try{dailyTodos=await api('daily_todos?select=*&order=todo_date.desc,sort_order.asc');}catch(e){dailyTodos=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   updateBadge();
   render();
@@ -396,10 +441,10 @@ function updateBadge(){
 function go(v){
   view=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7};
+  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7,tracker:8};
   const nis=document.querySelectorAll('.ni');
   if(nis[map[v]])nis[map[v]].classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -414,6 +459,7 @@ function render(){
   else if(view==='capacity')c.innerHTML=vCapacity();
   else if(view==='uximpact')c.innerHTML=vUXImpact();
   else if(view==='skills'){c.innerHTML=vSkills();setTimeout(drawAllSpiders,60);}
+  else if(view==='tracker')c.innerHTML=vTracker();
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -606,34 +652,88 @@ function vUXImpact(){
     +content+aiPanel('uximpact');
 }
 
-// ── SKILLS ────────────────────────────────────────────
+// ── SKILLS ───────────────────────────────────────────────────────────────
+
 function vSkills(){
-  const designers=(DESIGNERS||[]).map(d=>d.name);
-  const spiderCards=designers.map((d,i)=>{
-    const hasR=(skillRatings||[]).some(r=>r.designer_name===d);
-    const sid='spider_'+slugify(d);
-    const inner=hasR
-      ?'<canvas id="'+sid+'" width="200" height="200" style="width:100%;max-width:200px"></canvas>'
-      :'<div style="width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%"><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 20px;line-height:1.5">Rate skills to see chart</div><button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRate()">Rate</button></div>';
+  const designers = (DESIGNERS||[]).map(d=>d.name);
+
+  // Spider charts grid
+  const spiderCards = designers.map((d,i) => {
+    const hasR = (skillRatings||[]).some(r => r.designer_name===d);
+    const sid = 'spider_' + slugify(d);
+    const inner = hasR
+      ? '<canvas id="'+sid+'" width="200" height="200" style="width:100%;max-width:200px"></canvas>'
+      : '<div style="width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border2);border-radius:50%"><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 20px;line-height:1.5">Rate skills to see chart</div><button class="btn" style="font-size:10px;padding:4px 10px" onclick="openSkillRate()">Rate</button></div>';
     return '<div class="spider-card"><div class="avatar '+AV[i%AV.length]+'" style="width:32px;height:32px;font-size:11px">'+iniFor(d)+'</div><div style="font-size:12px;font-weight:500">'+d+'</div>'+inner+'</div>';
   }).join('');
-  const taskSkills=(tasks||[]).filter(t=>t.skills&&t.skills.length>0);
-  const taskRows=taskSkills.length===0?'<div class="empty">No skills tagged — tag skills when adding tasks</div>'
-    :taskSkills.map(t=>{
-      const chips=t.skills.map(s=>{const sk=SKILLS.find(x=>x.name===s);return '<span class="skill-chip" style="background:'+(sk?sk.color:'#888')+';color:#fff;border-color:'+(sk?sk.color:'#888')+'">'+s+'</span>';}).join('');
-      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.designer_name+'</div></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div>';
-    }).join('');
-  const ratingRows=(skillRatings||[]).length===0?''
-    :'<div style="margin-top:14px"><div class="section-row"><span class="st">Rating history</span></div><div class="panel"><table><thead><tr><th style="width:28%">Task</th><th style="width:18%">Designer</th><th style="width:18%">Skill</th><th style="width:12%">Self</th><th style="width:12%">Head</th><th style="width:12%">Date</th></tr></thead><tbody>'
-    +(skillRatings||[]).map(r=>{const sk=SKILLS.find(x=>x.name===r.skill);const chip=sk?'<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>':r.skill;return '<tr class="tr"><td style="font-weight:500">'+(r.task_name||'—')+'</td><td style="color:var(--text2)">'+r.designer_name+'</td><td>'+chip+'</td><td>'+starsHtml(r.self_rating)+'</td><td>'+starsHtml(r.head_rating)+'</td><td style="color:var(--text3)">'+(r.rated_at||'—')+'</td></tr>';}).join('')
-    +'</tbody></table></div></div>';
-  return '<div class="section-row"><span class="st">Skills</span><div style="display:flex;gap:8px"><button class="btn" onclick="exportSkillsCSV()">Export CSV</button><button class="btn accent" onclick="openSkillRate()">+ Rate skills</button></div></div>'
+
+  // Tasks with skills tagged
+  const taskSkills = (tasks||[]).filter(t => t.skills && t.skills.length > 0);
+  const taskRows = taskSkills.length === 0
+    ? '<div class="empty">No skills tagged yet — tag skills when adding tasks</div>'
+    : taskSkills.map(t => {
+        const chips = t.skills.map(s => {
+          const sk = SKILLS.find(x => x.name===s);
+          return '<span class="skill-chip" style="background:'+(sk?sk.color:'#888')+';color:#fff;border-color:'+(sk?sk.color:'#888')+'">'+s+'</span>';
+        }).join('');
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.designer_name+'</div></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div>';
+      }).join('');
+
+  // Rating history - last 3, expandable
+  const allRatings = skillRatings||[];
+  const last3 = allRatings.slice(0,3);
+  const ratingRowsHtml = (rows) => rows.map(r => {
+    const sk = SKILLS.find(x => x.name===r.skill);
+    const chip = sk ? '<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>' : r.skill;
+    return '<tr class="tr">'
+      +'<td style="font-weight:500">'+(r.task_name||'—')+'</td>'
+      +'<td style="color:var(--text2)">'+r.designer_name+'</td>'
+      +'<td>'+chip+'</td>'
+      +'<td>'+starsHtml(r.self_rating)+'</td>'
+      +'<td>'+starsHtml(r.head_rating)+'</td>'
+      +'<td style="color:var(--text3)">'+(r.notes||'—')+'</td>'
+      +'<td style="color:var(--text3)">'+(r.rated_at||'—')+'</td>'
+      +'<td><button class="btn" style="font-size:10px;padding:3px 8px" onclick="openEditRating(this.dataset.id)" data-id="'+r.id+'">Edit</button></td>'
+      +'</tr>';
+  }).join('');
+
+  const ratingSection = allRatings.length === 0 ? ''
+    : '<div style="margin-top:14px">'
+      +'<div class="section-row"><span class="st">Rating history</span>'
+      +(allRatings.length > 3 ? '<button class="btn" style="font-size:11px" id="ratingToggleBtn" onclick="toggleRatingHistory()">See all ('+allRatings.length+')</button>' : '')
+      +'</div>'
+      +'<div class="panel"><table><thead><tr>'
+      +'<th style="width:20%">Task</th><th style="width:14%">Designer</th><th style="width:18%">Skill</th>'
+      +'<th style="width:8%">Self</th><th style="width:8%">Head</th><th style="width:18%">Notes</th>'
+      +'<th style="width:8%">Date</th><th style="width:6%"></th>'
+      +'</tr></thead>'
+      +'<tbody id="ratingHistoryBody">'+ratingRowsHtml(last3)+'</tbody>'
+      +'</table></div></div>';
+
+  return '<div class="section-row"><span class="st">Skills</span>'
+    +'<div style="display:flex;gap:8px"><button class="btn" onclick="exportSkillsCSV()">Export CSV</button><button class="btn accent" onclick="openSkillRate()">+ Rate skills</button></div></div>'
     +'<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px">By designer</div>'
     +'<div class="spider-grid">'+spiderCards+'</div>'
     +'<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px">By task</div>'
     +'<div class="panel"><div>'+taskRows+'</div></div>'
-    +ratingRows
+    +ratingSection
     +aiPanel('skills');
+}
+
+let ratingHistoryExpanded = false;
+function toggleRatingHistory(){
+  ratingHistoryExpanded = !ratingHistoryExpanded;
+  const tbody = document.getElementById('ratingHistoryBody');
+  const btn = document.getElementById('ratingToggleBtn');
+  if(!tbody) return;
+  const all = skillRatings||[];
+  const rows = ratingHistoryExpanded ? all : all.slice(0,3);
+  tbody.innerHTML = rows.map(r => {
+    const sk = SKILLS.find(x => x.name===r.skill);
+    const chip = sk ? '<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>' : r.skill;
+    return '<tr class="tr"><td style="font-weight:500">'+(r.task_name||'—')+'</td><td style="color:var(--text2)">'+r.designer_name+'</td><td>'+chip+'</td><td>'+starsHtml(r.self_rating)+'</td><td>'+starsHtml(r.head_rating)+'</td><td style="color:var(--text3)">'+(r.notes||'—')+'</td><td style="color:var(--text3)">'+(r.rated_at||'—')+'</td><td><button class="btn" style="font-size:10px;padding:3px 8px" onclick="openEditRating(this.dataset.id)" data-id="'+r.id+'">Edit</button></td></tr>';
+  }).join('');
+  if(btn) btn.textContent = ratingHistoryExpanded ? 'Show less' : 'See all ('+all.length+')';
 }
 
 function starsHtml(n){
@@ -764,6 +864,8 @@ function onSKTask(){
     return '<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:500;margin-bottom:8px">'+s+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">Self rating</div><div>'+selfStars+'</div></div><div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em">Head rating</div><div>'+headStars+'</div></div></div></div>';
   }).join('');
   document.getElementById('sk-skills-container').innerHTML=html;
+  document.getElementById('sk-notes').value='';
+  document.getElementById('sk-notes-wrap').style.display='block';
 }
 function setStar(type,skill,val){
   if(type==='self')skSelf[skill]=val;else skHead[skill]=val;
@@ -776,7 +878,8 @@ async function submitSkillRatings(){
   const t=(tasks||[]).find(x=>x.id===skTaskId);
   const skillsToRate=t&&t.skills&&t.skills.length>0?t.skills:SKILLS.map(s=>s.name);
   const today=new Date().toISOString().split('T')[0];
-  const entries=skillsToRate.filter(s=>skSelf[s]||skHead[s]).map(s=>({task_id:skTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',skill:s,self_rating:skSelf[s]||null,head_rating:skHead[s]||null,rated_at:today}));
+  const notesVal = document.getElementById('sk-notes').value.trim();
+  const entries=skillsToRate.filter(s=>skSelf[s]||skHead[s]).map(s=>({task_id:skTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',skill:s,self_rating:skSelf[s]||null,head_rating:skHead[s]||null,notes:notesVal,rated_at:today}));
   if(!entries.length){toast('Rate at least one skill');btn.disabled=false;btn.textContent='Save ratings';return;}
   try{const res=await api('skill_ratings',{method:'POST',headers:HR,body:JSON.stringify(entries)});if(res)skillRatings.unshift(...res);closeModal('moSkill');render();toast('Skill ratings saved');}
   catch(e){toast('Error: '+e.message);}
@@ -861,6 +964,174 @@ function resumeFromLog(taskId,taskName){
   timerInt=setInterval(()=>{timerSecs++;document.getElementById('sideTimer').textContent=fmtT(timerSecs);},1000);
 }
 
+
+// ── EDIT RATING ──────────────────────────────────────────────────────────
+let editRatingId = null, erSelf = 0, erHead = 0;
+
+function openEditRating(id){
+  const r = (skillRatings||[]).find(x => x.id===id);
+  if(!r) return;
+  editRatingId = id;
+  erSelf = r.self_rating||0;
+  erHead = r.head_rating||0;
+  document.getElementById('er-task').textContent = r.task_name||'—';
+  document.getElementById('er-designer').textContent = r.designer_name;
+  const sk = SKILLS.find(x => x.name===r.skill);
+  document.getElementById('er-skill-display').innerHTML = sk
+    ? '<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>'
+    : r.skill;
+  document.getElementById('er-notes').value = r.notes||'';
+  renderERStars();
+  openModal('moEditRating');
+}
+
+function renderERStars(){
+  const selfDiv = document.getElementById('er-self-stars');
+  const headDiv = document.getElementById('er-head-stars');
+  if(!selfDiv||!headDiv) return;
+  selfDiv.innerHTML = [1,2,3,4,5].map(function(n){return '<span class="star '+(n<=erSelf?'on':'off')+'" onclick="setERStar(this.dataset.t,'+n+')" data-t="self">★</span>';}).join('');
+  headDiv.innerHTML = [1,2,3,4,5].map(function(n){return '<span class="star '+(n<=erHead?'on':'off')+'" onclick="setERStar(this.dataset.t,'+n+')" data-t="head">★</span>';}).join('');
+}
+
+function setERStar(type, val){
+  if(type==='self') erSelf=val; else erHead=val;
+  renderERStars();
+}
+
+async function saveEditRating(){
+  if(!editRatingId) return;
+  const btn = document.getElementById('btnEditRating');
+  btn.disabled=true; btn.textContent='Saving…';
+  try{
+    await api('skill_ratings?id=eq.'+editRatingId,{
+      method:'PATCH',
+      headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+      body:JSON.stringify({self_rating:erSelf||null,head_rating:erHead||null,notes:document.getElementById('er-notes').value.trim()})
+    });
+    const r = skillRatings.find(x=>x.id===editRatingId);
+    if(r){r.self_rating=erSelf||null;r.head_rating=erHead||null;r.notes=document.getElementById('er-notes').value.trim();}
+    closeModal('moEditRating'); render(); toast('Rating updated');
+  } catch(e){toast('Error: '+e.message);}
+  btn.disabled=false; btn.textContent='Save changes';
+}
+
+async function deleteRating(){
+  if(!editRatingId) return;
+  if(!confirm('Delete this rating?')) return;
+  try{
+    await api('skill_ratings?id=eq.'+editRatingId,{method:'DELETE',headers:H});
+    skillRatings = skillRatings.filter(x=>x.id!==editRatingId);
+    closeModal('moEditRating'); render(); toast('Rating deleted');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+// ── DAILY TRACKER ─────────────────────────────────────────────────────────
+function vTracker(){
+  const today = new Date().toISOString().split('T')[0];
+  const dates = [];
+  for(let i=0; i<5; i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+
+  const designerCols = (DESIGNERS||[]).map((d,i) => {
+    const todayTodos = (dailyTodos||[]).filter(t => t.designer_name===d.name && t.todo_date===today);
+    const pending = todayTodos.filter(t=>!t.done);
+    const done = todayTodos.filter(t=>t.done);
+    const todosHtml = todayTodos.length===0
+      ? '<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">No todos today</div>'
+      : todayTodos.map(function(t){
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">'
+            +'<input type="checkbox" data-tid="'+t.id+'"'+(t.done?' checked':'')
+            +' onchange="toggleTodo(this.dataset.tid,this.checked)" style="cursor:pointer;accent-color:var(--green)">'
+            +'<span style="flex:1;font-size:12px;'+(t.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)')+'">'+t.task+'</span>'
+            +'<button data-tid="'+t.id+'" onclick="deleteTodo(this.dataset.tid)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;line-height:1">×</button>'
+            +'</div>';
+        }).join('');
+
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +'<div class="avatar '+AV[i%AV.length]+'" style="width:28px;height:28px;font-size:10px">'+iniFor(d.name)+'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:500">'+d.name+'</div>'
+      +'<div style="font-size:10px;color:var(--text3)">'+pending.length+' pending · '+done.length+' done</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:8px">'+todosHtml+'</div>'
+      +'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px;justify-content:center" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>'
+      +'</div>';
+  }).join('');
+
+  // Week view - past activity
+  const weekRows = dates.map(date => {
+    const label = date===today?'Today':new Date(date+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    const dayTodos = (dailyTodos||[]).filter(t=>t.todo_date===date);
+    const byDesigner = {};
+    dayTodos.forEach(t=>{if(!byDesigner[t.designer_name])byDesigner[t.designer_name]=[];byDesigner[t.designer_name].push(t);});
+    const cells = (DESIGNERS||[]).map(d=>{
+      const dTodos = byDesigner[d.name]||[];
+      const doneCount = dTodos.filter(t=>t.done).length;
+      if(!dTodos.length) return '<td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">—</td>';
+      return '<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px">'
+        +'<div style="color:var(--text2)">'+dTodos.length+' tasks</div>'
+        +'<div style="color:'+( doneCount===dTodos.length?'var(--green)':doneCount>0?'var(--amber)':'var(--text3)')+';font-size:10px">'+doneCount+'/'+dTodos.length+' done</div>'
+        +'</td>';
+    }).join('');
+    return '<tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:'+(date===today?'500':'400')+';color:'+(date===today?'var(--text)':'var(--text2)')+'">'+label+'</td>'+cells+'</tr>';
+  }).join('');
+
+  const designerHeaders = (DESIGNERS||[]).map(d=>'<th>'+d.name+'</th>').join('');
+
+  return '<div class="section-row"><span class="st">Daily tracker</span>'
+    +'<div style="display:flex;gap:8px">'
+    +'<span class="tb-sub">'+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})+'</span>'
+    +'<button class="btn accent" onclick="openAddTodo(\'\')">+ Add todo</button>'
+    +'</div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat('+Math.min((DESIGNERS||[]).length,3)+',minmax(0,1fr));gap:12px;margin-bottom:18px">'+designerCols+'</div>'
+    +'<div class="section-row"><span class="st">This week</span></div>'
+    +'<div class="panel"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2)">Day</th>'
+    +designerHeaders.replace(/<th>/g,'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2)">')
+    +'</tr></thead><tbody>'+weekRows+'</tbody></table></div></div>';
+}
+
+function openAddTodo(designerName){
+  const sel = document.getElementById('todo-designer');
+  sel.innerHTML='<option value="">Select designer…</option>'+(DESIGNERS||[]).map(d=>'<option value="'+d.name+'"'+(d.name===designerName?' selected':'')+'>'+d.name+'</option>').join('');
+  document.getElementById('todo-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('todo-task').value = '';
+  openModal('moTodo');
+  setTimeout(()=>document.getElementById('todo-task').focus(),100);
+}
+
+async function submitTodo(){
+  const designer = document.getElementById('todo-designer').value;
+  const date = document.getElementById('todo-date').value;
+  const task = document.getElementById('todo-task').value.trim();
+  if(!designer||!task){toast('Please fill in designer and task');return;}
+  try{
+    const res = await api('daily_todos',{method:'POST',headers:HR,body:JSON.stringify({designer_name:designer,todo_date:date,task,done:false,created_by:'head',sort_order:dailyTodos.length})});
+    if(res&&res[0]) dailyTodos.unshift(res[0]);
+    closeModal('moTodo'); render(); toast('Todo added');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+async function toggleTodo(id, done){
+  try{
+    await api('daily_todos?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({done})});
+    const t = dailyTodos.find(x=>x.id===id);
+    if(t) t.done=done;
+    render();
+  } catch(e){toast('Error: '+e.message);}
+}
+
+async function deleteTodo(id){
+  try{
+    await api('daily_todos?id=eq.'+id,{method:'DELETE',headers:H});
+    dailyTodos = dailyTodos.filter(x=>x.id!==id);
+    render();
+  } catch(e){toast('Error: '+e.message);}
+}
+
+
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
   try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
@@ -900,7 +1171,7 @@ document.addEventListener('drop',e=>{e.preventDefault();const r=e.target.closest
 document.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
   if(e.key==='n')openAddTask();
-  if(e.key==='Escape'){['moAdd','moUX','moSkill'].forEach(id=>closeModal(id));}
+  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo'].forEach(id=>closeModal(id));}
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
