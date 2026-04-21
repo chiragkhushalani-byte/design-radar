@@ -843,6 +843,24 @@ function toggleDesigner(el){
   el.classList.toggle('on');
 }
 
+function renderSkillChips(){
+  const c=document.getElementById('skill-chips');
+  if(!c)return;
+  c.innerHTML=SKILLS.map(function(s){
+    const on=selSkills.includes(s.name);
+    return '<span class="skill-chip'+(on?'':' off')+'" style="'+(on?'background:'+s.color+';color:#fff;border-color:'+s.color:'')+'" onclick="toggleSkill(this)" data-skill="'+s.name+'">'+s.name+'</span>';
+  }).join('');
+}
+function toggleSkill(el){
+  const n=el.dataset.skill;
+  const i=selSkills.indexOf(n);
+  if(i>=0)selSkills.splice(i,1);else selSkills.push(n);
+  const sk=SKILLS.find(x=>x.name===n);
+  el.classList.toggle('off');
+  if(selSkills.includes(n)){el.style.background=sk?sk.color:'#888';el.style.color='#fff';el.style.borderColor=sk?sk.color:'#888';}
+  else{el.style.background='';el.style.color='';el.style.borderColor='';}
+}
+
 
 function toggleSkill(n){const i=selSkills.indexOf(n);if(i>=0)selSkills.splice(i,1);else selSkills.push(n);renderSkillChips();}
 
