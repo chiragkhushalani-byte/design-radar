@@ -676,7 +676,13 @@ function vInbox(){
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
     +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5">'+r.description+'</div>':'')
     +'</div>').join('')||'<div class="empty">No requests yet — share pm_request.html with your PMs</div>';
-  return '<div class="section-row"><span class="st">PM requests</span><button class="btn" style="font-size:11px" onclick="loadAll()">Refresh</button></div>'
+  return '<div class="section-row"><span class="st">PM requests</span>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn" style="font-size:11px" onclick="copyPMLink()" id="copyPMBtn">'
+    +'<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M2 10V3a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>'
+    +' Copy form link</button>'
+    +'<button class="btn" style="font-size:11px" onclick="loadAll()">Refresh</button>'
+    +'</div></div>'
     +'<div class="panel">'+rows+'</div>'+aiPanel('inbox');
 }
 
@@ -1531,6 +1537,31 @@ async function saveProgress(){
   } catch(e){toast('Error: '+e.message);}
 }
 
+
+// ── COPY PM LINK ─────────────────────────────────────────────────────────
+function copyPMLink(){
+  const base = window.location.href.replace('index.html','').replace(/\/$/, '');
+  const url = base + '/pm_request.html';
+  const btn = document.getElementById('copyPMBtn');
+  navigator.clipboard.writeText(url).then(function(){
+    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="#1D9E75" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    setTimeout(function(){
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M2 10V3a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> Copy form link';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  }).catch(function(){
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy form link';},2000);}
+  });
+}
 
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
