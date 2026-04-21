@@ -537,36 +537,45 @@ function vDash(){
 // ── SPRINT ────────────────────────────────────────────
 function vSprint(){
   let filtered=(tasks||[]);
-  if(sfilt==='risk')filtered=filtered.filter(t=>t.risk);
-  else if(sfilt==='inprogress')filtered=filtered.filter(t=>t.status==='inprogress');
-  else if(sfilt==='review')filtered=filtered.filter(t=>t.status==='review');
-  const rows=filtered.map(t=>{
-    const dOpts=DESIGNERS.map(d=>'<option value="'+d.name+'"'+(d.name===t.designer_name?' selected':'')+'>'+d.name+'</option>').join('');
-    const est=t.effort*120;const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
+  if(sfilt==='risk')filtered=filtered.filter(function(t){return t.risk;});
+  else if(sfilt==='inprogress')filtered=filtered.filter(function(t){return t.status==='inprogress';});
+  else if(sfilt==='review')filtered=filtered.filter(function(t){return t.status==='review';});
+  const rows=filtered.map(function(t){
+    const designers=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+    const designerBadges=designers.length===0
+      ?'<span style="font-size:11px;color:var(--text3)">Unassigned</span>'
+      :designers.map(function(d){
+        return '<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 7px;border-radius:10px;border:1px solid var(--border);display:inline-block;margin:1px">'+d+'</span>';
+      }).join('');
+    const est=t.effort*120;
+    const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
     return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
       +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+'</div></td>'
       +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
       +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status)+'</span></td>'
-      +'<td><select class="ds-sel" onchange="reassign(\''+t.id+'\',this.value)">'+dOpts+'</select></td>'
+      +'<td>'+designerBadges+'</td>'
       +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
       +'<td><div style="font-size:11px;font-weight:500;margin-bottom:3px">'+fmtM(t.logged_mins||0)+'</div><div style="display:flex;align-items:center;gap:4px"><div class="bar-bg"><div class="bar-fill bf-blue" style="width:'+pct+'%"></div></div></div></td>'
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
-      +'<td>'+(t.risk?'<span class="risk-pill">'+t.risk_note+'</span>':'<span style="font-size:11px;color:var(--text3)">—</span>')+'</td>'
+      +'<td style="white-space:nowrap">'
+      +(t.risk?'<span class="risk-pill" style="margin-right:4px">'+t.risk_note+'</span>':'')
+      +'<button class="btn" style="font-size:10px;padding:3px 8px" data-tid="'+t.id+'" onclick="openEditTask(this.dataset.tid)">Edit</button>'
+      +'</td>'
       +'</tr>';
   }).join('');
   return '<div class="section-row"><span class="st">Sprint tasks</span><div class="filters">'
-    +'<button class="fb '+(sfilt==='all'?'active':'')+'" onclick="setSF(\'all\',this)">All</button>'
-    +'<button class="fb '+(sfilt==='inprogress'?'active':'')+'" onclick="setSF(\'inprogress\',this)">In progress</button>'
-    +'<button class="fb '+(sfilt==='review'?'active':'')+'" onclick="setSF(\'review\',this)">Review</button>'
-    +'<button class="fb '+(sfilt==='risk'?'active':'')+'" onclick="setSF(\'risk\',this)">At risk</button>'
+    +'<button class="fb '+(sfilt==='all'?'active':'')+'" data-f="all" onclick="setSF(this.dataset.f,this)">All</button>'
+    +'<button class="fb '+(sfilt==='inprogress'?'active':'')+'" data-f="inprogress" onclick="setSF(this.dataset.f,this)">In progress</button>'
+    +'<button class="fb '+(sfilt==='review'?'active':'')+'" data-f="review" onclick="setSF(this.dataset.f,this)">Review</button>'
+    +'<button class="fb '+(sfilt==='risk'?'active':'')+'" data-f="risk" onclick="setSF(this.dataset.f,this)">At risk</button>'
     +'</div></div>'
     +'<div class="panel"><div style="overflow-x:auto"><table><thead><tr>'
-    +'<th style="width:25%">Task</th><th style="width:9%">Priority</th><th style="width:10%">Status</th>'
-    +'<th style="width:14%">Designer</th><th style="width:7%">Effort</th><th style="width:10%">Logged</th><th style="width:8%">Jira</th><th style="width:17%">Risk</th>'
+    +'<th style="width:22%">Task</th><th style="width:9%">Priority</th><th style="width:10%">Status</th>'
+    +'<th style="width:17%">Designers</th><th style="width:6%">Effort</th>'
+    +'<th style="width:9%">Logged</th><th style="width:8%">Jira</th><th style="width:19%">Actions</th>'
     +'</tr></thead><tbody id="taskBody">'+rows+'</tbody></table></div></div>';
 }
 
-// ── INBOX ─────────────────────────────────────────────
 function vInbox(){
   const rows=(requests||[]).map(r=>'<div class="inbox-item">'
     +'<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">'
