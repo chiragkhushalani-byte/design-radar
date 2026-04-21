@@ -174,6 +174,22 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .lock-footer{font-size:11px;color:var(--text3)}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 .shake{animation:shake .35s ease}
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:10px;transition:border-color .15s}
+.goal-card:hover{border-color:var(--border2)}
+.goal-cat{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;margin-bottom:8px}
+.gcat-quality{background:#E6F1FB;color:#185FA5}
+.gcat-process{background:#EEEDFE;color:#3C3489}
+.gcat-culture{background:#E1F5EE;color:#0F6E56}
+.gcat-growth{background:#FAEEDA;color:#854F0B}
+.goal-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.goal-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px}
+.goal-progress-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.goal-pct{font-size:13px;font-weight:500;color:var(--text);min-width:36px}
+.goal-bar-bg{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.goal-bar-fill{height:6px;border-radius:3px;transition:width .4s}
+.goal-deadline{font-size:11px;color:var(--text3)}
+.goal-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.goal-linked{display:flex;flex-wrap:wrap;gap:4px}
 .designer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .12s;margin:2px}
 .designer-chip:hover{border-color:var(--border2);background:var(--surface)}
 .designer-chip.on{background:var(--blue-light);color:var(--blue);border-color:var(--blue)}
@@ -240,6 +256,9 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="mrow">
         <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
         <div class="mfield"><label>Jira ref</label><input type="text" id="f-jira" placeholder="e.g. VEN-91"/></div>
+      </div>
+      <div class="mfield"><label>BRD link</label><input type="url" id="f-brd" placeholder="https://… Confluence, Notion, Drive"/></div>
+      <div class="mrow">
       </div>
       <div class="mfield"><label>PM</label><input type="text" id="f-pm" placeholder="e.g. Sneha"/></div>
       <div class="mfield"><label>Skills practiced</label><div id="skill-chips" style="display:flex;flex-wrap:wrap;margin-top:2px"></div></div>
@@ -341,6 +360,74 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   </div>
 </div>
 
+
+<!-- ADD/EDIT GOAL MODAL -->
+<div class="modal-overlay" id="moGoal" onclick="if(event.target===this)closeModal('moGoal')">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <span class="modal-title" id="goalModalTitle">Add goal</span>
+      <button class="modal-close" onclick="closeModal('moGoal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="mfield"><label>Goal title</label><input type="text" id="g-title" placeholder="e.g. Unified UX patterns"/></div>
+      <div class="mfield"><label>Description</label><textarea id="g-desc" placeholder="What does success look like?" style="height:72px"></textarea></div>
+      <div class="mrow">
+        <div class="mfield"><label>Category</label>
+          <select id="g-cat">
+            <option value="quality">Quality</option>
+            <option value="process">Process</option>
+            <option value="culture">Culture</option>
+            <option value="growth">Growth</option>
+          </select>
+        </div>
+        <div class="mfield"><label>Deadline</label><input type="text" id="g-deadline" placeholder="e.g. Mar 2025"/></div>
+      </div>
+      <div class="mfield">
+        <label>Progress (manual override)</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <input type="range" id="g-progress" min="0" max="100" step="5" value="0" oninput="document.getElementById('g-progress-val').textContent=this.value+'%'" style="flex:1"/>
+          <span id="g-progress-val" style="font-size:13px;font-weight:500;min-width:36px">0%</span>
+        </div>
+      </div>
+      <div class="mfield">
+        <label>Link tasks to this goal</label>
+        <div id="g-task-chips" style="display:flex;flex-wrap:wrap;margin-top:4px;gap:4px;max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-md);padding:8px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnDeleteGoal" style="display:none;color:var(--red);border-color:var(--red)" onclick="deleteGoal()">Delete goal</button>
+      <button class="btn" onclick="closeModal('moGoal')">Cancel</button>
+      <button class="btn accent" id="btnGoal" onclick="submitGoal()">Add goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPDATE PROGRESS MODAL -->
+<div class="modal-overlay" id="moProgress" onclick="if(event.target===this)closeModal('moProgress')">
+  <div class="modal" style="width:400px">
+    <div class="modal-head">
+      <span class="modal-title">Update progress</span>
+      <button class="modal-close" onclick="closeModal('moProgress')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="prog-goal-title" style="font-size:13px;font-weight:500"></div>
+      </div>
+      <div class="mfield">
+        <label>Progress</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <input type="range" id="prog-slider" min="0" max="100" step="5" value="0" oninput="document.getElementById('prog-val').textContent=this.value+'%'" style="flex:1"/>
+          <span id="prog-val" style="font-size:20px;font-weight:500;min-width:44px">0%</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moProgress')">Cancel</button>
+      <button class="btn accent" onclick="saveProgress()">Update</button>
+    </div>
+  </div>
+</div>
+
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
@@ -373,7 +460,7 @@ const SKILLS = [
 ];
 const AV = ['av0','av1','av2','av3','av4'];
 
-let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[];
+let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[], goals=[], goalTasks=[];
 let view='dashboard', sfilt='all', lfilt='all';
 let selDesigners=[], selSkills=[], editTaskId=null;
 let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
@@ -434,6 +521,8 @@ async function loadAll(){
   try{uxLogs=await api('ux_logs?select=*&order=created_at.desc');}catch(e){uxLogs=[];}
   try{skillRatings=await api('skill_ratings?select=*&order=created_at.desc');}catch(e){skillRatings=[];}
   try{dailyTodos=await api('daily_todos?select=*&order=todo_date.desc,sort_order.asc');}catch(e){dailyTodos=[];}
+  try{goals=await api('goals?select=*&order=sort_order.asc');}catch(e){goals=[];}
+  try{goalTasks=await api('goal_tasks?select=*');}catch(e){goalTasks=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   updateBadge();
   render();
@@ -531,6 +620,7 @@ function vDash(){
     +'<div class="panel"><div class="ph"><span class="pt">Team hours</span></div><div style="padding:12px 14px 8px"><div style="display:flex;align-items:flex-end;gap:6px;height:64px">'+barCols+'</div></div></div>'
     +'<div class="panel"><div class="ph"><span class="pt">Incoming requests</span><button class="pa" onclick="go(\'inbox\')">See all →</button></div>'+reqCards+'</div>'
     +'</div></div>'
+    +vGoalsSection()
     +aiPanel();
 }
 
@@ -550,7 +640,7 @@ function vSprint(){
     const est=t.effort*120;
     const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
     return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
-      +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+'</div></td>'
+      +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+(t.brd_link?'&nbsp;·&nbsp;<a href="'+t.brd_link+'" target="_blank" style="color:var(--blue);text-decoration:none">BRD ↗</a>':'')+'</div></td>'
       +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
       +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status)+'</span></td>'
       +'<td>'+designerBadges+'</td>'
@@ -806,7 +896,7 @@ function openAddTask(){
   const t1=document.getElementById('addTaskTitle');if(t1)t1.textContent='Add task';
   const b1=document.getElementById('btnAddTask');if(b1)b1.textContent='Add task';
   const d1=document.getElementById('btnDeleteTask');if(d1)d1.style.display='none';
-  ['f-name','f-jira','f-notes','f-pm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-name','f-jira','f-notes','f-pm','f-brd'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-priority').value='medium';
   document.getElementById('f-status').value='todo';
   document.getElementById('f-effort').value='2';
@@ -827,6 +917,7 @@ function openEditTask(id){
   document.getElementById('f-name').value=t.name||'';
   const pm=document.getElementById('f-pm');if(pm)pm.value=t.pm||'';
   document.getElementById('f-jira').value=t.jira_ref||'';
+  const brdEl=document.getElementById('f-brd');if(brdEl)brdEl.value=t.brd_link||'';
   document.getElementById('f-notes').value=t.notes||'';
   document.getElementById('f-priority').value=t.priority||'medium';
   document.getElementById('f-status').value=t.status||'todo';
@@ -897,7 +988,8 @@ async function submitTask(){
     effort:splitEffort,
     jira_ref:document.getElementById('f-jira').value.trim()||'—',
     notes:document.getElementById('f-notes').value.trim(),
-    skills:selSkills
+    skills:selSkills,
+    brd_link:document.getElementById('f-brd').value.trim()||null
   };
 
   try{
@@ -1248,6 +1340,198 @@ async function deleteTodo(id){
 }
 
 
+
+// ── TEAM GOALS ────────────────────────────────────────────────────────────
+
+const GOAL_COLORS = {
+  quality: {bg:'#E6F1FB', text:'#185FA5', bar:'#378ADD'},
+  process: {bg:'#EEEDFE', text:'#3C3489', bar:'#7F77DD'},
+  culture: {bg:'#E1F5EE', text:'#0F6E56', bar:'#1D9E75'},
+  growth:  {bg:'#FAEEDA', text:'#854F0B', bar:'#EF9F27'}
+};
+
+function goalProgress(g){
+  // If manual override set, use it
+  if(g.manual_progress !== null && g.manual_progress !== undefined) return g.manual_progress;
+  // Else derive from linked tasks
+  const linked = goalTasks.filter(gt => gt.goal_id === g.id).map(gt => gt.task_id);
+  if(!linked.length) return g.progress || 0;
+  const linkedTasks = tasks.filter(t => linked.includes(t.id));
+  if(!linkedTasks.length) return g.progress || 0;
+  const done = linkedTasks.filter(t => t.status === 'done').length;
+  return Math.round((done / linkedTasks.length) * 100);
+}
+
+function vGoalsSection(){
+  const gs = goals || [];
+  if(!gs.length) return '';
+
+  const cards = gs.map(function(g){
+    const pct = goalProgress(g);
+    const col = GOAL_COLORS[g.category] || GOAL_COLORS.quality;
+    const linked = goalTasks.filter(gt => gt.goal_id === g.id).map(gt => gt.task_id);
+    const linkedTasks = tasks.filter(t => linked.includes(t.id));
+    const taskChips = linkedTasks.slice(0,3).map(t =>
+      '<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 7px;border-radius:10px;border:1px solid var(--border)">'+
+      (t.name.length>22?t.name.slice(0,22)+'…':t.name)+'</span>'
+    ).join('') + (linkedTasks.length > 3 ? '<span style="font-size:10px;color:var(--text3)">+' + (linkedTasks.length-3) + ' more</span>' : '');
+
+    const barColor = pct >= 80 ? '#1D9E75' : pct >= 40 ? col.bar : '#E24B4A';
+
+    return '<div class="goal-card">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+      + '<div style="flex:1">'
+      + '<span class="goal-cat gcat-' + g.category + '">' + g.category + '</span>'
+      + (g.deadline ? '<span style="font-size:10px;color:var(--text3);margin-left:8px">· ' + g.deadline + '</span>' : '')
+      + '<div class="goal-title">' + g.title + '</div>'
+      + (g.desc ? '<div class="goal-desc">' + g.description + '</div>' : '')
+      + '</div>'
+      + '<button class="btn" style="font-size:10px;padding:3px 8px;flex-shrink:0" data-gid="' + g.id + '" onclick="openEditGoal(this.dataset.gid)">Edit</button>'
+      + '</div>'
+      + '<div class="goal-progress-row">'
+      + '<div class="goal-bar-bg"><div class="goal-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>'
+      + '<span class="goal-pct">' + pct + '%</span>'
+      + '<button class="btn" style="font-size:10px;padding:3px 8px" data-gid="' + g.id + '" data-title="' + g.title.replace(/"/g,'') + '" data-pct="' + pct + '" onclick="openUpdateProgress(this.dataset.gid,this.dataset.title,parseInt(this.dataset.pct))">Update</button>'
+      + '</div>'
+      + (taskChips ? '<div class="goal-linked">' + taskChips + '</div>' : '')
+      + '</div>';
+  }).join('');
+
+  return '<div class="section-row" style="margin-top:4px"><span class="st">Team goals</span>'
+    + '<button class="btn accent" style="font-size:11px" onclick="openAddGoal()">+ Add goal</button>'
+    + '</div>'
+    + cards;
+}
+
+// ── GOAL MODALS ───────────────────────────────────────────────────────────
+let editGoalId = null, selGoalTasks = [];
+
+function openAddGoal(){
+  editGoalId = null; selGoalTasks = [];
+  document.getElementById('goalModalTitle').textContent = 'Add goal';
+  document.getElementById('btnGoal').textContent = 'Add goal';
+  document.getElementById('btnDeleteGoal').style.display = 'none';
+  ['g-title','g-desc','g-deadline'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('g-cat').value = 'quality';
+  document.getElementById('g-progress').value = 0;
+  document.getElementById('g-progress-val').textContent = '0%';
+  renderGoalTaskChips();
+  openModal('moGoal');
+  setTimeout(function(){document.getElementById('g-title').focus();},100);
+}
+
+function openEditGoal(id){
+  const g = (goals||[]).find(x => x.id === id);
+  if(!g) return;
+  editGoalId = id;
+  selGoalTasks = goalTasks.filter(gt => gt.goal_id === id).map(gt => gt.task_id);
+  document.getElementById('goalModalTitle').textContent = 'Edit goal';
+  document.getElementById('btnGoal').textContent = 'Save changes';
+  document.getElementById('btnDeleteGoal').style.display = 'inline-flex';
+  document.getElementById('g-title').value = g.title || '';
+  document.getElementById('g-desc').value = g.description || '';
+  document.getElementById('g-deadline').value = g.deadline || '';
+  document.getElementById('g-cat').value = g.category || 'quality';
+  const pct = g.manual_progress !== null && g.manual_progress !== undefined ? g.manual_progress : (g.progress || 0);
+  document.getElementById('g-progress').value = pct;
+  document.getElementById('g-progress-val').textContent = pct + '%';
+  renderGoalTaskChips();
+  openModal('moGoal');
+}
+
+function renderGoalTaskChips(){
+  const c = document.getElementById('g-task-chips');
+  if(!c) return;
+  if(!tasks.length){c.innerHTML = '<span style="font-size:11px;color:var(--text3)">No tasks yet</span>';return;}
+  c.innerHTML = tasks.map(function(t){
+    const on = selGoalTasks.includes(t.id);
+    return '<span style="font-size:11px;padding:3px 9px;border-radius:20px;cursor:pointer;border:1px solid '+(on?'var(--blue)':'var(--border2)')+';background:'+(on?'var(--blue-light)':'var(--surface2)')+';color:'+(on?'var(--blue)':'var(--text2)')+'" data-tid="'+t.id+'" onclick="toggleGoalTask(this)">'+(t.name.length>28?t.name.slice(0,28)+'…':t.name)+'</span>';
+  }).join('');
+}
+
+function toggleGoalTask(el){
+  const tid = el.dataset.tid;
+  const i = selGoalTasks.indexOf(tid);
+  if(i >= 0) selGoalTasks.splice(i,1); else selGoalTasks.push(tid);
+  el.style.borderColor = selGoalTasks.includes(tid) ? 'var(--blue)' : 'var(--border2)';
+  el.style.background = selGoalTasks.includes(tid) ? 'var(--blue-light)' : 'var(--surface2)';
+  el.style.color = selGoalTasks.includes(tid) ? 'var(--blue)' : 'var(--text2)';
+}
+
+async function submitGoal(){
+  const title = document.getElementById('g-title').value.trim();
+  if(!title){toast('Please enter a goal title');return;}
+  const btn = document.getElementById('btnGoal');
+  btn.disabled = true; btn.textContent = editGoalId ? 'Saving…' : 'Adding…';
+  const pct = parseInt(document.getElementById('g-progress').value) || 0;
+  const payload = {
+    title,
+    description: document.getElementById('g-desc').value.trim(),
+    deadline: document.getElementById('g-deadline').value.trim(),
+    category: document.getElementById('g-cat').value,
+    manual_progress: pct,
+    progress: pct,
+    sort_order: editGoalId ? (goals.find(g=>g.id===editGoalId)||{}).sort_order || 0 : goals.length
+  };
+  try{
+    let goalId = editGoalId;
+    if(editGoalId){
+      await api('goals?id=eq.'+editGoalId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify(payload)});
+      const g = goals.find(x=>x.id===editGoalId);
+      if(g) Object.assign(g, payload);
+    } else {
+      const res = await api('goals',{method:'POST',headers:HR,body:JSON.stringify(payload)});
+      if(res&&res[0]){goals.push(res[0]);goalId=res[0].id;}
+    }
+    // Sync goal_tasks
+    if(goalId){
+      // Delete existing links
+      await api('goal_tasks?goal_id=eq.'+goalId,{method:'DELETE',headers:H});
+      goalTasks = goalTasks.filter(gt => gt.goal_id !== goalId);
+      // Insert new links
+      if(selGoalTasks.length){
+        const links = selGoalTasks.map(tid => ({goal_id:goalId,task_id:tid}));
+        const res2 = await api('goal_tasks',{method:'POST',headers:HR,body:JSON.stringify(links)});
+        if(res2) goalTasks = goalTasks.concat(res2);
+      }
+    }
+    closeModal('moGoal'); render(); toast(editGoalId?'Goal updated':'Goal added');
+  } catch(e){toast('Error: '+e.message);}
+  btn.disabled=false; btn.textContent = editGoalId?'Save changes':'Add goal';
+}
+
+async function deleteGoal(){
+  if(!editGoalId) return;
+  if(!confirm('Delete this goal?')) return;
+  try{
+    await api('goals?id=eq.'+editGoalId,{method:'DELETE',headers:H});
+    goals = goals.filter(x=>x.id!==editGoalId);
+    goalTasks = goalTasks.filter(x=>x.goal_id!==editGoalId);
+    closeModal('moGoal'); render(); toast('Goal deleted');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+// Progress update (for team members)
+let progressGoalId = null;
+function openUpdateProgress(id, title, pct){
+  progressGoalId = id;
+  document.getElementById('prog-goal-title').textContent = title;
+  document.getElementById('prog-slider').value = pct;
+  document.getElementById('prog-val').textContent = pct + '%';
+  openModal('moProgress');
+}
+async function saveProgress(){
+  if(!progressGoalId) return;
+  const pct = parseInt(document.getElementById('prog-slider').value);
+  try{
+    await api('goals?id=eq.'+progressGoalId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({manual_progress:pct,progress:pct})});
+    const g = goals.find(x=>x.id===progressGoalId);
+    if(g){g.manual_progress=pct;g.progress=pct;}
+    closeModal('moProgress'); render(); toast('Progress updated to '+pct+'%');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
   try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
@@ -1287,7 +1571,7 @@ document.addEventListener('drop',e=>{e.preventDefault();const r=e.target.closest
 document.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
   if(e.key==='n')openAddTask();
-  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo'].forEach(id=>closeModal(id));}
+  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress'].forEach(id=>closeModal(id));}
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
