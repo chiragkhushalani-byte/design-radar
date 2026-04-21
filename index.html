@@ -174,6 +174,10 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .lock-footer{font-size:11px;color:var(--text3)}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 .shake{animation:shake .35s ease}
+.designer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .12s;margin:2px}
+.designer-chip:hover{border-color:var(--border2);background:var(--surface)}
+.designer-chip.on{background:var(--blue-light);color:var(--blue);border-color:var(--blue)}
+.task-chip-wrap{display:flex;flex-wrap:wrap;margin-top:2px;gap:0}
 </style>
 </head>
 <body>
@@ -219,16 +223,15 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   </div>
 </div>
 
-<!-- ADD TASK MODAL -->
+<!-- ADD / EDIT TASK MODAL -->
 <div class="modal-overlay" id="moAdd" onclick="if(event.target===this)closeModal('moAdd')">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">Add task</span><button class="modal-close" onclick="closeModal('moAdd')">&#x2715;</button></div>
+  <div class="modal" style="width:520px">
+    <div class="modal-head"><span class="modal-title" id="addTaskTitle">Add task</span><button class="modal-close" onclick="closeModal('moAdd')">&#x2715;</button></div>
     <div class="modal-body">
       <div class="mfield"><label>Task name</label><input type="text" id="f-name" placeholder="e.g. Dark mode pass"/></div>
       <div class="mfield">
-        <label>Assign to designer</label>
-        <div class="name-options" id="name-options"></div>
-        <div class="or-add"><input type="text" id="f-newname" placeholder="Or type a new name…"/></div>
+        <label>Assign designers</label>
+        <div class="task-chip-wrap" id="designer-chips"></div>
       </div>
       <div class="mrow">
         <div class="mfield"><label>Priority</label><select id="f-priority"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
@@ -238,10 +241,15 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
         <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
         <div class="mfield"><label>Jira ref</label><input type="text" id="f-jira" placeholder="e.g. VEN-91"/></div>
       </div>
+      <div class="mfield"><label>PM</label><input type="text" id="f-pm" placeholder="e.g. Sneha"/></div>
       <div class="mfield"><label>Skills practiced</label><div id="skill-chips" style="display:flex;flex-wrap:wrap;margin-top:2px"></div></div>
       <div class="mfield"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Context for the team…"></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn" onclick="closeModal('moAdd')">Cancel</button><button class="btn accent" id="btnAddTask" onclick="submitTask()">Add task</button></div>
+    <div class="modal-footer">
+      <button class="btn" id="btnDeleteTask" style="display:none;color:var(--red);border-color:var(--red)" onclick="deleteTask()">Delete task</button>
+      <button class="btn" onclick="closeModal('moAdd')">Cancel</button>
+      <button class="btn accent" id="btnAddTask" onclick="submitTask()">Add task</button>
+    </div>
   </div>
 </div>
 
@@ -367,7 +375,7 @@ const AV = ['av0','av1','av2','av3','av4'];
 
 let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[];
 let view='dashboard', sfilt='all', lfilt='all';
-let selName='', selSkills=[];
+let selDesigners=[], selSkills=[], editTaskId=null;
 let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
 let dragId=null;
 let uxTaskId=null, skTaskId=null;
@@ -466,7 +474,16 @@ function render(){
 function getLoad(){
   const l={};
   (DESIGNERS||[]).forEach(d=>{l[d.name]={effort:0,count:0,tasks:[],mins:0};});
-  (tasks||[]).forEach(t=>{if(l[t.designer_name]){l[t.designer_name].effort+=t.effort;l[t.designer_name].count++;l[t.designer_name].tasks.push(t);l[t.designer_name].mins+=(t.logged_mins||0);}});
+  (tasks||[]).forEach(function(t){
+    const designers=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+    const splitEffort=designers.length>0?t.effort/designers.length:t.effort;
+    const splitMins=designers.length>0?(t.logged_mins||0)/designers.length:(t.logged_mins||0);
+    designers.forEach(function(d){
+      if(l[d]){l[d].effort+=splitEffort;l[d].count++;l[d].tasks.push(t);l[d].mins+=splitMins;}
+    });
+  });
+  // Round effort for display
+  Object.keys(l).forEach(k=>{l[k].effort=Math.round(l[k].effort*10)/10;l[k].mins=Math.round(l[k].mins);});
   return l;
 }
 
@@ -776,43 +793,111 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 function openAddTask(){
-  selName='';selSkills=[];
-  ['f-name','f-jira','f-notes','f-newname'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  editTaskId=null;selDesigners=[];selSkills=[];
+  const t1=document.getElementById('addTaskTitle');if(t1)t1.textContent='Add task';
+  const b1=document.getElementById('btnAddTask');if(b1)b1.textContent='Add task';
+  const d1=document.getElementById('btnDeleteTask');if(d1)d1.style.display='none';
+  ['f-name','f-jira','f-notes','f-pm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-priority').value='medium';
   document.getElementById('f-status').value='todo';
   document.getElementById('f-effort').value='2';
-  renderNameOpts();renderSkillChips();
+  renderDesignerChips();renderSkillChips();
   openModal('moAdd');
   setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
 
-function renderNameOpts(){
-  const c=document.getElementById('name-options');
-  if(!c)return;
-  c.innerHTML=(DESIGNERS||[]).map(d=>'<label class="name-opt'+(selName===d.name?' selected':'')+'" onclick="pickName(\''+d.name+'\')"><input type="radio" name="assignee" value="'+d.name+'"'+(selName===d.name?' checked':'')+'>'+d.name+'</label>').join('');
+function openEditTask(id){
+  const t=(tasks||[]).find(x=>x.id===id);
+  if(!t)return;
+  editTaskId=id;
+  selDesigners=t.designer_names&&t.designer_names.length?[...t.designer_names]:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+  selSkills=t.skills?[...t.skills]:[];
+  const t1=document.getElementById('addTaskTitle');if(t1)t1.textContent='Edit task';
+  const b1=document.getElementById('btnAddTask');if(b1)b1.textContent='Save changes';
+  const d1=document.getElementById('btnDeleteTask');if(d1)d1.style.display='inline-flex';
+  document.getElementById('f-name').value=t.name||'';
+  const pm=document.getElementById('f-pm');if(pm)pm.value=t.pm||'';
+  document.getElementById('f-jira').value=t.jira_ref||'';
+  document.getElementById('f-notes').value=t.notes||'';
+  document.getElementById('f-priority').value=t.priority||'medium';
+  document.getElementById('f-status').value=t.status||'todo';
+  document.getElementById('f-effort').value=String(t.effort||2);
+  renderDesignerChips();renderSkillChips();
+  openModal('moAdd');
+  setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
-function pickName(n){selName=n;document.getElementById('f-newname').value='';renderNameOpts();}
 
-function renderSkillChips(){
-  const c=document.getElementById('skill-chips');
+function renderDesignerChips(){
+  const c=document.getElementById('designer-chips');
   if(!c)return;
-  c.innerHTML=SKILLS.map(s=>'<span class="skill-chip '+(selSkills.includes(s.name)?'':'off')+'" style="'+(selSkills.includes(s.name)?'background:'+s.color+';color:#fff;border-color:'+s.color:'')+'" onclick="toggleSkill(\''+s.name+'\')">'+s.name+'</span>').join('');
+  c.innerHTML=(DESIGNERS||[]).map(function(d){
+    const on=selDesigners.includes(d.name);
+    return '<span class="designer-chip'+(on?' on':'')+'" onclick="toggleDesigner(this)" data-name="'+d.name+'">'+d.name+'</span>';
+  }).join('');
 }
+
+function toggleDesigner(el){
+  const n=el.dataset.name;
+  const i=selDesigners.indexOf(n);
+  if(i>=0)selDesigners.splice(i,1);else selDesigners.push(n);
+  el.classList.toggle('on');
+}
+
+
 function toggleSkill(n){const i=selSkills.indexOf(n);if(i>=0)selSkills.splice(i,1);else selSkills.push(n);renderSkillChips();}
 
 async function submitTask(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){toast('Please enter a task name');return;}
-  const btn=document.getElementById('btnAddTask');btn.disabled=true;btn.textContent='Adding…';
-  const newN=document.getElementById('f-newname').value.trim();
-  const designer=newN||selName||'—';
-  if(newN&&!DESIGNERS.find(d=>d.name===newN)){
-    try{const nd=await api('designers',{method:'POST',headers:HR,body:JSON.stringify({name:newN,initials:newN.slice(0,2).toUpperCase(),avatar_index:DESIGNERS.length%5})});if(nd&&nd[0])DESIGNERS.push(nd[0]);}catch(e){}
-  }
-  const payload={name,pm:'—',designer_name:designer,priority:document.getElementById('f-priority').value,status:document.getElementById('f-status').value,effort:parseInt(document.getElementById('f-effort').value),jira_ref:document.getElementById('f-jira').value.trim()||'—',notes:document.getElementById('f-notes').value.trim(),skills:selSkills,risk:false,risk_note:'',logged_mins:0,sort_order:0};
-  try{const res=await api('tasks',{method:'POST',headers:HR,body:JSON.stringify(payload)});if(res&&res[0])tasks.unshift(res[0]);closeModal('moAdd');render();toast('Task added');}
-  catch(e){toast('Error: '+e.message);}
-  btn.disabled=false;btn.textContent='Add task';
+  const btn=document.getElementById('btnAddTask');
+  btn.disabled=true;
+  const isEdit=!!editTaskId;
+  btn.textContent=isEdit?'Saving…':'Adding…';
+
+  // Primary designer = first selected (for backward compat)
+  const primaryDesigner=selDesigners.length>0?selDesigners[0]:'—';
+  const effort=parseInt(document.getElementById('f-effort').value)||2;
+  // Split effort equally across designers
+  const splitEffort=selDesigners.length>1?Math.round(effort/selDesigners.length):effort;
+
+  const payload={
+    name,
+    pm:document.getElementById('f-pm').value.trim()||'—',
+    designer_name:primaryDesigner,
+    designer_names:selDesigners.length>0?selDesigners:[],
+    priority:document.getElementById('f-priority').value,
+    status:document.getElementById('f-status').value,
+    effort:splitEffort,
+    jira_ref:document.getElementById('f-jira').value.trim()||'—',
+    notes:document.getElementById('f-notes').value.trim(),
+    skills:selSkills
+  };
+
+  try{
+    if(isEdit){
+      await api('tasks?id=eq.'+editTaskId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify(payload)});
+      const t=tasks.find(x=>x.id===editTaskId);
+      if(t)Object.assign(t,payload);
+      toast('Task updated');
+    } else {
+      const res=await api('tasks',{method:'POST',headers:HR,body:JSON.stringify(Object.assign({},payload,{risk:false,risk_note:'',logged_mins:0,sort_order:0}))});
+      if(res&&res[0])tasks.unshift(res[0]);
+      toast('Task added');
+    }
+    closeModal('moAdd');render();
+  } catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;
+  btn.textContent=isEdit?'Save changes':'Add task';
+}
+
+async function deleteTask(){
+  if(!editTaskId)return;
+  if(!confirm('Delete this task? This cannot be undone.'))return;
+  try{
+    await api('tasks?id=eq.'+editTaskId,{method:'DELETE',headers:H});
+    tasks=tasks.filter(x=>x.id!==editTaskId);
+    closeModal('moAdd');render();toast('Task deleted');
+  } catch(e){toast('Error: '+e.message);}
 }
 
 // UX Log modal
@@ -891,8 +976,12 @@ function setSF(f,btn){sfilt=f;document.querySelectorAll('.fb').forEach(b=>b.clas
 function setLF(f,btn){lfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
 
 async function reassign(id,designer){
-  try{await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({designer_name:designer})});const t=tasks.find(x=>x.id===id);if(t)t.designer_name=designer;render();toast('Reassigned to '+designer);}
-  catch(e){toast('Error: '+e.message);}
+  try{
+    await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({designer_name:designer,designer_names:[designer]})});
+    const t=tasks.find(x=>x.id===id);
+    if(t){t.designer_name=designer;t.designer_names=[designer];}
+    render();toast('Reassigned to '+designer);
+  } catch(e){toast('Error: '+e.message);}
 }
 
 async function markAssigned(id){
