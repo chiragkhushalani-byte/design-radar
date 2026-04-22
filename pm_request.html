@@ -131,21 +131,54 @@ label.field-label{font-size:11px;font-weight:500;color:var(--text2);text-transfo
     </div>
 
     <div class="field">
+      <label class="field-label">Problem statement<span class="req">*</span></label>
+      <textarea id="f-problem" placeholder="What is the user problem or business problem this design should solve?" maxlength="400" oninput="uc('f-problem','pc',400)"></textarea>
+      <div class="char-count" id="pc">0 / 400</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">User type<span class="req">*</span></label>
+      <select id="f-usertype">
+        <option value="">Select user type…</option>
+        <option>New user</option>
+        <option>Returning user</option>
+        <option>Power user / Trader</option>
+        <option>Investor</option>
+        <option>Operations team</option>
+        <option>Admin / Internal</option>
+        <option>All users</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Expected outcome<span class="req">*</span></label>
+      <textarea id="f-outcome" placeholder="What does success look like? Include any metrics, completion criteria, or measurable goals." maxlength="300" oninput="uc('f-outcome','oc',300)"></textarea>
+      <div class="char-count" id="oc">0 / 300</div>
+    </div>
+
+    <div class="field">
       <label class="field-label">Urgency<span class="req">*</span></label>
       <div class="urgency-row">
         <div class="urgency-opt ulow">
-          <input type="radio" name="urgency" id="u-low" value="low">
+          <input type="radio" name="urgency" id="u-low" value="low" onchange="togglePriorityReason()">
           <label class="ul" for="u-low"><div class="udot"></div><span class="utxt">Low</span></label>
         </div>
         <div class="urgency-opt umed">
-          <input type="radio" name="urgency" id="u-med" value="medium" checked>
+          <input type="radio" name="urgency" id="u-med" value="medium" checked onchange="togglePriorityReason()">
           <label class="ul" for="u-med"><div class="udot"></div><span class="utxt">Medium</span></label>
         </div>
         <div class="urgency-opt uhi">
-          <input type="radio" name="urgency" id="u-hi" value="high">
+          <input type="radio" name="urgency" id="u-hi" value="high" onchange="togglePriorityReason()">
           <label class="ul" for="u-hi"><div class="udot"></div><span class="utxt">High</span></label>
         </div>
       </div>
+    </div>
+
+    <div class="field" id="f-priority-reason-wrap" style="display:none">
+      <label class="field-label">Why is this urgent?<span class="req">*</span></label>
+      <textarea id="f-priority-reason" placeholder="e.g. Linked to product launch on Apr 30, stakeholder demo next week, compliance deadline…" maxlength="200" oninput="uc('f-priority-reason','prc',200)"></textarea>
+      <div class="char-count" id="prc">0 / 200</div>
     </div>
 
     <div class="field">
@@ -200,13 +233,17 @@ async function submitForm(){
   const btn=document.getElementById('submitBtn');
   btn.disabled=true;btn.textContent='Submitting…';
   const payload={
-    pm_name:     document.getElementById('f-pm').value.trim(),
-    product:     document.getElementById('f-product').value,
-    title:       document.getElementById('f-title').value.trim(),
-    description: document.getElementById('f-desc').value.trim(),
-    urgency:     document.querySelector('input[name=urgency]:checked')?.value||'medium',
-    deadline:    document.getElementById('f-deadline').value||null,
-    jira_ref:    document.getElementById('f-jira').value.trim()||null,
+    pm_name:          document.getElementById('f-pm').value.trim(),
+    product:          document.getElementById('f-product').value,
+    title:            document.getElementById('f-title').value.trim(),
+    description:      document.getElementById('f-desc').value.trim(),
+    urgency:          document.querySelector('input[name=urgency]:checked')?.value||'medium',
+    deadline:         document.getElementById('f-deadline').value||null,
+    jira_ref:         document.getElementById('f-jira').value.trim()||null,
+    problem_statement:document.getElementById('f-problem').value.trim()||null,
+    user_type:        document.getElementById('f-usertype').value||null,
+    expected_outcome: document.getElementById('f-outcome').value.trim()||null,
+    priority_reason:  document.getElementById('f-priority-reason')?.value.trim()||null,
     assigned:false,read:false
   };
   try{
@@ -241,12 +278,22 @@ function resetForm(){
   document.getElementById('successCard').style.display='none';
   document.getElementById('submitBtn').disabled=false;
   document.getElementById('submitBtn').textContent='Submit request';
-  ['f-pm','f-title','f-desc','f-jira','f-deadline'].forEach(id=>document.getElementById(id).value='');
+  ['f-pm','f-title','f-desc','f-jira','f-deadline','f-problem','f-outcome','f-priority-reason'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-product').value='';
+  document.getElementById('f-usertype').value='';
   document.getElementById('u-med').checked=true;
   document.getElementById('tc').textContent='0 / 80';
   document.getElementById('dc').textContent='0 / 500';
+  document.getElementById('pc').textContent='0 / 400';
+  document.getElementById('oc').textContent='0 / 300';
+  const pw=document.getElementById('f-priority-reason-wrap');if(pw)pw.style.display='none';
   document.getElementById('errBanner').style.display='none';
+}
+
+function togglePriorityReason(){
+  const val=document.querySelector('input[name=urgency]:checked')?.value;
+  const wrap=document.getElementById('f-priority-reason-wrap');
+  if(wrap) wrap.style.display=val==='high'?'flex':'none';
 }
 
 function copyLink(){

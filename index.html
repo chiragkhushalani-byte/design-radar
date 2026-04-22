@@ -786,7 +786,10 @@ function vInbox(){
     +(r.assigned?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>':'<button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
-    +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5">'+r.description+'</div>':'')
+    +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px">'+r.description+'</div>':'')
+    +(r.problem_statement?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Problem: </span>'+r.problem_statement+'</div>':'')
+    +(r.expected_outcome?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Outcome: </span>'+r.expected_outcome+'</div>':'')
+    +(r.user_type?'<div style="padding-left:13px;margin-top:3px"><span style="font-size:10px;background:var(--blue-light);color:var(--blue);padding:1px 7px;border-radius:10px">'+r.user_type+'</span></div>':'')
     +renderSmartFlags(r)
     +'</div>').join('')||'<div class="empty">No requests yet — share pm_request.html with your PMs</div>';
   return '<div class="section-row"><span class="st">PM requests</span>'
@@ -1867,11 +1870,15 @@ function vPMForm(){
     + '<div class="pm-field"><label>Product<span class="req">*</span></label><select id="pm-product"><option value="">Select product…</option><option>Algo</option><option>Cash / Equity</option><option>Commodities</option><option>IPO</option><option>MF</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option><option>Other</option></select></div>'
         + '<div class="pm-field"><label>Request title<span class="req">*</span></label><input type="text" id="pm-title" placeholder="e.g. Redesign KYC onboarding flow" maxlength="80"/><div class="char-count" id="pm-tc">0 / 80</div></div>'
     + '<div class="pm-field"><label>Description<span class="req">*</span></label><textarea id="pm-desc" placeholder="What needs to be designed? Include context, user problem, and any reference links…" maxlength="500"></textarea><div class="char-count" id="pm-dc">0 / 500</div></div>'
+    + '<div class="pm-field"><label>Problem statement<span class="req">*</span></label><textarea id="pm-problem" placeholder="What user or business problem should this design solve?" style="height:72px;resize:none" maxlength="400"></textarea></div>'
+    + '<div class="pm-field"><label>User type<span class="req">*</span></label><select id="pm-usertype"><option value="">Select user type…</option><option>New user</option><option>Returning user</option><option>Power user / Trader</option><option>Investor</option><option>Operations team</option><option>Admin / Internal</option><option>All users</option><option>Other</option></select></div>'
+    + '<div class="pm-field"><label>Expected outcome<span class="req">*</span></label><textarea id="pm-outcome" placeholder="What does success look like? Include metrics or measurable goals." style="height:72px;resize:none" maxlength="300"></textarea></div>'
     + '<div class="pm-field"><label>Urgency<span class="req">*</span></label><div class="urgency-row">'
-    + '<div class="urgency-opt ulow"><input type="radio" name="pm-urgency" id="pm-ulow" value="low"><label class="ul" for="pm-ulow"><div class="udot"></div><span class="utxt">Low</span></label></div>'
+    + '<div class="urgency-opt ulow"><input type="radio" name="pm-urgency" id="pm-ulow" value="low"><label class="ul" for="pm-ulow" onchange="pmTogglePriority()"><div class="udot"></div><span class="utxt">Low</span></label></div>'
     + '<div class="urgency-opt umed"><input type="radio" name="pm-urgency" id="pm-umed" value="medium" checked><label class="ul" for="pm-umed"><div class="udot"></div><span class="utxt">Medium</span></label></div>'
     + '<div class="urgency-opt uhi"><input type="radio" name="pm-urgency" id="pm-uhi" value="high"><label class="ul" for="pm-uhi"><div class="udot"></div><span class="utxt">High</span></label></div>'
     + '</div></div>'
+    + '<div class="pm-field" id="pm-priority-reason-wrap" style="display:none"><label>Why is this urgent?<span class="req">*</span></label><textarea id="pm-priority-reason" placeholder="e.g. Linked to product launch, stakeholder demo, compliance deadline…" style="height:64px;resize:none" maxlength="200"></textarea></div>'
     + '<div class="pm-field"><label>Deadline</label><input type="date" id="pm-deadline"/><div class="hint">Leave blank if flexible</div></div>'
     + '<div class="pm-field"><label>Jira / Linear ticket</label><input type="text" id="pm-jira" placeholder="e.g. MFD-114 (optional)"/></div>'
     + '</div>'
@@ -1897,15 +1904,26 @@ function pmFormInit(){
   if(desc)  desc.addEventListener('input',function(){pmUC(this,'pm-dc',500);});
 }
 
+function pmTogglePriority(){
+  const val=document.querySelector('input[name="pm-urgency"]:checked')?.value;
+  const wrap=document.getElementById('pm-priority-reason-wrap');
+  if(wrap) wrap.style.display=val==='high'?'flex':'none';
+}
+
 function pmValidate(){
   document.querySelectorAll('.pm-field input.err,.pm-field select.err,.pm-field textarea.err').forEach(function(e){e.classList.remove('err');});
   const eb=document.getElementById('pmErrBanner');
   if(eb) eb.style.display='none';
   let ok=true;
-  [['pm-name','Your name'],['pm-product','Product'],['pm-title','Request title'],['pm-desc','Description']].forEach(function(pair){
-    const el=document.getElementById(pair[0]);
+  ['pm-name','pm-product','pm-title','pm-desc','pm-problem','pm-usertype','pm-outcome'].forEach(function(id){
+    const el=document.getElementById(id);
     if(el&&!el.value.trim()){el.classList.add('err');ok=false;}
   });
+  const pmUrgency=document.querySelector('input[name="pm-urgency"]:checked');
+  if(pmUrgency&&pmUrgency.value==='high'){
+    const pr=document.getElementById('pm-priority-reason');
+    if(pr&&!pr.value.trim()){pr.classList.add('err');ok=false;}
+  }
   if(!ok){const eb=document.getElementById('pmErrBanner');if(eb){eb.textContent='Please fill in all required fields.';eb.style.display='block';}}
   return ok;
 }
@@ -1916,13 +1934,17 @@ async function pmSubmit(){
   btn.disabled=true;btn.textContent='Submitting…';
   const urgency=document.querySelector('input[name="pm-urgency"]:checked');
   const payload={
-    pm_name:   document.getElementById('pm-name').value.trim(),
-    product:   document.getElementById('pm-product').value,
-    title:     document.getElementById('pm-title').value.trim(),
-    description: document.getElementById('pm-desc').value.trim(),
-    urgency:   urgency?urgency.value:'medium',
-    deadline:  document.getElementById('pm-deadline').value||null,
-    jira_ref:  document.getElementById('pm-jira').value.trim()||null,
+    pm_name:           document.getElementById('pm-name').value.trim(),
+    product:           document.getElementById('pm-product').value,
+    title:             document.getElementById('pm-title').value.trim(),
+    description:       document.getElementById('pm-desc').value.trim(),
+    urgency:           urgency?urgency.value:'medium',
+    deadline:          document.getElementById('pm-deadline').value||null,
+    jira_ref:          document.getElementById('pm-jira').value.trim()||null,
+    problem_statement: document.getElementById('pm-problem')?.value.trim()||null,
+    user_type:         document.getElementById('pm-usertype')?.value||null,
+    expected_outcome:  document.getElementById('pm-outcome')?.value.trim()||null,
+    priority_reason:   document.getElementById('pm-priority-reason')?.value.trim()||null,
     assigned:  false,
     read:      false
   };
@@ -1962,9 +1984,11 @@ function pmReset(){
   if(sc) sc.style.display='none';
   const btn=document.getElementById('pmSubmitBtn');
   if(btn){btn.disabled=false;btn.textContent='Submit request';}
-  ['pm-name','pm-title','pm-desc','pm-jira','pm-deadline'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+  ['pm-name','pm-title','pm-desc','pm-jira','pm-deadline','pm-problem','pm-outcome','pm-priority-reason'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
   const pp=document.getElementById('pm-product');if(pp)pp.value='';
+  const put=document.getElementById('pm-usertype');if(put)put.value='';
   const um=document.getElementById('pm-umed');if(um)um.checked=true;
+  const pw=document.getElementById('pm-priority-reason-wrap');if(pw)pw.style.display='none';
   ['pm-tc','pm-dc'].forEach(function(id){const el=document.getElementById(id);if(el)el.textContent='0 / '+(id==='pm-tc'?80:500);});
   const eb=document.getElementById('pmErrBanner');if(eb)eb.style.display='none';
 }
