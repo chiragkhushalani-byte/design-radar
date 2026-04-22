@@ -194,6 +194,62 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .designer-chip:hover{border-color:var(--border2);background:var(--surface)}
 .designer-chip.on{background:var(--blue-light);color:var(--blue);border-color:var(--blue)}
 .task-chip-wrap{display:flex;flex-wrap:wrap;margin-top:2px;gap:0}
+
+/* ── PM REQUEST FORM VIEW ──────────────────────────────────────────────── */
+.pm-view{display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;overflow-y:auto;flex:1}
+.pm-view .header{width:100%;max-width:520px;margin-bottom:28px}
+.pm-view .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.pm-view .brand-inner{display:flex;align-items:center;gap:9px}
+.pm-view .logomark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pm-view .brand-name{font-size:14px;font-weight:500}
+.pm-view .form-title{font-size:22px;font-weight:500;letter-spacing:-.03em;margin-bottom:6px}
+.pm-view .form-sub{font-size:14px;color:var(--text2);line-height:1.6}
+.pm-view .card{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.pm-view .card-body{padding:24px;display:flex;flex-direction:column;gap:18px}
+.pm-view .pm-field{display:flex;flex-direction:column;gap:6px}
+.pm-view .pm-field label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.pm-view .req{color:var(--accent);margin-left:2px}
+.pm-view .pm-field input,.pm-view .pm-field select,.pm-view .pm-field textarea{padding:9px 11px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--font);transition:border-color .15s,background .15s;width:100%}
+.pm-view .pm-field input:focus,.pm-view .pm-field select:focus,.pm-view .pm-field textarea:focus{outline:none;border-color:var(--blue);background:var(--surface)}
+.pm-view .pm-field input::placeholder,.pm-view .pm-field textarea::placeholder{color:var(--text3)}
+.pm-view .pm-field textarea{resize:none;height:88px;line-height:1.6}
+.pm-view .pm-field input.err,.pm-view .pm-field select.err,.pm-view .pm-field textarea.err{border-color:var(--accent)!important;background:var(--red-light)!important}
+.pm-view .hint{font-size:11px;color:var(--text3)}
+.pm-view .char-count{font-size:10px;color:var(--text3);text-align:right}
+.pm-view .urgency-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pm-view .urgency-opt{position:relative}
+.pm-view .urgency-opt input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.pm-view .ul{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 8px;border:1px solid var(--border2);border-radius:var(--r-md);cursor:pointer;transition:all .15s;background:var(--surface2)}
+.pm-view .ul:hover{background:var(--surface)}
+.pm-view .urgency-opt input:checked+.ul{border-width:1.5px}
+.pm-view .urgency-opt.ulow input:checked+.ul{border-color:var(--green);background:var(--green-light)}
+.pm-view .urgency-opt.umed input:checked+.ul{border-color:#EF9F27;background:var(--amber-light)}
+.pm-view .urgency-opt.uhi input:checked+.ul{border-color:var(--accent);background:var(--red-light)}
+.pm-view .udot{width:8px;height:8px;border-radius:50%}
+.pm-view .utxt{font-size:12px;font-weight:500}
+.pm-view .ulow .udot{background:var(--green)}.pm-view .ulow .utxt{color:var(--green)}
+.pm-view .umed .udot{background:#EF9F27}.pm-view .umed .utxt{color:var(--amber)}
+.pm-view .uhi .udot{background:var(--accent)}.pm-view .uhi .utxt{color:var(--red)}
+.pm-view .card-footer{padding:16px 24px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pm-view .footer-note{font-size:11px;color:var(--text3);line-height:1.5}
+.pm-view .submit-btn{padding:10px 22px;font-size:13px;font-weight:500;border:none;border-radius:var(--r-md);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.pm-view .submit-btn:hover{background:var(--accent-dark)}
+.pm-view .submit-btn:active{transform:scale(.98)}
+.pm-view .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.pm-view .err-banner{background:var(--red-light);border:1px solid #F09595;border-radius:var(--r-md);padding:10px 14px;font-size:12px;color:var(--red);display:none}
+.pm-view .success{width:100%;max-width:520px;text-align:center;padding:48px 24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;display:none}
+.pm-view .success-icon{width:48px;height:48px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.pm-view .success-title{font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:8px}
+.pm-view .success-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:24px}
+.pm-view .success-detail{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;text-align:left;margin-bottom:24px}
+.pm-view .sd-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.pm-view .sd-row:last-child{border-bottom:none}
+.pm-view .sd-k{color:var(--text3);flex-shrink:0}
+.pm-view .sd-v{color:var(--text);font-weight:500;text-align:right}
+.pm-view .another-btn{padding:9px 20px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text);cursor:pointer;font-family:var(--font);transition:all .15s}
+.pm-view .another-btn:hover{background:var(--surface2)}
+.pm-view .copy-link-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
+.pm-view .copy-link-btn:hover{background:var(--surface2)}
 </style>
 </head>
 <body>
@@ -217,6 +273,8 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
       <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
       <div class="ni" onclick="go('tracker')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 1v4M9 1v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M4 8h2M4 10.5h4M8.5 8l1 1 1.5-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily tracker</div>
+      <div class="nl">Share</div>
+      <div class="ni" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
     </div>
     <div class="timer-mini">
       <div class="tm-l">Timer</div>
@@ -428,6 +486,53 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   </div>
 </div>
 
+
+<!-- ASSIGN REQUEST MODAL -->
+<div class="modal-overlay" id="moAssign" onclick="if(event.target===this)closeModal('moAssign')">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <span class="modal-title">Assign request</span>
+      <button class="modal-close" onclick="closeModal('moAssign')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="assign-req-title" style="font-size:13px;font-weight:500"></div>
+        <div id="assign-req-meta" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <div class="mfield">
+        <label>Assign to designer</label>
+        <div class="task-chip-wrap" id="assign-designer-chips"></div>
+      </div>
+      <div class="mrow">
+        <div class="mfield"><label>Priority</label>
+          <select id="assign-priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div class="mfield"><label>Effort (pts)</label>
+          <select id="assign-effort">
+            <option value="1">1 — quick</option>
+            <option value="2" selected>2 — small</option>
+            <option value="3">3 — medium</option>
+            <option value="4">4 — large</option>
+            <option value="5">5 — epic</option>
+          </select>
+        </div>
+      </div>
+      <div class="mfield"><label>Jira ref (optional)</label>
+        <input type="text" id="assign-jira" placeholder="e.g. MFD-115"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moAssign')">Cancel</button>
+      <button class="btn accent" id="btnAssign" onclick="submitAssign()">Assign &amp; create task</button>
+    </div>
+  </div>
+</div>
+
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
@@ -524,6 +629,7 @@ async function loadAll(){
   try{goals=await api('goals?select=*&order=sort_order.asc');}catch(e){goals=[];}
   try{goalTasks=await api('goal_tasks?select=*');}catch(e){goalTasks=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  autoFlagRisks();
   updateBadge();
   render();
 }
@@ -538,10 +644,10 @@ function updateBadge(){
 function go(v){
   view=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7,tracker:8};
+  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7,tracker:8,pmform:9};
   const nis=document.querySelectorAll('.ni');
   if(nis[map[v]])nis[map[v]].classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',pmform:'PM request form'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -557,6 +663,7 @@ function render(){
   else if(view==='uximpact')c.innerHTML=vUXImpact();
   else if(view==='skills'){c.innerHTML=vSkills();setTimeout(drawAllSpiders,60);}
   else if(view==='tracker')c.innerHTML=vTracker();
+  else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -578,15 +685,16 @@ function getLoad(){
 
 function metrics(){
   const load=getLoad();
-  const over=Object.values(load).filter(l=>l.effort>=8).length;
+  const over=Object.values(load).filter(l=>l.count>5).length;
   const risk=(tasks||[]).filter(t=>t.risk).length;
   const ua=(requests||[]).filter(r=>!r.assigned).length;
   const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
+  const noOwner=(tasks||[]).filter(function(t){const d=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);return d.length===0;}).length;
   return '<div class="metrics">'
     +'<div class="mc '+(risk>0?'red':'green')+'"><div class="mc-l">At risk</div><div class="mc-v">'+risk+'</div><div class="mc-s">'+(risk>0?'tasks flagged':'all clear')+'</div></div>'
-    +'<div class="mc '+(over>0?'amber':'green')+'"><div class="mc-l">Overloaded</div><div class="mc-v">'+over+'</div><div class="mc-s">designers</div></div>'
-    +'<div class="mc '+(ua>0?'amber':'green')+'"><div class="mc-l">PM requests</div><div class="mc-v">'+ua+'</div><div class="mc-s">unassigned</div></div>'
-    +'<div class="mc blue"><div class="mc-l">Hours logged</div><div class="mc-v">'+Math.round(totalMins/60)+'h</div><div class="mc-s">'+((timeLogs||[]).length)+' sessions</div></div>'
+    +'<div class="mc '+(over>0?'red':'green')+'"><div class="mc-l">Overloaded</div><div class="mc-v">'+over+'</div><div class="mc-s">'+(over>0?'designers > 5 tasks':'balanced')+'</div></div>'
+    +'<div class="mc '+(noOwner>0?'amber':'green')+'"><div class="mc-l">No owner</div><div class="mc-v">'+noOwner+'</div><div class="mc-s">'+(noOwner>0?'tasks unassigned':'all assigned')+'</div></div>'
+    +'<div class="mc '+(ua>0?'amber':'green')+'"><div class="mc-l">PM requests</div><div class="mc-v">'+ua+'</div><div class="mc-s">pending</div></div>'
     +'</div>';
 }
 
@@ -611,7 +719,11 @@ function vDash(){
   let logRows='<div class="empty">No time logged yet</div>';
   if(recentL.length>0){logRows=recentL.map(l=>'<div class="log-row"><div class="avatar '+avFor(l.designer_name)+'">'+iniFor(l.designer_name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+l.task_name+'</div><div style="font-size:10px;color:var(--text3)">'+l.designer_name+' · '+fmtD(l.created_at)+' · '+l.note+'</div></div><div class="log-dur">'+fmtM(l.mins)+'</div></div>').join('');}
   const barCols=dm.slice(0,5).map(d=>{const pct=Math.round((d[1].mins/maxM)*100)||2;return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="font-size:9px;color:var(--text2);font-weight:500">'+fmtM(d[1].mins)+'</div><div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:3px"></div><div style="font-size:9px;color:var(--text3)">'+d[0].slice(0,3)+'</div></div>';}).join('');
-  const reqCards=(requests||[]).filter(r=>!r.assigned).slice(0,3).map(r=>'<div class="inbox-item"><div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:3px"><div class="ii-dot'+(r.read?' read':'')+'"></div><span style="font-size:12px;font-weight:500;flex:1">'+r.title+'</span></div><div style="padding-left:13px;font-size:10px;color:var(--text3)">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span></div></div>').join('')||'<div class="empty">No pending requests</div>';
+  const reqCards=(requests||[]).filter(r=>!r.assigned).slice(0,3).map(function(r){
+    const flags=getSmartFlags(r);
+    const flagBadge=flags.length?'<span style="font-size:10px;background:var(--amber-light);color:var(--amber);padding:1px 6px;border-radius:10px;font-weight:500;margin-left:4px">'+flags.length+' flag'+(flags.length>1?'s':'')+'</span>':'';
+    return '<div class="inbox-item"><div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:3px"><div class="ii-dot'+(r.read?' read':'')+'"></div><span style="font-size:12px;font-weight:500;flex:1">'+r.title+'</span>'+flagBadge+'</div><div style="padding-left:13px;font-size:10px;color:var(--text3)">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span></div></div>';
+  }).join('')||'<div class="empty">No pending requests</div>';
   return metrics()
     +'<div class="two-col">'
     +'<div><div class="panel" style="margin-bottom:14px"><div class="ph"><span class="pt">Risk flags</span><button class="pa" onclick="go(\'sprint\')">All tasks →</button></div>'+riskRows+'</div>'
@@ -671,10 +783,11 @@ function vInbox(){
     +'<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">'
     +'<div class="ii-dot'+(r.read?' read':'')+'"></div>'
     +'<span style="font-size:13px;font-weight:500;flex:1">'+r.title+'</span>'
-    +(r.assigned?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>':'<button class="assign-btn" onclick="markAssigned(\''+r.id+'\')">Assign →</button>')
+    +(r.assigned?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>':'<button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
     +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5">'+r.description+'</div>':'')
+    +renderSmartFlags(r)
     +'</div>').join('')||'<div class="empty">No requests yet — share pm_request.html with your PMs</div>';
   return '<div class="section-row"><span class="st">PM requests</span>'
     +'<div style="display:flex;gap:8px">'
@@ -723,8 +836,8 @@ function vCapacity(){
   const load=getLoad();
   const cards=(DESIGNERS||[]).map((d,i)=>{
     const l=load[d.name];const pct=Math.min(Math.round((l.effort/10)*100),100);
-    const over=l.effort>=8,avail=l.effort<=4;
-    const fc=over?'bf-red':pct>=60?'bf-amber':'bf-green';
+    const over=l.count>5,avail=l.count<=2;
+    const fc=over?'bf-red':l.count>3?'bf-amber':'bf-green';
     const tag=over?'<span style="font-size:10px;background:var(--red-light);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>':avail?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>':'';
     const chips=l.tasks.map(t=>'<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">'+(t.name.length>20?t.name.slice(0,20)+'…':t.name)+'</span>').join('');
     return '<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div class="avatar '+AV[i%AV.length]+'">'+d.initials+'</div><span style="font-size:13px;font-weight:500;flex:1">'+d.name+'</span><span style="font-size:11px;color:var(--text3)">'+l.count+' tasks · '+l.effort+'/10 pts · '+fmtM(l.mins)+'</span>'+tag+'</div><div style="padding-left:36px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="bar-bg"><div class="bar-fill '+fc+'" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--text3);min-width:28px">'+pct+'%</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div></div>';
@@ -1107,6 +1220,80 @@ async function reassign(id,designer){
     if(t){t.designer_name=designer;t.designer_names=[designer];}
     render();toast('Reassigned to '+designer);
   } catch(e){toast('Error: '+e.message);}
+}
+
+let assignReqId = null, assignDesigners = [];
+
+function openAssignModal(id){
+  const r = (requests||[]).find(x=>x.id===id);
+  if(!r) return;
+  assignReqId = id;
+  assignDesigners = [];
+  document.getElementById('assign-req-title').textContent = r.title;
+  document.getElementById('assign-req-meta').textContent = r.pm_name + ' · ' + r.product + ' · ' + (r.urgency||'medium');
+  document.getElementById('assign-priority').value = r.urgency==='high'?'high':r.urgency==='low'?'low':'medium';
+  document.getElementById('assign-effort').value = '2';
+  document.getElementById('assign-jira').value = r.jira_ref||'';
+  renderAssignChips();
+  openModal('moAssign');
+}
+
+function renderAssignChips(){
+  const c = document.getElementById('assign-designer-chips');
+  if(!c) return;
+  c.innerHTML = (DESIGNERS||[]).map(function(d){
+    const on = assignDesigners.includes(d.name);
+    return '<span class="designer-chip'+(on?' on':'')+'" data-name="'+d.name+'" onclick="toggleAssignDesigner(this)">'+d.name+'</span>';
+  }).join('');
+}
+
+function toggleAssignDesigner(el){
+  const n = el.dataset.name;
+  const i = assignDesigners.indexOf(n);
+  if(i>=0) assignDesigners.splice(i,1); else assignDesigners.push(n);
+  el.classList.toggle('on');
+}
+
+async function submitAssign(){
+  if(!assignReqId) return;
+  if(!assignDesigners.length){toast('Please select at least one designer');return;}
+  const btn = document.getElementById('btnAssign');
+  btn.disabled=true; btn.textContent='Assigning…';
+  const r = (requests||[]).find(x=>x.id===assignReqId);
+  if(!r){btn.disabled=false;btn.textContent='Assign & create task';return;}
+  try{
+    // 1. Mark request as assigned
+    await api('requests?id=eq.'+assignReqId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({assigned:true,read:true})});
+    r.assigned=true; r.read=true;
+
+    // 2. Create task from request
+    const effort = parseInt(document.getElementById('assign-effort').value)||2;
+    const splitEffort = assignDesigners.length>1 ? Math.round(effort/assignDesigners.length) : effort;
+    const payload = {
+      name: r.title,
+      pm: r.pm_name,
+      designer_name: assignDesigners[0],
+      designer_names: assignDesigners,
+      priority: document.getElementById('assign-priority').value,
+      status: 'todo',
+      effort: splitEffort,
+      jira_ref: document.getElementById('assign-jira').value.trim()||'—',
+      notes: r.description||'',
+      skills: [],
+      risk: false,
+      risk_note: '',
+      logged_mins: 0,
+      sort_order: 0
+    };
+    const res = await api('tasks',{method:'POST',headers:HR,body:JSON.stringify(payload)});
+    if(res&&res[0]) tasks.unshift(res[0]);
+
+    updateBadge();
+    closeModal('moAssign');
+    render();
+    toast('Assigned to '+assignDesigners.join(', ')+' · Task created');
+  } catch(e){toast('Error: '+e.message);}
+  btn.disabled=false; btn.textContent='Assign & create task';
 }
 
 async function markAssigned(id){
@@ -1563,6 +1750,235 @@ function copyPMLink(){
   });
 }
 
+// ── RISK AUTO-FLAGGING ────────────────────────────────────────────────────
+// Rules:
+// 1. tasks per designer > 5 → overloaded risk on their tasks
+// 2. priority = high or critical + status != review/done → at risk
+// 3. no designer assigned → warning flag
+
+function autoFlagRisks(){
+  if(!tasks||!tasks.length) return;
+
+  // Count tasks per designer
+  const designerCount = {};
+  (tasks||[]).forEach(function(t){
+    const designers = t.designer_names&&t.designer_names.length>0 ? t.designer_names : (t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+    designers.forEach(function(d){ designerCount[d]=(designerCount[d]||0)+1; });
+  });
+
+  (tasks||[]).forEach(function(t){
+    const designers = t.designer_names&&t.designer_names.length>0 ? t.designer_names : (t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+    const hasDesigner = designers.length > 0;
+
+    // Rule 3: no designer
+    if(!hasDesigner){
+      t.risk = true;
+      t.risk_note = 'No designer assigned';
+      return;
+    }
+
+    // Rule 1: designer overloaded (> 5 tasks)
+    const overloaded = designers.filter(function(d){ return designerCount[d]>5; });
+    if(overloaded.length){
+      t.risk = true;
+      t.risk_note = overloaded[0]+' overloaded ('+designerCount[overloaded[0]]+' tasks)';
+      return;
+    }
+
+    // Rule 2: high/critical priority + not in review or done
+    if((t.priority==='high'||t.priority==='critical') && t.status!=='review' && t.status!=='done'){
+      t.risk = true;
+      t.risk_note = t.priority+' priority — not in review';
+      return;
+    }
+
+    // Clear risk if none of the above
+    t.risk = false;
+    t.risk_note = '';
+  });
+}
+
+// ── SMART FLAGS ──────────────────────────────────────────────────────────
+function getSmartFlags(r){
+  const flags = [];
+  const desc = (r.description||'').toLowerCase().trim();
+  const words = desc.split(/\s+/).filter(function(w){return w.length>0;});
+
+  // Flag 1: No clear problem defined
+  const problemKeywords = ['because','problem','issue','user','customer','pain','friction',
+    'goal','need','want','failing','broken','improve','fix','why','challenge','gap'];
+  const hasProblem = problemKeywords.some(function(k){return desc.includes(k);});
+  if(!hasProblem || words.length < 15){
+    flags.push({type:'warn', text:'No clear problem defined'});
+  }
+
+  // Flag 2: No success metric
+  const metricKeywords = ['%','percent','rate','metric','measure','kpi','conversion',
+    'retention','users','sessions','clicks','adoption','goal','target','success','track'];
+  const hasMetric = metricKeywords.some(function(k){return desc.includes(k);});
+  if(!hasMetric){
+    flags.push({type:'warn', text:'No success metric'});
+  }
+
+  // Flag 3: Marked urgent without reason
+  if(r.urgency === 'high'){
+    const urgencyJustified = desc.length > 200 && words.length > 35;
+    const hasDeadlineReason = ['deadline','launch','release','go-live','client','stakeholder',
+      'board','investor','compliance','legal','blocked'].some(function(k){return desc.includes(k);});
+    if(!urgencyJustified && !hasDeadlineReason){
+      flags.push({type:'critical', text:'Marked urgent without reason'});
+    }
+  }
+
+  return flags;
+}
+
+function renderSmartFlags(r){
+  const flags = getSmartFlags(r);
+  if(!flags.length) return '';
+  return '<div style="padding-left:13px;margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">'
+    + flags.map(function(f){
+        const isCrit = f.type === 'critical';
+        return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:500;'
+          +'padding:2px 8px;border-radius:20px;background:'+(isCrit?'var(--red-light)':'var(--amber-light)')
+          +';color:'+(isCrit?'var(--red)':'var(--amber)')+'">'
+          +(isCrit?'🚨':'⚠️')+' '+f.text+'</span>';
+      }).join('')
+    + '</div>';
+}
+
+
+// ── PM REQUEST FORM VIEW ──────────────────────────────────────────────────
+function vPMForm(){
+  return '<div class="pm-view" id="pmViewWrap">'
+    + '<div class="header">'
+    + '<div class="brand">'
+    + '<div class="brand-inner"><div class="logomark"><svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div><span class="brand-name">Design Radar</span></div>'
+    + '<button class="copy-link-btn" id="copyPMFormBtn" onclick="copyPMFormLink()">'
+    + '<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M2 10V3a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> Copy link</button>'
+    + '</div>'
+    + '<div class="form-title">Submit a design request</div>'
+    + '<div class="form-sub">Fill in the details and the design team will review and assign it shortly.</div>'
+    + '</div>'
+    + '<div class="card" id="pmFormCard">'
+    + '<div class="card-body">'
+    + '<div class="err-banner" id="pmErrBanner"></div>'
+    + '<div class="pm-field"><label>Your name<span class="req">*</span></label><input type="text" id="pm-name" placeholder="e.g. Sneha Kulkarni" autocomplete="name"/></div>'
+    + '<div class="pm-field"><label>Product<span class="req">*</span></label><select id="pm-product"><option value="">Select product…</option><option>Algo</option><option>Cash / Equity</option><option>Commodities</option><option>IPO</option><option>MF</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option><option>Other</option></select></div>'
+        + '<div class="pm-field"><label>Request title<span class="req">*</span></label><input type="text" id="pm-title" placeholder="e.g. Redesign KYC onboarding flow" maxlength="80"/><div class="char-count" id="pm-tc">0 / 80</div></div>'
+    + '<div class="pm-field"><label>Description<span class="req">*</span></label><textarea id="pm-desc" placeholder="What needs to be designed? Include context, user problem, and any reference links…" maxlength="500"></textarea><div class="char-count" id="pm-dc">0 / 500</div></div>'
+    + '<div class="pm-field"><label>Urgency<span class="req">*</span></label><div class="urgency-row">'
+    + '<div class="urgency-opt ulow"><input type="radio" name="pm-urgency" id="pm-ulow" value="low"><label class="ul" for="pm-ulow"><div class="udot"></div><span class="utxt">Low</span></label></div>'
+    + '<div class="urgency-opt umed"><input type="radio" name="pm-urgency" id="pm-umed" value="medium" checked><label class="ul" for="pm-umed"><div class="udot"></div><span class="utxt">Medium</span></label></div>'
+    + '<div class="urgency-opt uhi"><input type="radio" name="pm-urgency" id="pm-uhi" value="high"><label class="ul" for="pm-uhi"><div class="udot"></div><span class="utxt">High</span></label></div>'
+    + '</div></div>'
+    + '<div class="pm-field"><label>Deadline</label><input type="date" id="pm-deadline"/><div class="hint">Leave blank if flexible</div></div>'
+    + '<div class="pm-field"><label>Jira / Linear ticket</label><input type="text" id="pm-jira" placeholder="e.g. MFD-114 (optional)"/></div>'
+    + '</div>'
+    + '<div class="card-footer"><div class="footer-note">Goes straight into the design team&#39;s inbox.<br>You&#39;ll hear back within 1 working day.</div>'
+    + '<button class="submit-btn" id="pmSubmitBtn" onclick="pmSubmit()">Submit request</button>'
+    + '</div></div>'
+    + '<div class="success" id="pmSuccessCard"><div class="success-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11.5l5 5 9-9" stroke="#1D9E75" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    + '<div class="success-title">Request submitted</div><div class="success-sub">The design team has received your request and will assign it shortly.</div>'
+    + '<div class="success-detail" id="pmSuccessDetail"></div>'
+    + '<button class="another-btn" onclick="pmReset()">Submit another request</button></div>'
+    + '</div>';
+}
+
+function pmUC(el,cid,max){
+  const cd=document.getElementById(cid);
+  if(cd) cd.textContent=el.value.length+' / '+max;
+}
+
+function pmFormInit(){
+  const title=document.getElementById('pm-title');
+  const desc=document.getElementById('pm-desc');
+  if(title) title.addEventListener('input',function(){pmUC(this,'pm-tc',80);});
+  if(desc)  desc.addEventListener('input',function(){pmUC(this,'pm-dc',500);});
+}
+
+function pmValidate(){
+  document.querySelectorAll('.pm-field input.err,.pm-field select.err,.pm-field textarea.err').forEach(function(e){e.classList.remove('err');});
+  const eb=document.getElementById('pmErrBanner');
+  if(eb) eb.style.display='none';
+  let ok=true;
+  [['pm-name','Your name'],['pm-product','Product'],['pm-title','Request title'],['pm-desc','Description']].forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    if(el&&!el.value.trim()){el.classList.add('err');ok=false;}
+  });
+  if(!ok){const eb=document.getElementById('pmErrBanner');if(eb){eb.textContent='Please fill in all required fields.';eb.style.display='block';}}
+  return ok;
+}
+
+async function pmSubmit(){
+  if(!pmValidate()) return;
+  const btn=document.getElementById('pmSubmitBtn');
+  btn.disabled=true;btn.textContent='Submitting…';
+  const urgency=document.querySelector('input[name="pm-urgency"]:checked');
+  const payload={
+    pm_name:   document.getElementById('pm-name').value.trim(),
+    product:   document.getElementById('pm-product').value,
+    title:     document.getElementById('pm-title').value.trim(),
+    description: document.getElementById('pm-desc').value.trim(),
+    urgency:   urgency?urgency.value:'medium',
+    deadline:  document.getElementById('pm-deadline').value||null,
+    jira_ref:  document.getElementById('pm-jira').value.trim()||null,
+    assigned:  false,
+    read:      false
+  };
+  try{
+    const res=await api('requests',{method:'POST',headers:HR,body:JSON.stringify(payload)});
+    if(res&&res[0]) requests.unshift(res[0]);
+    updateBadge();
+    pmShowSuccess(payload);
+  } catch(e){
+    const eb=document.getElementById('pmErrBanner');
+    if(eb){eb.textContent='Could not submit — please try again.';eb.style.display='block';}
+    btn.disabled=false;btn.textContent='Submit request';
+  }
+}
+
+function pmShowSuccess(d){
+  const fc=document.getElementById('pmFormCard');
+  const sc=document.getElementById('pmSuccessCard');
+  if(fc) fc.style.display='none';
+  if(sc) sc.style.display='block';
+  const uc={low:'var(--green)',medium:'var(--amber)',high:'var(--red)'};
+  const ul={low:'Low',medium:'Medium',high:'High'};
+  const rows=[
+    {k:'From',v:d.pm_name},{k:'Product',v:d.product},{k:'Request',v:d.title},
+    {k:'Urgency',v:'<span style="color:'+uc[d.urgency]+';font-weight:500">'+ul[d.urgency]+'</span>'},
+    d.deadline?{k:'Deadline',v:new Date(d.deadline+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}:null,
+    d.jira_ref?{k:'Jira ref',v:d.jira_ref}:null,
+  ].filter(Boolean);
+  const sd=document.getElementById('pmSuccessDetail');
+  if(sd) sd.innerHTML=rows.map(function(r){return '<div class="sd-row"><span class="sd-k">'+r.k+'</span><span class="sd-v">'+r.v+'</span></div>';}).join('');
+}
+
+function pmReset(){
+  const fc=document.getElementById('pmFormCard');
+  const sc=document.getElementById('pmSuccessCard');
+  if(fc) fc.style.display='block';
+  if(sc) sc.style.display='none';
+  const btn=document.getElementById('pmSubmitBtn');
+  if(btn){btn.disabled=false;btn.textContent='Submit request';}
+  ['pm-name','pm-title','pm-desc','pm-jira','pm-deadline'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+  const pp=document.getElementById('pm-product');if(pp)pp.value='';
+  const um=document.getElementById('pm-umed');if(um)um.checked=true;
+  ['pm-tc','pm-dc'].forEach(function(id){const el=document.getElementById(id);if(el)el.textContent='0 / '+(id==='pm-tc'?80:500);});
+  const eb=document.getElementById('pmErrBanner');if(eb)eb.style.display='none';
+}
+
+function copyPMFormLink(){
+  const base=window.location.href.replace('index.html','').split('?')[0];
+  const url=(base.endsWith('/')?base:base+'/')+'pm_request.html';
+  const btn=document.getElementById('copyPMFormBtn');
+  navigator.clipboard.writeText(url).then(function(){
+    if(btn){btn.innerHTML='<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="#1D9E75" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!';btn.style.color='var(--green)';}
+    setTimeout(function(){if(btn){btn.innerHTML='<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M2 10V3a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> Copy link';btn.style.color='';}},2000);
+  }).catch(function(){toast('Link: '+url);});
+}
+
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
   try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
@@ -1580,7 +1996,18 @@ function buildCtx(){
 }
 const AI={
   bandwidth(){const{avail,over,load}=buildCtx();return '<b>Capacity right now:</b><br><br>'+Object.entries(load).sort((a,b)=>a[1].effort-b[1].effort).map(([n,l])=>'• <b>'+n+'</b> — '+l.effort+'/10 pts').join('<br>')+'<br><br>'+(avail.length?'<b>Available:</b> '+avail.join(', '):'All at medium–high load.')+(over.length?'<br><b>Overloaded:</b> '+over.join(', '):' No one overloaded.');},
-  risks(){const{risk}=buildCtx();if(!risk.length)return 'No risks flagged right now.';return '<b>'+risk.length+' task'+(risk.length>1?'s':'')+' at risk:</b><br><br>'+risk.map((t,i)=>(i+1)+'. <b>'+t.name+'</b> — '+t.risk_note+' ('+t.designer_name+')').join('<br>');},
+  risks(){
+    const allRisk=(tasks||[]).filter(function(t){return t.risk;});
+    const noDesigner=allRisk.filter(function(t){return t.risk_note&&t.risk_note.includes('No designer');});
+    const overloaded=allRisk.filter(function(t){return t.risk_note&&t.risk_note.includes('overloaded');});
+    const highPri=allRisk.filter(function(t){return t.risk_note&&t.risk_note.includes('priority');});
+    if(!allRisk.length) return 'No risks flagged. All tasks have owners, no designers overloaded, and high-priority work is progressing.';
+    let out='<b>'+allRisk.length+' task'+(allRisk.length>1?'s':'')+' at risk:</b><br><br>';
+    if(noDesigner.length) out+='<b>No designer ('+noDesigner.length+'):</b><br>'+noDesigner.map(function(t){return '• '+t.name;}).join('<br>')+'<br><br>';
+    if(overloaded.length) out+='<b>Designer overloaded ('+overloaded.length+'):</b><br>'+overloaded.map(function(t){return '• '+t.name+' — '+t.risk_note;}).join('<br>')+'<br><br>';
+    if(highPri.length) out+='<b>High priority not in review ('+highPri.length+'):</b><br>'+highPri.map(function(t){return '• '+t.name+' ('+t.designer_name+')';}).join('<br>');
+    return out;
+  },
   time(){const{load,totalMins}=buildCtx();return '<b>Time this sprint ('+fmtM(totalMins)+' total):</b><br><br>'+Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins).map(([n,l])=>'• <b>'+n+'</b> — '+fmtM(l.mins)+' across '+l.count+' tasks').join('<br>');},
   standup(){const{risk}=buildCtx();const done=(tasks||[]).filter(t=>t.status==='done');const rev=(tasks||[]).filter(t=>t.status==='review');const inp=(tasks||[]).filter(t=>t.status==='inprogress');const ua=(requests||[]).filter(r=>!r.assigned).length;const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);return '<b>Standup summary:</b><br><br>'+(done.length?'<b>Done:</b> '+done.map(t=>t.name).join(', ')+'<br>':'')+(rev.length?'<b>Review:</b> '+rev.map(t=>t.name).join(', ')+'<br>':'')+(inp.length?'<b>In progress:</b> '+inp.map(t=>t.name).join(', ')+'<br>':'')+'<br><b>Risks:</b> '+(risk.length?risk.map(t=>t.name).join(', '):'None')+'<br><b>PM requests:</b> '+ua+' unassigned<br><b>Time logged:</b> '+fmtM(totalMins);}
 };
@@ -1602,7 +2029,7 @@ document.addEventListener('drop',e=>{e.preventDefault();const r=e.target.closest
 document.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
   if(e.key==='n')openAddTask();
-  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress'].forEach(id=>closeModal(id));}
+  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress','moAssign'].forEach(id=>closeModal(id));}
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
