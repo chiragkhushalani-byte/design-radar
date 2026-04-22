@@ -162,15 +162,15 @@ label.field-label{font-size:11px;font-weight:500;color:var(--text2);text-transfo
       <div class="urgency-row">
         <div class="urgency-opt ulow">
           <input type="radio" name="urgency" id="u-low" value="low" onchange="togglePriorityReason()">
-          <label class="ul" for="u-low"><div class="udot"></div><span class="utxt">Low</span></label>
+          <label class="ul" for="u-low" onclick="setTimeout(togglePriorityReason,10)"><div class="udot"></div><span class="utxt">Low</span></label>
         </div>
         <div class="urgency-opt umed">
           <input type="radio" name="urgency" id="u-med" value="medium" checked onchange="togglePriorityReason()">
-          <label class="ul" for="u-med"><div class="udot"></div><span class="utxt">Medium</span></label>
+          <label class="ul" for="u-med" onclick="setTimeout(togglePriorityReason,10)"><div class="udot"></div><span class="utxt">Medium</span></label>
         </div>
         <div class="urgency-opt uhi">
           <input type="radio" name="urgency" id="u-hi" value="high" onchange="togglePriorityReason()">
-          <label class="ul" for="u-hi"><div class="udot"></div><span class="utxt">High</span></label>
+          <label class="ul" for="u-hi" onclick="setTimeout(togglePriorityReason,10)"><div class="udot"></div><span class="utxt">High</span></label>
         </div>
       </div>
     </div>
