@@ -33,13 +33,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t
 .ni.active{background:var(--surface2);color:var(--text);font-weight:500}
 .nbadge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:500;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;display:none}
 .timer-mini{margin:0 8px 12px;background:var(--surface2);border-radius:var(--r-lg);padding:11px 12px;border:1px solid var(--border)}
-.tm-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.tm-d{font-size:20px;font-weight:500;color:var(--text);font-family:var(--mono);letter-spacing:.02em}
-.tm-t{font-size:10px;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tm-btns{display:flex;gap:5px;margin-top:9px}
-.tm-btn{flex:1;padding:5px 0;font-size:11px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font);transition:all .12s;font-weight:500}
-.tm-btn:hover{background:var(--border)}
-.tm-btn.running{background:var(--accent);color:#fff;border-color:var(--accent)}
+
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{height:52px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
 .tb-title{font-size:14px;font-weight:500;flex:1;letter-spacing:-.01em}
@@ -264,9 +258,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="nl">Work</div>
       <div class="ni" onclick="go('sprint')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Sprint tasks</div>
       <div class="ni" onclick="go('inbox')" id="inboxNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.1"/><path d="M2 7h3l1.5 2h1L9 7h3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>PM requests<span class="nbadge" id="inboxBadge">0</span></div>
-      <div class="nl">Time</div>
-      <div class="ni" onclick="go('timelog')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7.5" r="5" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v3l2 1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M5.5 1.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Time log</div>
-      <div class="ni" onclick="go('reports')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 9V7M7 9V5M9 9V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Reports</div>
+
       <div class="nl">Team</div>
       <div class="ni" onclick="go('capacity')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 12c0-2 1.567-3.5 3.5-3.5S8.5 10 8.5 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M12 12c0-1.5-1.2-2.8-2.5-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Capacity</div>
       <div class="nl">Growth</div>
@@ -276,21 +268,12 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="nl">Share</div>
       <div class="ni" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
     </div>
-    <div class="timer-mini">
-      <div class="tm-l">Timer</div>
-      <div class="tm-d" id="sideTimer">00:00:00</div>
-      <div class="tm-t" id="sideTimerTask">No task running</div>
-      <div class="tm-btns">
-        <button class="tm-btn" id="sideTimerBtn" onclick="toggleTimer()">Start</button>
-        <button class="tm-btn" onclick="stopTimer()">Stop</button>
-      </div>
-    </div>
+
   </div>
   <div class="main">
     <div class="topbar">
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
-      <button class="btn" onclick="quickLog()">+ Log time</button>
       <button class="btn accent" onclick="openAddTask()">+ Add task</button>
     </div>
     <div class="content" id="content"><div class="empty">Loading…</div></div>
@@ -565,7 +548,7 @@ const SKILLS = [
 ];
 const AV = ['av0','av1','av2','av3','av4'];
 
-let DESIGNERS=[], tasks=[], timeLogs=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[], goals=[], goalTasks=[];
+let DESIGNERS=[], tasks=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[], goals=[], goalTasks=[];
 let view='dashboard', sfilt='all', lfilt='all';
 let selDesigners=[], selSkills=[], editTaskId=null;
 let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
@@ -613,10 +596,9 @@ function initLock(){
 // ── DATA LOAD ─────────────────────────────────────────
 async function loadAll(){
   try{
-    [DESIGNERS,tasks,timeLogs,requests] = await Promise.all([
+    [DESIGNERS,tasks,requests] = await Promise.all([
       api('designers?select=*&order=avatar_index'),
       api('tasks?select=*&order=sort_order.asc,created_at.desc'),
-      api('time_logs?select=*&order=created_at.desc'),
       api('requests?select=*&order=created_at.desc')
     ]);
   } catch(e){
@@ -644,10 +626,10 @@ function updateBadge(){
 function go(v){
   view=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,timelog:3,reports:4,capacity:5,uximpact:6,skills:7,tracker:8,pmform:9};
+  const map={dashboard:0,sprint:1,inbox:2,capacity:3,uximpact:4,skills:5,tracker:6,pmform:7};
   const nis=document.querySelectorAll('.ni');
   if(nis[map[v]])nis[map[v]].classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',timelog:'Time log',reports:'Reports',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',pmform:'PM request form'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',pmform:'PM request form'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -657,8 +639,6 @@ function render(){
   if(view==='dashboard')c.innerHTML=vDash();
   else if(view==='sprint')c.innerHTML=vSprint();
   else if(view==='inbox')c.innerHTML=vInbox();
-  else if(view==='timelog')c.innerHTML=vTimelog();
-  else if(view==='reports')c.innerHTML=vReports();
   else if(view==='capacity')c.innerHTML=vCapacity();
   else if(view==='uximpact')c.innerHTML=vUXImpact();
   else if(view==='skills'){c.innerHTML=vSkills();setTimeout(drawAllSpiders,60);}
@@ -688,7 +668,12 @@ function metrics(){
   const over=Object.values(load).filter(l=>l.count>5).length;
   const risk=(tasks||[]).filter(t=>t.risk).length;
   const ua=(requests||[]).filter(r=>!r.assigned).length;
-  const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
+  const today=new Date();
+  const staleTasks=(tasks||[]).filter(function(t){
+    if(t.status==='done') return false;
+    const d=new Date(t.created_at);
+    return !isNaN(d)&&Math.floor((today-d)/(1000*60*60*24))>7;
+  }).length;
   const noOwner=(tasks||[]).filter(function(t){const d=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);return d.length===0;}).length;
   return '<div class="metrics">'
     +'<div class="mc '+(risk>0?'red':'green')+'"><div class="mc-l">At risk</div><div class="mc-v">'+risk+'</div><div class="mc-s">'+(risk>0?'tasks flagged':'all clear')+'</div></div>'
@@ -710,14 +695,21 @@ function aiPanel(ctx){
 // ── DASHBOARD ─────────────────────────────────────────
 function vDash(){
   const riskT=(tasks||[]).filter(t=>t.risk);
-  const recentL=(timeLogs||[]).slice(0,4);
+  const recentL=[];
   const load=getLoad();
-  const dm=Object.entries(load).sort((a,b)=>b[1].mins-a[1].mins);
-  const maxM=Math.max(1,...dm.map(d=>d[1].mins));
+  const dm=Object.entries(load).sort(function(a,b){return b[1].count-a[1].count;});
+  const maxM=Math.max(1,...dm.map(function(d){return d[1].count;}));
   let riskRows='<div class="empty">No risks flagged</div>';
   if(riskT.length>0){riskRows='<table><thead><tr><th style="width:42%">Task</th><th style="width:20%">Designer</th><th style="width:38%">Risk</th></tr></thead><tbody>'+riskT.map(t=>'<tr class="tr"><td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.jira_ref+'</div></td><td style="color:var(--text2)">'+t.designer_name+'</td><td><span class="risk-pill">'+t.risk_note+'</span></td></tr>').join('')+'</tbody></table>';}
-  let logRows='<div class="empty">No time logged yet</div>';
-  if(recentL.length>0){logRows=recentL.map(l=>'<div class="log-row"><div class="avatar '+avFor(l.designer_name)+'">'+iniFor(l.designer_name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+l.task_name+'</div><div style="font-size:10px;color:var(--text3)">'+l.designer_name+' · '+fmtD(l.created_at)+' · '+l.note+'</div></div><div class="log-dur">'+fmtM(l.mins)+'</div></div>').join('');}
+  const staleDash=(tasks||[]).filter(function(t){return t.status!=='done'&&daysInBucket(t)>3;}).sort(function(a,b){return daysInBucket(b)-daysInBucket(a);}).slice(0,4);
+  let logRows=staleDash.length===0?'<div class="empty">No stale tasks — all moving fast</div>'
+    :staleDash.map(function(t){
+      const designers=(t.designer_names&&t.designer_names.length>0)?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:['—']);
+      return '<div class="log-row"><div class="avatar '+avFor(designers[0])+'">'+iniFor(designers[0])+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">'+t.name+'</div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+designers.join(', ')+' · '+t.status+'</div></div>'
+        +daysInBucketBadge(t)+'</div>';
+    }).join('');
   const barCols=dm.slice(0,5).map(d=>{const pct=Math.round((d[1].mins/maxM)*100)||2;return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="font-size:9px;color:var(--text2);font-weight:500">'+fmtM(d[1].mins)+'</div><div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:3px"></div><div style="font-size:9px;color:var(--text3)">'+d[0].slice(0,3)+'</div></div>';}).join('');
   const reqCards=(requests||[]).filter(r=>!r.assigned).slice(0,3).map(function(r){
     const flags=getSmartFlags(r);
@@ -749,15 +741,14 @@ function vSprint(){
       :designers.map(function(d){
         return '<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 7px;border-radius:10px;border:1px solid var(--border);display:inline-block;margin:1px">'+d+'</span>';
       }).join('');
-    const est=t.effort*120;
-    const pct=Math.min(Math.round(((t.logged_mins||0)/Math.max(est,1))*100),100);
+
     return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
       +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+(t.brd_link?'&nbsp;·&nbsp;<a href="'+t.brd_link+'" target="_blank" style="color:var(--blue);text-decoration:none">BRD ↗</a>':'')+'</div></td>'
       +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
       +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status)+'</span></td>'
       +'<td>'+designerBadges+'</td>'
       +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
-      +'<td><div style="font-size:11px;font-weight:500;margin-bottom:3px">'+fmtM(t.logged_mins||0)+'</div><div style="display:flex;align-items:center;gap:4px"><div class="bar-bg"><div class="bar-fill bf-blue" style="width:'+pct+'%"></div></div></div></td>'
+      +'<td>'+daysInBucketBadge(t)+'</td>'
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
       +'<td style="white-space:nowrap">'
       +(t.risk?'<span class="risk-pill" style="margin-right:4px">'+t.risk_note+'</span>':'')
@@ -1432,70 +1423,92 @@ async function deleteRating(){
 // ── DAILY TRACKER ─────────────────────────────────────────────────────────
 function vTracker(){
   const today = new Date().toISOString().split('T')[0];
-  const dates = [];
-  for(let i=0; i<5; i++){
-    const d = new Date(); d.setDate(d.getDate()-i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
+  const viewDate = trackerDate || today;
 
-  const designerCols = (DESIGNERS||[]).map((d,i) => {
-    const todayTodos = (dailyTodos||[]).filter(t => t.designer_name===d.name && t.todo_date===today);
-    const pending = todayTodos.filter(t=>!t.done);
-    const done = todayTodos.filter(t=>t.done);
-    const todosHtml = todayTodos.length===0
-      ? '<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">No todos today</div>'
-      : todayTodos.map(function(t){
-          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">'
+  // Date nav
+  const viewDateLabel = viewDate===today
+    ? 'Today — '+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})
+    : new Date(viewDate+'T12:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+
+  const prevDate = new Date(viewDate+'T12:00:00');
+  prevDate.setDate(prevDate.getDate()-1);
+  const nextDate = new Date(viewDate+'T12:00:00');
+  nextDate.setDate(nextDate.getDate()+1);
+  const nextDisabled = viewDate >= today;
+
+  // Date nav bar
+  const dateNav = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 14px">'
+    +'<button class="btn" style="padding:5px 10px;font-size:12px" data-d="'+prevDate.toISOString().split('T')[0]+'" onclick="setTrackerDate(this.dataset.d)">← Prev</button>'
+    +'<span style="flex:1;text-align:center;font-size:13px;font-weight:500">'+viewDateLabel+'</span>'
+    +'<button class="btn" style="padding:5px 10px;font-size:12px" data-d="'+nextDate.toISOString().split('T')[0]+'"'+(nextDisabled?' disabled style="opacity:.4;cursor:not-allowed"':'')+' onclick="setTrackerDate(this.dataset.d)">Next →</button>'
+    +'<input type="date" id="tracker-date-pick" value="'+viewDate+'" max="'+today+'" onchange="setTrackerDate(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font-family:var(--font);cursor:pointer"/>'
+    +(viewDate!==today?'<button class="btn accent" style="font-size:11px;padding:5px 10px" data-d="'+today+'" onclick="setTrackerDate(this.dataset.d)">Today</button>':'')
+    +'</div>';
+
+  // All todos for this date
+  const dayTodos = (dailyTodos||[]).filter(function(t){ return t.todo_date===viewDate; });
+  const totalPending = dayTodos.filter(function(t){return !t.done;}).length;
+  const totalDone = dayTodos.filter(function(t){return t.done;}).length;
+
+  // Designer columns
+  const designerCols = (DESIGNERS||[]).map(function(d,i){
+    const dTodos = dayTodos.filter(function(t){ return t.designer_name===d.name; });
+    const pending = dTodos.filter(function(t){return !t.done;}).length;
+    const done = dTodos.filter(function(t){return t.done;}).length;
+
+    const todosHtml = dTodos.length===0
+      ? '<div style="font-size:11px;color:var(--text3);padding:12px 0;text-align:center">No todos</div>'
+      : dTodos.map(function(t){
+          return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)">'
             +'<input type="checkbox" data-tid="'+t.id+'"'+(t.done?' checked':'')
-            +' onchange="toggleTodo(this.dataset.tid,this.checked)" style="cursor:pointer;accent-color:var(--green)">'
-            +'<span style="flex:1;font-size:12px;'+(t.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)')+'">'+t.task+'</span>'
-            +'<button data-tid="'+t.id+'" onclick="deleteTodo(this.dataset.tid)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;line-height:1">×</button>'
+            +' onchange="toggleTodo(this.dataset.tid,this.checked)" style="cursor:pointer;accent-color:var(--green);margin-top:2px">'
+            +'<span style="flex:1;font-size:12px;line-height:1.4;'+(t.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)')+'">'+t.task+'</span>'
+            +(viewDate===today?'<button data-tid="'+t.id+'" onclick="deleteTodo(this.dataset.tid)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;line-height:1;flex-shrink:0">×</button>':'')
             +'</div>';
         }).join('');
 
+    const completionPct = dTodos.length ? Math.round((done/dTodos.length)*100) : 0;
+    const barColor = completionPct===100?'var(--green)':completionPct>50?'var(--blue)':'var(--border2)';
+
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;min-width:0">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
       +'<div class="avatar '+AV[i%AV.length]+'" style="width:28px;height:28px;font-size:10px">'+iniFor(d.name)+'</div>'
       +'<div style="flex:1"><div style="font-size:13px;font-weight:500">'+d.name+'</div>'
-      +'<div style="font-size:10px;color:var(--text3)">'+pending.length+' pending · '+done.length+' done</div></div>'
+      +'<div style="font-size:10px;color:var(--text3)">'+pending+' pending · '+done+' done</div></div>'
+      +(dTodos.length?'<span style="font-size:11px;font-weight:500;color:'+(completionPct===100?'var(--green)':'var(--text2)')+'">'+completionPct+'%</span>':'')
       +'</div>'
+      +(dTodos.length?'<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:10px;overflow:hidden"><div style="height:3px;background:'+barColor+';border-radius:2px;width:'+completionPct+'%"></div></div>':'')
       +'<div style="margin-bottom:8px">'+todosHtml+'</div>'
-      +'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px;justify-content:center" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>'
+      +(viewDate===today?'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>':'')
       +'</div>';
   }).join('');
 
-  // Week view - past activity
-  const weekRows = dates.map(date => {
-    const label = date===today?'Today':new Date(date+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
-    const dayTodos = (dailyTodos||[]).filter(t=>t.todo_date===date);
-    const byDesigner = {};
-    dayTodos.forEach(t=>{if(!byDesigner[t.designer_name])byDesigner[t.designer_name]=[];byDesigner[t.designer_name].push(t);});
-    const cells = (DESIGNERS||[]).map(d=>{
-      const dTodos = byDesigner[d.name]||[];
-      const doneCount = dTodos.filter(t=>t.done).length;
-      if(!dTodos.length) return '<td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">—</td>';
-      return '<td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px">'
-        +'<div style="color:var(--text2)">'+dTodos.length+' tasks</div>'
-        +'<div style="color:'+( doneCount===dTodos.length?'var(--green)':doneCount>0?'var(--amber)':'var(--text3)')+';font-size:10px">'+doneCount+'/'+dTodos.length+' done</div>'
-        +'</td>';
-    }).join('');
-    return '<tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:'+(date===today?'500':'400')+';color:'+(date===today?'var(--text)':'var(--text2)')+'">'+label+'</td>'+cells+'</tr>';
-  }).join('');
-
-  const designerHeaders = (DESIGNERS||[]).map(d=>'<th>'+d.name+'</th>').join('');
+  // Summary row
+  const summaryBar = '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500">'+dayTodos.length+'</span> <span style="color:var(--text3)">total</span></div>'
+    +'<div style="background:var(--green-light);border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:var(--green)">'+totalDone+'</span> <span style="color:var(--text3)">done</span></div>'
+    +'<div style="background:'+(totalPending>0?'var(--amber-light)':'var(--surface2)')+';border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:'+(totalPending>0?'var(--amber)':'var(--text2)')+'">'+totalPending+'</span> <span style="color:var(--text3)">pending</span></div>'
+    +'</div>';
 
   return '<div class="section-row"><span class="st">Daily tracker</span>'
-    +'<div style="display:flex;gap:8px">'
-    +'<span class="tb-sub">'+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})+'</span>'
-    +'<button class="btn accent" onclick="openAddTodo(\'\')">+ Add todo</button>'
-    +'</div></div>'
-    +'<div style="display:grid;grid-template-columns:repeat('+Math.min((DESIGNERS||[]).length,3)+',minmax(0,1fr));gap:12px;margin-bottom:18px">'+designerCols+'</div>'
-    +'<div class="section-row"><span class="st">This week</span></div>'
-    +'<div class="panel"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
-    +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2)">Day</th>'
-    +designerHeaders.replace(/<th>/g,'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--surface2)">')
-    +'</tr></thead><tbody>'+weekRows+'</tbody></table></div></div>';
+    +(viewDate===today?'<button class="btn accent" style="font-size:11px" onclick="openAddTodo(\'\')">+ Add todo</button>':'')
+    +'</div>'
+    +dateNav
+    +summaryBar
+    +'<div style="display:grid;grid-template-columns:repeat('+Math.min((DESIGNERS||[]).length,3)+',minmax(0,1fr));gap:12px">'
+    +designerCols
+    +'</div>';
 }
+
+let trackerDate = null;
+function setTrackerDate(date){
+  trackerDate = date;
+  render();
+  // Scroll to top of content
+  const c = document.getElementById('content');
+  if(c) c.scrollTop = 0;
+}
+
 
 function openAddTodo(designerName){
   const sel = document.getElementById('todo-designer');
@@ -1795,6 +1808,14 @@ function autoFlagRisks(){
       return;
     }
 
+    // Rule 4: stale task > 7 days and not done
+    const dib = daysInBucket(t);
+    if(dib !== null && dib > 7 && t.status !== 'done'){
+      t.risk = true;
+      t.risk_note = dib+' days in bucket';
+      return;
+    }
+
     // Clear risk if none of the above
     t.risk = false;
     t.risk_note = '';
@@ -2003,6 +2024,25 @@ function copyPMFormLink(){
   }).catch(function(){toast('Link: '+url);});
 }
 
+
+// ── DAYS IN BUCKET ────────────────────────────────────────────────────────
+function daysInBucket(task){
+  if(!task.created_at) return null;
+  const d = new Date(task.created_at);
+  if(isNaN(d)) return null;
+  return Math.floor((new Date() - d) / (1000*60*60*24));
+}
+
+function daysInBucketBadge(task){
+  if(task.status==='done') return '<span style="font-size:10px;color:var(--text3)">done</span>';
+  const days = daysInBucket(task);
+  if(days === null) return '—';
+  const color = days > 7 ? 'var(--red)' : days > 3 ? 'var(--amber)' : 'var(--green)';
+  const bg    = days > 7 ? 'var(--red-light)' : days > 3 ? 'var(--amber-light)' : 'var(--green-light)';
+  const label = days === 0 ? 'Today' : days === 1 ? '1 day' : days + ' days';
+  return '<span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:'+bg+';color:'+color+'">'+label+'</span>';
+}
+
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
   try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
@@ -2015,7 +2055,6 @@ function buildCtx(){
   const avail=Object.entries(load).filter(([,l])=>l.effort<=4).map(([n])=>n);
   const over=Object.entries(load).filter(([,l])=>l.effort>=8).map(([n])=>n);
   const risk=(tasks||[]).filter(t=>t.risk);
-  const totalMins=(timeLogs||[]).reduce((s,l)=>s+l.mins,0);
   return{load,avail,over,risk,totalMins};
 }
 const AI={
