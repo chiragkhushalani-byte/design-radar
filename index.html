@@ -738,11 +738,11 @@ function getLoad(){
   const l={};
   (DESIGNERS||[]).forEach(d=>{l[d.name]={effort:0,count:0,tasks:[],mins:0};});
   (tasks||[]).forEach(function(t){
+    if(t.status==='done') return; // done tasks don't count toward load
     const designers=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
     const splitEffort=designers.length>0?t.effort/designers.length:t.effort;
-    const splitMins=designers.length>0?(t.logged_mins||0)/designers.length:(t.logged_mins||0);
     designers.forEach(function(d){
-      if(l[d]){l[d].effort+=splitEffort;l[d].count++;l[d].tasks.push(t);l[d].mins+=splitMins;}
+      if(l[d]){l[d].effort+=splitEffort;l[d].count++;l[d].tasks.push(t);}
     });
   });
   // Round effort for display
