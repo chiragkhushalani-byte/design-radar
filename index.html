@@ -274,7 +274,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
     <div class="topbar">
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
-      <button class="btn accent" onclick="openAddTask()">+ Add task</button>
+      <button class="btn accent" onclick="openAddTask()" id="btnTopAddTask">+ Add task</button>
     </div>
     <div class="content" id="content"><div class="empty">Loading…</div></div>
   </div>
@@ -516,15 +516,67 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   </div>
 </div>
 
+
+<!-- MISSED TODO REASON MODAL -->
+<div class="modal-overlay" id="moMissed" onclick="if(event.target===this)closeModal('moMissed')">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <span class="modal-title">Incomplete todo</span>
+      <button class="modal-close" onclick="closeModal('moMissed')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--amber-light);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="missed-todo-text" style="font-size:13px;font-weight:500"></div>
+        <div id="missed-designer" style="font-size:11px;color:var(--amber);margin-top:2px"></div>
+      </div>
+      <div class="mfield">
+        <label>Why was this not completed?</label>
+        <textarea id="missed-reason" placeholder="e.g. Blocked by dev dependency, shifted to review another task, client feedback pending…" style="height:80px"></textarea>
+      </div>
+      <div style="background:var(--blue-light);border-radius:var(--r-md);padding:10px 12px;font-size:12px;color:var(--blue)">
+        <strong>This todo will be moved to tomorrow.</strong> Weekends are skipped automatically.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moMissed')">Cancel</button>
+      <button class="btn accent" onclick="submitMissedReason()">Move to next day</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISCARD REQUEST MODAL -->
+<div class="modal-overlay" id="moDiscard" onclick="if(event.target===this)closeModal('moDiscard')">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <span class="modal-title">Discard request</span>
+      <button class="modal-close" onclick="closeModal('moDiscard')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="discard-req-title" style="font-size:13px;font-weight:500"></div>
+        <div id="discard-req-meta" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <div class="mfield">
+        <label>Reason for discarding</label>
+        <textarea id="discard-reason" placeholder="e.g. Duplicate request, out of scope, already addressed, not enough detail…" style="height:72px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moDiscard')">Cancel</button>
+      <button class="btn accent" style="background:var(--red);border-color:var(--red)" onclick="submitDiscard()">Discard request</button>
+    </div>
+  </div>
+</div>
+
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
     <div class="lock-title">Design Radar</div>
-    <div class="lock-sub">Enter the team passcode to continue</div>
+    <div class="lock-sub">Enter your team passcode to continue</div>
     <input class="lock-input" id="lockInput" type="password" placeholder="••••••••" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')checkPasscode()"/>
     <div class="lock-err" id="lockErr"></div>
     <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
-    <div class="lock-footer">Design team access only</div>
+    <div class="lock-footer" style="text-align:center;line-height:1.6">Head · Designer · PM<br>Each role has its own passcode</div>
   </div>
 </div>
 
@@ -573,24 +625,49 @@ function slugify(s){return s.replace(/\s+/g,'_');}
 function toast(msg,dur){dur=dur||2200;const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
 // ── LOCK ──────────────────────────────────────────────
-const PASS = 'MISTAKES';
+const ROLES = {
+  'DESIGN2026': {role:'head',    label:'Head of Design'},
+  'MISTAKES':   {role:'designer',label:'Designer'},
+  'PMACCESS':   {role:'pm',      label:'Product Manager'}
+};
+let currentRole = null;
+let currentUser = null;
 function checkPasscode(){
   const inp=document.getElementById('lockInput');
   const err=document.getElementById('lockErr');
-  if(inp.value.trim().toUpperCase()===PASS){
+  const val=inp.value.trim().toUpperCase();
+  const match=ROLES[val];
+  if(match){
+    currentRole=match.role;
+    currentUser=match.label;
     sessionStorage.setItem('dr_ok','1');
+    sessionStorage.setItem('dr_role',match.role);
+    sessionStorage.setItem('dr_user',match.label);
     const ls=document.getElementById('lockScreen');
     ls.style.opacity='0';ls.style.transition='opacity .3s';
-    setTimeout(()=>ls.style.display='none',300);
+    setTimeout(function(){
+      ls.style.display='none';
+      applyRoleRestrictions();
+      if(currentRole==='pm'){go('pmform');}
+      else loadAll();
+    },300);
   } else {
     inp.classList.add('err','shake');
     err.textContent='Wrong passcode.';
-    setTimeout(()=>{inp.classList.remove('err','shake');err.textContent='';inp.value='';inp.focus();},1200);
+    setTimeout(function(){inp.classList.remove('err','shake');err.textContent='';inp.value='';inp.focus();},1200);
   }
 }
 function initLock(){
-  if(sessionStorage.getItem('dr_ok')==='1'){document.getElementById('lockScreen').style.display='none';}
-  else{setTimeout(()=>document.getElementById('lockInput').focus(),100);}
+  if(sessionStorage.getItem('dr_ok')==='1'){
+    currentRole=sessionStorage.getItem('dr_role')||'head';
+    currentUser=sessionStorage.getItem('dr_user')||'Head of Design';
+    document.getElementById('lockScreen').style.display='none';
+    applyRoleRestrictions();
+    if(currentRole==='pm'){go('pmform');}
+    else loadAll();
+  } else {
+    setTimeout(function(){document.getElementById('lockInput').focus();},100);
+  }
 }
 
 // ── DATA LOAD ─────────────────────────────────────────
@@ -612,6 +689,7 @@ async function loadAll(){
   try{goalTasks=await api('goal_tasks?select=*');}catch(e){goalTasks=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   autoFlagRisks();
+  checkYesterdayTodos();
   updateBadge();
   render();
 }
@@ -752,7 +830,8 @@ function vSprint(){
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
       +'<td style="white-space:nowrap">'
       +(t.risk?'<span class="risk-pill" style="margin-right:4px">'+t.risk_note+'</span>':'')
-      +'<button class="btn" style="font-size:10px;padding:3px 8px" data-tid="'+t.id+'" onclick="openEditTask(this.dataset.tid)">Edit</button>'
+      +(can('editOwnTask')&&isOwnTask(t)?'<button class="btn" style="font-size:10px;padding:3px 8px" data-tid="'+t.id+'" onclick="openEditTask(this.dataset.tid)">Edit</button> ':'')
+      +(( can('markDone')&&isOwnTask(t))||currentRole==='head'?'<button class="btn" style="font-size:10px;padding:3px 8px;'+(t.status==='done'?'background:var(--green-light);color:var(--green);border-color:var(--green)':'')+'" data-tid="'+t.id+'" data-done="'+(t.status==='done'?'1':'0')+'" onclick="toggleTaskDone(this.dataset.tid,this.dataset.done)">'+(t.status==='done'?'✓ Done':'Mark done')+'</button>':'')
       +'</td>'
       +'</tr>';
   }).join('');
@@ -774,7 +853,13 @@ function vInbox(){
     +'<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">'
     +'<div class="ii-dot'+(r.read?' read':'')+'"></div>'
     +'<span style="font-size:13px;font-weight:500;flex:1">'+r.title+'</span>'
-    +(r.assigned?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>':'<button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button>')
+    +(r.assigned
+      ?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>'
+      :r.discarded
+        ?'<span style="font-size:10px;background:var(--surface2);color:var(--text3);padding:1px 7px;border-radius:10px;font-weight:500">discarded</span>'
+        :currentRole==='head'
+          ?'<div style="display:flex;gap:4px"><button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button><button style="font-size:10px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--r-md);padding:3px 8px;cursor:pointer;font-family:var(--font);font-weight:500" data-rid="'+r.id+'" onclick="openDiscardModal(this.dataset.rid)">Discard</button></div>'
+          :'<span style="font-size:10px;color:var(--text3)">pending</span>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
     +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px">'+r.description+'</div>':'')
@@ -1463,7 +1548,11 @@ function vTracker(){
             +'<input type="checkbox" data-tid="'+t.id+'"'+(t.done?' checked':'')
             +' onchange="toggleTodo(this.dataset.tid,this.checked)" style="cursor:pointer;accent-color:var(--green);margin-top:2px">'
             +'<span style="flex:1;font-size:12px;line-height:1.4;'+(t.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)')+'">'+t.task+'</span>'
-            +(viewDate===today?'<button data-tid="'+t.id+'" onclick="deleteTodo(this.dataset.tid)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;line-height:1;flex-shrink:0">×</button>':'')
+            +(viewDate===today
+              ?'<button data-tid="'+t.id+'" onclick="deleteTodo(this.dataset.tid)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;line-height:1;flex-shrink:0">×</button>'
+              :(!t.done&&!t.task.includes('[Missed:')
+                ?'<button class="btn" style="font-size:9px;padding:2px 6px;color:var(--amber);border-color:var(--amber)" data-tid="'+t.id+'" onclick="openMissedModal(this.dataset.tid)">Missed?</button>'
+                :''))
             +'</div>';
         }).join('');
 
@@ -1479,7 +1568,7 @@ function vTracker(){
       +'</div>'
       +(dTodos.length?'<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:10px;overflow:hidden"><div style="height:3px;background:'+barColor+';border-radius:2px;width:'+completionPct+'%"></div></div>':'')
       +'<div style="margin-bottom:8px">'+todosHtml+'</div>'
-      +(viewDate===today?'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>':'')
+      +(viewDate===today&&(currentRole==='head'||(currentRole==='designer'&&d.name.toLowerCase().includes((currentUser||'').toLowerCase().split(' ')[0].toLowerCase())))?'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>':'')
       +'</div>';
   }).join('');
 
@@ -1490,8 +1579,18 @@ function vTracker(){
     +'<div style="background:'+(totalPending>0?'var(--amber-light)':'var(--surface2)')+';border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:'+(totalPending>0?'var(--amber)':'var(--text2)')+'">'+totalPending+'</span> <span style="color:var(--text3)">pending</span></div>'
     +'</div>';
 
-  return '<div class="section-row"><span class="st">Daily tracker</span>'
-    +(viewDate===today?'<button class="btn accent" style="font-size:11px" onclick="openAddTodo(\'\')">+ Add todo</button>':'')
+  // Missed todos banner
+  const missedBanner = missedYesterdayTodos.length>0
+    ? '<div style="background:var(--amber-light);border:1px solid #EF9F27;border-radius:var(--r-lg);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">'
+      +'<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2z" stroke="#854F0B" stroke-width="1.2"/><path d="M8 6v3" stroke="#854F0B" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.5" fill="#854F0B" stroke="#854F0B"/></svg>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--amber)">'+missedYesterdayTodos.length+' todo'+(missedYesterdayTodos.length>1?'s':'')+' not completed yesterday</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+missedYesterdayTodos.map(function(t){return t.designer_name+': '+t.task;}).join(' · ')+'</div></div>'
+      +'<button class="btn" style="font-size:11px;flex-shrink:0" data-tid="'+missedYesterdayTodos[0].id+'" onclick="openMissedModal(this.dataset.tid)">Review →</button>'
+      +'</div>'
+    : '';
+
+  return missedBanner+'<div class="section-row"><span class="st">Daily tracker</span>'
+    +(viewDate===today&&currentRole==='head'?'<button class="btn accent" style="font-size:11px" onclick="openAddTodo(\'\')">+ Add todo</button>':'')
     +'</div>'
     +dateNav
     +summaryBar
@@ -1595,7 +1694,7 @@ function vGoalsSection(){
       + '<div class="goal-title">' + g.title + '</div>'
       + (g.desc ? '<div class="goal-desc">' + g.description + '</div>' : '')
       + '</div>'
-      + '<button class="btn" style="font-size:10px;padding:3px 8px;flex-shrink:0" data-gid="' + g.id + '" onclick="openEditGoal(this.dataset.gid)">Edit</button>'
+      + (currentRole==='head'?'<button class="btn" style="font-size:10px;padding:3px 8px;flex-shrink:0" data-gid="' + g.id + '" onclick="openEditGoal(this.dataset.gid)">Edit</button>':'')
       + '</div>'
       + '<div class="goal-progress-row">'
       + '<div class="goal-bar-bg"><div class="goal-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>'
@@ -2043,6 +2142,185 @@ function daysInBucketBadge(task){
   return '<span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:'+bg+';color:'+color+'">'+label+'</span>';
 }
 
+
+// ── FEATURE 1: MARK TASK DONE ─────────────────────────────────────────────
+async function toggleTaskDone(id, isDone){
+  const newStatus = isDone==='1' ? 'inprogress' : 'done';
+  try{
+    await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({status:newStatus})});
+    const t=tasks.find(x=>x.id===id);
+    if(t){ t.status=newStatus; autoFlagRisks(); }
+    render();
+    toast(newStatus==='done'?'Task marked done ✓':'Task reopened');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+// ── FEATURE 2: MISSED TODO — REASON + SHIFT TO NEXT WORKING DAY ──────────
+let missedTodoId = null;
+
+function nextWorkingDay(dateStr){
+  const d = new Date(dateStr+'T12:00:00');
+  do { d.setDate(d.getDate()+1); } while(d.getDay()===0||d.getDay()===6);
+  return d.toISOString().split('T')[0];
+}
+
+function openMissedModal(todoId){
+  const t = (dailyTodos||[]).find(x=>x.id===todoId);
+  if(!t) return;
+  missedTodoId = todoId;
+  document.getElementById('missed-todo-text').textContent = t.task;
+  document.getElementById('missed-designer').textContent = t.designer_name;
+  document.getElementById('missed-reason').value = '';
+  openModal('moMissed');
+}
+
+async function submitMissedReason(){
+  if(!missedTodoId) return;
+  const t = (dailyTodos||[]).find(x=>x.id===missedTodoId);
+  if(!t) return;
+  const reason = document.getElementById('missed-reason').value.trim();
+  const nextDay = nextWorkingDay(t.todo_date);
+  try{
+    // 1. Add reason note to original todo and mark it noted
+    await api('daily_todos?id=eq.'+missedTodoId,{
+      method:'PATCH',
+      headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+      body:JSON.stringify({done:false,task:t.task+(reason?' [Missed: '+reason+']':'')})
+    });
+    // 2. Create new todo for next working day
+    const res = await api('daily_todos',{
+      method:'POST',
+      headers:HR,
+      body:JSON.stringify({designer_name:t.designer_name,todo_date:nextDay,task:t.task,done:false,created_by:'carry-over',sort_order:0})
+    });
+    if(res&&res[0]) dailyTodos.push(res[0]);
+    // Update local state
+    if(t) t.task = t.task+(reason?' [Missed: '+reason+']':'');
+    closeModal('moMissed');
+    render();
+    toast('Moved to '+new Date(nextDay+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}));
+  } catch(e){toast('Error: '+e.message);}
+}
+
+// Auto-check yesterday's todos on load and prompt for incomplete ones
+function checkYesterdayTodos(){
+  const yesterday = (function(){
+    const d=new Date(); d.setDate(d.getDate()-1);
+    // Skip back if yesterday was weekend
+    while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()-1);
+    return d.toISOString().split('T')[0];
+  })();
+  const missed = (dailyTodos||[]).filter(function(t){
+    return t.todo_date===yesterday && !t.done && !t.task.includes('[Missed:') && t.created_by!=='carry-over';
+  });
+  if(missed.length===0) return;
+  // Show a banner on tracker view
+  missedYesterdayTodos = missed;
+}
+
+let missedYesterdayTodos = [];
+
+// ── FEATURE 3: DISCARD PM REQUEST ────────────────────────────────────────
+let discardReqId = null;
+
+function openDiscardModal(id){
+  const r = (requests||[]).find(x=>x.id===id);
+  if(!r) return;
+  discardReqId = id;
+  document.getElementById('discard-req-title').textContent = r.title;
+  document.getElementById('discard-req-meta').textContent = r.pm_name+' · '+r.product+' · '+r.urgency;
+  document.getElementById('discard-reason').value = '';
+  openModal('moDiscard');
+}
+
+async function submitDiscard(){
+  if(!discardReqId) return;
+  const reason = document.getElementById('discard-reason').value.trim();
+  try{
+    await api('requests?id=eq.'+discardReqId,{
+      method:'PATCH',
+      headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+      body:JSON.stringify({assigned:false,read:true,discarded:true,discard_reason:reason||null})
+    });
+    const r=requests.find(x=>x.id===discardReqId);
+    if(r){r.discarded=true;r.read=true;r.discard_reason=reason||null;}
+    updateBadge();
+    closeModal('moDiscard');
+    render();
+    toast('Request discarded');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+
+// ── ROLE & PERMISSIONS ────────────────────────────────────────────────────
+
+function can(action){
+  if(currentRole==='head') return true;
+  const designerCan = ['view','markDone','editOwnTask','ownTodos','updateGoalProgress','rateSkills','logUX'];
+  const pmCan = ['submitRequest'];
+  if(currentRole==='designer') return designerCan.includes(action);
+  if(currentRole==='pm') return pmCan.includes(action);
+  return false;
+}
+
+function isOwnTask(task){
+  if(currentRole==='head') return true;
+  if(currentRole!=='designer') return false;
+  const designers = task.designer_names&&task.designer_names.length>0
+    ? task.designer_names
+    : (task.designer_name&&task.designer_name!=='—'?[task.designer_name]:[]);
+  return designers.includes(currentUser) || designers.some(function(d){
+    return d.toLowerCase().includes(currentUser.toLowerCase().split(' ')[0].toLowerCase());
+  });
+}
+
+function applyRoleRestrictions(){
+  // Hide nav items not relevant to role
+  const allNis = document.querySelectorAll('.ni');
+
+  if(currentRole==='pm'){
+    // PM only sees PM form — hide everything else
+    allNis.forEach(function(ni){ni.style.display='none';});
+    // Hide topbar buttons
+    const addBtn=document.querySelector('button.btn.accent');
+    if(addBtn) addBtn.style.display='none';
+    return;
+  }
+
+  if(currentRole==='designer'){
+    // Hide PM request form nav item
+    allNis.forEach(function(ni){
+      if(ni.textContent.includes('PM request form')) ni.style.display='none';
+    });
+  }
+
+  // Add user indicator to topbar
+  const topbar = document.querySelector('.topbar');
+  if(topbar && !document.getElementById('userIndicator')){
+    const indicator = document.createElement('div');
+    indicator.id = 'userIndicator';
+    indicator.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)';
+    indicator.innerHTML = '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-weight:500">'
+      +(currentRole==='head'?'👑':'✏️')+' '+currentUser+'</span>'
+      +'<button onclick="signOut()" style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font)">Sign out</button>';
+    topbar.appendChild(indicator);
+  }
+}
+
+function signOut(){
+  sessionStorage.removeItem('dr_ok');
+  sessionStorage.removeItem('dr_role');
+  sessionStorage.removeItem('dr_user');
+  currentRole=null;currentUser=null;
+  const ind=document.getElementById('userIndicator');
+  if(ind) ind.remove();
+  const ls=document.getElementById('lockScreen');
+  if(ls){ls.style.display='flex';ls.style.opacity='1';}
+  document.getElementById('lockInput').value='';
+  document.getElementById('lockErr').textContent='';
+}
+
+
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
   try{await Promise.all(tasks.map((t,i)=>api('tasks?id=eq.'+t.id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({sort_order:i})})));toast('Order saved');}
@@ -2092,7 +2370,7 @@ document.addEventListener('drop',e=>{e.preventDefault();const r=e.target.closest
 document.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
   if(e.key==='n')openAddTask();
-  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress','moAssign'].forEach(id=>closeModal(id));}
+  if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress','moAssign','moMissed','moDiscard'].forEach(id=>closeModal(id));}
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
@@ -2101,7 +2379,6 @@ setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at
 
 // ── INIT ──────────────────────────────────────────────
 initLock();
-loadAll();
 </script>
 </body>
 </html>
