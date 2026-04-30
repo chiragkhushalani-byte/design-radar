@@ -298,6 +298,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
         <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
         <div class="mfield"><label>Jira ref</label><input type="text" id="f-jira" placeholder="e.g. VEN-91"/></div>
       </div>
+      <div class="mfield"><label>Due date</label><input type="date" id="f-due"/></div>
       <div class="mfield"><label>BRD link</label><input type="url" id="f-brd" placeholder="https://… Confluence, Notion, Drive"/></div>
       <div class="mrow">
       </div>
@@ -530,8 +531,16 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
         <div id="missed-designer" style="font-size:11px;color:var(--amber);margin-top:2px"></div>
       </div>
       <div class="mfield">
+        <label>Select designer</label>
+        <select id="missed-designer-select"></select>
+      </div>
+      <div class="mfield">
         <label>Why was this not completed?</label>
-        <textarea id="missed-reason" placeholder="e.g. Blocked by dev dependency, shifted to review another task, client feedback pending…" style="height:80px"></textarea>
+        <textarea id="missed-reason" placeholder="e.g. Blocked by dev dependency, shifted to review another task, client feedback pending…" style="height:72px"></textarea>
+      </div>
+      <div class="mfield">
+        <label>Key points / progress made</label>
+        <textarea id="missed-points" placeholder="e.g. Completed 60% of wireframes, shared draft with PM for feedback…" style="height:64px"></textarea>
       </div>
       <div style="background:var(--blue-light);border-radius:var(--r-md);padding:10px 12px;font-size:12px;color:var(--blue)">
         <strong>This todo will be moved to tomorrow.</strong> Weekends are skipped automatically.
@@ -828,6 +837,7 @@ function vSprint(){
       +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
       +'<td>'+daysInBucketBadge(t)+'</td>'
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
+      +'<td>'+renderTaskDates(t)+'</td>'
       +'<td style="white-space:nowrap">'
       +(t.risk?'<span class="risk-pill" style="margin-right:4px">'+t.risk_note+'</span>':'')
       +(can('editOwnTask')&&isOwnTask(t)?'<button class="btn" style="font-size:10px;padding:3px 8px" data-tid="'+t.id+'" onclick="openEditTask(this.dataset.tid)">Edit</button> ':'')
@@ -842,9 +852,9 @@ function vSprint(){
     +'<button class="fb '+(sfilt==='risk'?'active':'')+'" data-f="risk" onclick="setSF(this.dataset.f,this)">At risk</button>'
     +'</div></div>'
     +'<div class="panel"><div style="overflow-x:auto"><table><thead><tr>'
-    +'<th style="width:22%">Task</th><th style="width:9%">Priority</th><th style="width:10%">Status</th>'
-    +'<th style="width:17%">Designers</th><th style="width:6%">Effort</th>'
-    +'<th style="width:9%">Logged</th><th style="width:8%">Jira</th><th style="width:19%">Actions</th>'
+    +'<th style="width:20%">Task</th><th style="width:8%">Priority</th><th style="width:9%">Status</th>'
+    +'<th style="width:15%">Designers</th><th style="width:5%">Effort</th>'
+    +'<th style="width:8%">In bucket</th><th style="width:7%">Jira</th><th style="width:13%">Dates</th><th style="width:15%">Actions</th>'
     +'</tr></thead><tbody id="taskBody">'+rows+'</tbody></table></div></div>';
 }
 
@@ -1094,7 +1104,7 @@ function openAddTask(){
   const t1=document.getElementById('addTaskTitle');if(t1)t1.textContent='Add task';
   const b1=document.getElementById('btnAddTask');if(b1)b1.textContent='Add task';
   const d1=document.getElementById('btnDeleteTask');if(d1)d1.style.display='none';
-  ['f-name','f-jira','f-notes','f-pm','f-brd'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-name','f-jira','f-notes','f-pm','f-brd','f-due'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-priority').value='medium';
   document.getElementById('f-status').value='todo';
   document.getElementById('f-effort').value='2';
@@ -1116,6 +1126,7 @@ function openEditTask(id){
   const pm=document.getElementById('f-pm');if(pm)pm.value=t.pm||'';
   document.getElementById('f-jira').value=t.jira_ref||'';
   const brdEl=document.getElementById('f-brd');if(brdEl)brdEl.value=t.brd_link||'';
+  const dueEl=document.getElementById('f-due');if(dueEl)dueEl.value=t.due_date||'';
   document.getElementById('f-notes').value=t.notes||'';
   document.getElementById('f-priority').value=t.priority||'medium';
   document.getElementById('f-status').value=t.status||'todo';
@@ -1187,7 +1198,8 @@ async function submitTask(){
     jira_ref:document.getElementById('f-jira').value.trim()||'—',
     notes:document.getElementById('f-notes').value.trim(),
     skills:selSkills,
-    brd_link:document.getElementById('f-brd').value.trim()||null
+    brd_link:document.getElementById('f-brd').value.trim()||null,
+    due_date:document.getElementById('f-due').value||null
   };
 
   try{
@@ -1580,13 +1592,50 @@ function vTracker(){
     +'</div>';
 
   // Missed todos banner
+  // Group missed todos by designer
+  const missedByDesigner = {};
+  (missedYesterdayTodos||[]).forEach(function(t){
+    if(!missedByDesigner[t.designer_name]) missedByDesigner[t.designer_name]=[];
+    missedByDesigner[t.designer_name].push(t);
+  });
   const missedBanner = missedYesterdayTodos.length>0
-    ? '<div style="background:var(--amber-light);border:1px solid #EF9F27;border-radius:var(--r-lg);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">'
-      +'<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2z" stroke="#854F0B" stroke-width="1.2"/><path d="M8 6v3" stroke="#854F0B" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.5" fill="#854F0B" stroke="#854F0B"/></svg>'
-      +'<div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--amber)">'+missedYesterdayTodos.length+' todo'+(missedYesterdayTodos.length>1?'s':'')+' not completed yesterday</div>'
-      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+missedYesterdayTodos.map(function(t){return t.designer_name+': '+t.task;}).join(' · ')+'</div></div>'
-      +'<button class="btn" style="font-size:11px;flex-shrink:0" data-tid="'+missedYesterdayTodos[0].id+'" onclick="openMissedModal(this.dataset.tid)">Review →</button>'
-      +'</div>'
+    ? (function(){
+        const missedByDesigner = {};
+        (missedYesterdayTodos||[]).forEach(function(t){
+          if(!missedByDesigner[t.designer_name]) missedByDesigner[t.designer_name]=[];
+          missedByDesigner[t.designer_name].push(t);
+        });
+        const total = missedYesterdayTodos.length;
+        const accordionId = 'missedAccordion';
+        const designerRows = Object.entries(missedByDesigner).map(function(entry){
+          const dName=entry[0], dTodos=entry[1];
+          const di=DESIGNERS.findIndex(function(x){return x.name===dName;});
+          const av=AV[di>=0?di%AV.length:0];
+          const todoItems = dTodos.map(function(t){
+            return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);margin-bottom:4px">'
+              +'<span style="flex:1;font-size:12px;color:var(--text)">'+t.task+'</span>'
+              +'<button class="btn" style="font-size:10px;padding:2px 8px;color:var(--amber);border-color:var(--amber);white-space:nowrap;flex-shrink:0" data-tid="'+t.id+'" onclick="openMissedModal(this.dataset.tid)">Review</button>'
+              +'</div>';
+          }).join('');
+          return '<div style="background:rgba(255,255,255,0.55);border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(239,159,39,0.2)">'
+            +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer" onclick="toggleMissedDesigner(this)" data-open="0">'
+            +'<div class="avatar '+av+'" style="width:22px;height:22px;font-size:9px">'+iniFor(dName)+'</div>'
+            +'<span style="font-size:12px;font-weight:500;color:var(--text);flex:1">'+dName+'</span>'
+            +'<span style="font-size:10px;color:var(--amber);background:var(--amber-light);padding:1px 7px;border-radius:10px;border:1px solid #EF9F27;font-weight:500">'+dTodos.length+' pending</span>'
+            +'<svg style="transition:transform .2s;flex-shrink:0" class="acc-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="#854F0B" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            +'</div>'
+            +'<div class="acc-body" style="display:none;padding:0 12px 10px">'+todoItems+'</div>'
+            +'</div>';
+        }).join('');
+        return '<div id="'+accordionId+'" style="background:var(--amber-light);border:1px solid #EF9F27;border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+          +'<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2z" stroke="#854F0B" stroke-width="1.3"/><path d="M8 6v3" stroke="#854F0B" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11" r="0.5" fill="#854F0B" stroke="#854F0B"/></svg>'
+          +'<span style="font-size:13px;font-weight:500;color:var(--amber)">'+total+' pending todo'+(total>1?'s':'')+' from yesterday</span>'
+          +'<button onclick="expandAllMissed()" style="margin-left:auto;font-size:10px;background:none;border:none;cursor:pointer;color:var(--amber);font-family:var(--font);font-weight:500;text-decoration:underline">Expand all</button>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;gap:6px">'+designerRows+'</div>'
+          +'</div>';
+      })()
     : '';
 
   return missedBanner+'<div class="section-row"><span class="st">Daily tracker</span>'
@@ -2146,10 +2195,13 @@ function daysInBucketBadge(task){
 // ── FEATURE 1: MARK TASK DONE ─────────────────────────────────────────────
 async function toggleTaskDone(id, isDone){
   const newStatus = isDone==='1' ? 'inprogress' : 'done';
+  const patch = {status:newStatus};
+  if(newStatus==='done') patch.completed_at = new Date().toISOString().split('T')[0];
+  else patch.completed_at = null;
   try{
-    await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({status:newStatus})});
+    await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify(patch)});
     const t=tasks.find(x=>x.id===id);
-    if(t){ t.status=newStatus; autoFlagRisks(); }
+    if(t){ t.status=newStatus; t.completed_at=patch.completed_at; autoFlagRisks(); }
     render();
     toast(newStatus==='done'?'Task marked done ✓':'Task reopened');
   } catch(e){toast('Error: '+e.message);}
@@ -2171,6 +2223,14 @@ function openMissedModal(todoId){
   document.getElementById('missed-todo-text').textContent = t.task;
   document.getElementById('missed-designer').textContent = t.designer_name;
   document.getElementById('missed-reason').value = '';
+  document.getElementById('missed-points').value = '';
+  // Populate designer select
+  const sel = document.getElementById('missed-designer-select');
+  if(sel){
+    sel.innerHTML = (DESIGNERS||[]).map(function(d){
+      return '<option value="'+d.name+'"'+(d.name===t.designer_name?' selected':'')+'>'+d.name+'</option>';
+    }).join('');
+  }
   openModal('moMissed');
 }
 
@@ -2179,23 +2239,31 @@ async function submitMissedReason(){
   const t = (dailyTodos||[]).find(x=>x.id===missedTodoId);
   if(!t) return;
   const reason = document.getElementById('missed-reason').value.trim();
+  const points = document.getElementById('missed-points').value.trim();
+  const selectedDesigner = document.getElementById('missed-designer-select')?.value || t.designer_name;
   const nextDay = nextWorkingDay(t.todo_date);
+  // Build updated task label
+  const notesParts = [];
+  if(reason) notesParts.push('Missed: '+reason);
+  if(points) notesParts.push('Progress: '+points);
+  const updatedTask = t.task + (notesParts.length?' ['+notesParts.join(' | ')+']':'');
   try{
-    // 1. Add reason note to original todo and mark it noted
+    // 1. Update original todo with reason + points
     await api('daily_todos?id=eq.'+missedTodoId,{
       method:'PATCH',
       headers:Object.assign({},H,{'Prefer':'return=minimal'}),
-      body:JSON.stringify({done:false,task:t.task+(reason?' [Missed: '+reason+']':'')})
+      body:JSON.stringify({done:false,task:updatedTask,designer_name:selectedDesigner})
     });
-    // 2. Create new todo for next working day
+    // 2. Create carry-over for next working day
     const res = await api('daily_todos',{
       method:'POST',
       headers:HR,
-      body:JSON.stringify({designer_name:t.designer_name,todo_date:nextDay,task:t.task,done:false,created_by:'carry-over',sort_order:0})
+      body:JSON.stringify({designer_name:selectedDesigner,todo_date:nextDay,task:t.task,done:false,created_by:'carry-over',sort_order:0})
     });
     if(res&&res[0]) dailyTodos.push(res[0]);
-    // Update local state
-    if(t) t.task = t.task+(reason?' [Missed: '+reason+']':'');
+    if(t){t.task=updatedTask;t.designer_name=selectedDesigner;}
+    // Remove from missed banner
+    missedYesterdayTodos = missedYesterdayTodos.filter(function(x){return x.id!==missedTodoId;});
     closeModal('moMissed');
     render();
     toast('Moved to '+new Date(nextDay+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}));
@@ -2320,6 +2388,52 @@ function signOut(){
   document.getElementById('lockErr').textContent='';
 }
 
+
+
+function toggleMissedDesigner(header){
+  const isOpen = header.dataset.open === '1';
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.acc-arrow');
+  if(body){ body.style.display = isOpen ? 'none' : 'block'; }
+  if(arrow){ arrow.style.transform = isOpen ? '' : 'rotate(180deg)'; }
+  header.dataset.open = isOpen ? '0' : '1';
+}
+
+function expandAllMissed(){
+  document.querySelectorAll('#missedAccordion [data-open]').forEach(function(header){
+    const body = header.nextElementSibling;
+    const arrow = header.querySelector('.acc-arrow');
+    if(body) body.style.display = 'block';
+    if(arrow) arrow.style.transform = 'rotate(180deg)';
+    header.dataset.open = '1';
+  });
+}
+
+
+function renderTaskDates(t){
+  const lines = [];
+  if(t.due_date){
+    const due = new Date(t.due_date+'T12:00:00');
+    const today = new Date();
+    const overdue = t.status!=='done' && due < today;
+    lines.push('<div style="font-size:10px;color:'+(overdue?'var(--red)':'var(--text3)')+'">Due: <span style="font-weight:500;color:'+(overdue?'var(--red)':'var(--text)')+'">'
+      +due.toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+      +(overdue?' ⚠️':'')+'</span></div>');
+  }
+  if(t.completed_at){
+    const comp = new Date(t.completed_at+'T12:00:00');
+    // Compare to due_date
+    let onTime = null;
+    if(t.due_date){
+      const due = new Date(t.due_date+'T12:00:00');
+      onTime = comp <= due;
+    }
+    lines.push('<div style="font-size:10px;color:var(--text3)">Done: <span style="font-weight:500;color:'+(onTime===false?'var(--red)':onTime===true?'var(--green)':'var(--text)')+'">'
+      +comp.toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+      +(onTime===true?' ✓':onTime===false?' late':'')+'</span></div>');
+  }
+  return lines.length ? lines.join('') : '<span style="font-size:11px;color:var(--text3)">—</span>';
+}
 
 // ── SORT ORDER ────────────────────────────────────────
 async function saveSortOrder(){
