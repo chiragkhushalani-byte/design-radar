@@ -1580,7 +1580,7 @@ function vTracker(){
       +'</div>'
       +(dTodos.length?'<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:10px;overflow:hidden"><div style="height:3px;background:'+barColor+';border-radius:2px;width:'+completionPct+'%"></div></div>':'')
       +'<div style="margin-bottom:8px">'+todosHtml+'</div>'
-      +(viewDate===today&&(currentRole==='head'||(currentRole==='designer'&&d.name.toLowerCase().includes((currentUser||'').toLowerCase().split(' ')[0].toLowerCase())))?'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>':'')
+      +(viewDate===today&&(currentRole==='head'||currentRole==='designer')?'<button data-dn="'+d.name+'" class="btn" style="width:100%;font-size:11px" onclick="openAddTodo(this.dataset.dn)">+ Add todo</button>':'')
       +'</div>';
   }).join('');
 
@@ -1639,7 +1639,7 @@ function vTracker(){
     : '';
 
   return missedBanner+'<div class="section-row"><span class="st">Daily tracker</span>'
-    +(viewDate===today&&currentRole==='head'?'<button class="btn accent" style="font-size:11px" onclick="openAddTodo(\'\')">+ Add todo</button>':'')
+    +(viewDate===today&&(currentRole==='head'||currentRole==='designer')?'<button class="btn accent" style="font-size:11px" onclick="openAddTodo(\'\')">+ Add todo</button>':'')
     +'</div>'
     +dateNav
     +summaryBar
@@ -1660,11 +1660,15 @@ function setTrackerDate(date){
 
 function openAddTodo(designerName){
   const sel = document.getElementById('todo-designer');
-  sel.innerHTML='<option value="">Select designer…</option>'+(DESIGNERS||[]).map(d=>'<option value="'+d.name+'"'+(d.name===designerName?' selected':'')+'>'+d.name+'</option>').join('');
+  // If designer role and no specific designer passed, default to themselves
+  const defaultDesigner = designerName || (currentRole==='designer'?currentUser:'');
+  sel.innerHTML='<option value="">Select designer…</option>'+(DESIGNERS||[]).map(function(d){
+    return '<option value="'+d.name+'"'+(d.name===defaultDesigner?' selected':'')+'>'+d.name+'</option>';
+  }).join('');
   document.getElementById('todo-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('todo-task').value = '';
   openModal('moTodo');
-  setTimeout(()=>document.getElementById('todo-task').focus(),100);
+  setTimeout(function(){document.getElementById('todo-task').focus();},100);
 }
 
 async function submitTodo(){
