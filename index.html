@@ -274,7 +274,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
     <div class="topbar">
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
-      <button class="btn accent" onclick="openAddTask()" id="btnTopAddTask">+ Add task</button>
+      <button class="btn accent" id="btnTopAddTask" onclick="view==='tracker'?openAddTodo(''):openAddTask()">+ Add task</button>
     </div>
     <div class="content" id="content"><div class="empty">Loading…</div></div>
   </div>
@@ -581,11 +581,22 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
     <div class="lock-title">Design Radar</div>
-    <div class="lock-sub">Enter your team passcode to continue</div>
-    <input class="lock-input" id="lockInput" type="password" placeholder="••••••••" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')checkPasscode()"/>
-    <div class="lock-err" id="lockErr"></div>
-    <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
-    <div class="lock-footer" style="text-align:center;line-height:1.6">Head · Designer · PM<br>Each role has its own passcode</div>
+
+    <!-- Step 1: Passcode -->
+    <div id="lockStep1" style="width:100%;display:flex;flex-direction:column;gap:14px">
+      <div class="lock-sub">Enter your team passcode to continue</div>
+      <input class="lock-input" id="lockInput" type="password" placeholder="••••••••" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')checkPasscode()"/>
+      <div class="lock-err" id="lockErr"></div>
+      <button class="lock-btn" onclick="checkPasscode()">Unlock</button>
+      <div class="lock-footer" style="text-align:center;line-height:1.6">Head · Designer · PM<br>Each role has its own passcode</div>
+    </div>
+
+    <!-- Step 2: Name picker (designer only) -->
+    <div id="lockStep2" style="width:100%;display:none;flex-direction:column;gap:14px">
+      <div class="lock-sub">Who are you?</div>
+      <div id="lockNamePicker" style="display:flex;flex-direction:column;gap:6px;width:100%"></div>
+      <div class="lock-err" id="lockErr2"></div>
+    </div>
   </div>
 </div>
 
@@ -647,19 +658,34 @@ function checkPasscode(){
   const val=inp.value.trim().toUpperCase();
   const match=ROLES[val];
   if(match){
-    currentRole=match.role;
-    currentUser=match.label;
-    sessionStorage.setItem('dr_ok','1');
-    sessionStorage.setItem('dr_role',match.role);
-    sessionStorage.setItem('dr_user',match.label);
-    const ls=document.getElementById('lockScreen');
-    ls.style.opacity='0';ls.style.transition='opacity .3s';
-    setTimeout(function(){
-      ls.style.display='none';
-      applyRoleRestrictions();
-      if(currentRole==='pm'){go('pmform');}
-      else loadAll();
-    },300);
+    if(match.role==='designer'){
+      // Show name picker step
+      document.getElementById('lockStep1').style.display='none';
+      document.getElementById('lockStep2').style.display='flex';
+      const picker=document.getElementById('lockNamePicker');
+      // Populate after designers load — use hardcoded list as fallback
+      const designerNames=['Manaar Jafri','Ojus Thool','Varun Kewalramani','tanushree hanmattekar','Chirag Khushalani'];
+      picker.innerHTML=designerNames.map(function(n){
+        return '<button data-dname="'+n+'" onclick="selectDesignerName(this.dataset.dname)" style="width:100%;padding:10px 14px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);cursor:pointer;font-family:var(--font);text-align:left;transition:all .15s">'+n+'</button>';
+      }).join('');
+      // Store role temporarily
+      sessionStorage.setItem('dr_role_pending','designer');
+    } else {
+      // Head or PM — unlock directly
+      currentRole=match.role;
+      currentUser=match.label;
+      sessionStorage.setItem('dr_ok','1');
+      sessionStorage.setItem('dr_role',match.role);
+      sessionStorage.setItem('dr_user',match.label);
+      const ls=document.getElementById('lockScreen');
+      ls.style.opacity='0';ls.style.transition='opacity .3s';
+      setTimeout(function(){
+        ls.style.display='none';
+        applyRoleRestrictions();
+        if(currentRole==='pm'){go('pmform');}
+        else loadAll();
+      },300);
+    }
   } else {
     inp.classList.add('err','shake');
     err.textContent='Wrong passcode.';
@@ -675,6 +701,11 @@ function initLock(){
     if(currentRole==='pm'){go('pmform');}
     else loadAll();
   } else {
+    // Reset to step 1 in case of partial state
+    const s1=document.getElementById('lockStep1');
+    const s2=document.getElementById('lockStep2');
+    if(s1)s1.style.display='flex';
+    if(s2)s2.style.display='none';
     setTimeout(function(){document.getElementById('lockInput').focus();},100);
   }
 }
@@ -723,6 +754,8 @@ function go(v){
 
 function render(){
   const c=document.getElementById('content');
+  const topBtn=document.getElementById('btnTopAddTask');
+  if(topBtn){topBtn.textContent=view==='tracker'?'+ Add todo':'+ Add task';}
   if(view==='dashboard')c.innerHTML=vDash();
   else if(view==='sprint')c.innerHTML=vSprint();
   else if(view==='inbox')c.innerHTML=vInbox();
@@ -2324,6 +2357,23 @@ async function submitDiscard(){
 }
 
 
+
+function selectDesignerName(name){
+  currentRole='designer';
+  currentUser=name;
+  sessionStorage.setItem('dr_ok','1');
+  sessionStorage.setItem('dr_role','designer');
+  sessionStorage.setItem('dr_user',name);
+  sessionStorage.removeItem('dr_role_pending');
+  const ls=document.getElementById('lockScreen');
+  ls.style.opacity='0';ls.style.transition='opacity .3s';
+  setTimeout(function(){
+    ls.style.display='none';
+    applyRoleRestrictions();
+    loadAll();
+  },300);
+}
+
 // ── ROLE & PERMISSIONS ────────────────────────────────────────────────────
 
 function can(action){
@@ -2373,7 +2423,9 @@ function applyRoleRestrictions(){
     indicator.id = 'userIndicator';
     indicator.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)';
     indicator.innerHTML = '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-weight:500">'
-      +(currentRole==='head'?'👑':'✏️')+' '+currentUser+'</span>'
+      +(currentRole==='head'?'👑 ':currentRole==='designer'?'✏️ ':'')
+      +(currentRole==='designer'?currentUser:'Head of Design')
+      +'</span>'
       +'<button onclick="signOut()" style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--r-md);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font)">Sign out</button>';
     topbar.appendChild(indicator);
   }
@@ -2390,6 +2442,10 @@ function signOut(){
   if(ls){ls.style.display='flex';ls.style.opacity='1';}
   document.getElementById('lockInput').value='';
   document.getElementById('lockErr').textContent='';
+  const s1=document.getElementById('lockStep1');
+  const s2=document.getElementById('lockStep2');
+  if(s1)s1.style.display='flex';
+  if(s2)s2.style.display='none';
 }
 
 
