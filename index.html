@@ -326,17 +326,34 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
         <span id="ux-designer" style="font-size:11px;color:var(--text3);margin-left:8px"></span>
       </div>
       <div class="mfield"><label>Date went live</label><input type="date" id="ux-date"/></div>
-      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Quantitative</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Usability</div>
       <div class="mrow">
-        <div class="mfield"><label>Task success (%)</label><input type="number" id="ux-success" placeholder="e.g. 78" min="0" max="100"/></div>
+        <div class="mfield"><label>Task success rate (%)</label><input type="number" id="ux-success" placeholder="e.g. 78" min="0" max="100"/></div>
         <div class="mfield"><label>Time on task (s)</label><input type="number" id="ux-time" placeholder="e.g. 45"/></div>
       </div>
       <div class="mrow">
-        <div class="mfield"><label>Drop-off (%)</label><input type="number" id="ux-dropoff" placeholder="e.g. 22" min="0" max="100"/></div>
-        <div class="mfield"><label>CSAT (1–5)</label><input type="number" id="ux-csat" placeholder="e.g. 4.2" min="1" max="5" step="0.1"/></div>
+        <div class="mfield"><label>Drop-off rate (%)</label><input type="number" id="ux-dropoff" placeholder="e.g. 22" min="0" max="100"/></div>
+        <div class="mfield"><label>Error rate (%)</label><input type="number" id="ux-error-rate" placeholder="e.g. 8" min="0" max="100"/></div>
       </div>
-      <div class="mfield"><label>Sample size</label><input type="number" id="ux-sample" placeholder="Users tested"/></div>
-      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Qualitative</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;margin-top:4px">Satisfaction</div>
+      <div class="mrow">
+        <div class="mfield"><label>CSAT (1–5)</label><input type="number" id="ux-csat" placeholder="e.g. 4.2" min="1" max="5" step="0.1"/></div>
+        <div class="mfield"><label>NPS (-100 to 100)</label><input type="number" id="ux-nps" placeholder="e.g. 42" min="-100" max="100"/></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;margin-top:4px">Adoption &amp; Retention</div>
+      <div class="mrow">
+        <div class="mfield"><label>Feature adoption rate (%)</label><input type="number" id="ux-adoption" placeholder="e.g. 34" min="0" max="100"/></div>
+        <div class="mfield"><label>Retention rate (%)</label><input type="number" id="ux-retention" placeholder="e.g. 60" min="0" max="100"/></div>
+      </div>
+      <div class="mrow">
+        <div class="mfield"><label>Activation rate (%)</label><input type="number" id="ux-activation" placeholder="e.g. 55" min="0" max="100"/></div>
+        <div class="mfield"><label>Conversion rate (%)</label><input type="number" id="ux-conversion" placeholder="e.g. 12" min="0" max="100"/></div>
+      </div>
+      <div class="mrow">
+        <div class="mfield"><label>Bounce rate (%)</label><input type="number" id="ux-bounce" placeholder="e.g. 40" min="0" max="100"/></div>
+        <div class="mfield"><label>Sample size</label><input type="number" id="ux-sample" placeholder="Users tested"/></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;margin-top:4px">Qualitative</div>
       <div class="mfield"><label>Observations</label><textarea id="ux-obs" placeholder="What did you observe?"></textarea></div>
       <div class="mfield"><label>User feedback</label><textarea id="ux-feedback" placeholder="Direct quotes or themes"></textarea></div>
       <div class="mfield"><label>Issues found</label><textarea id="ux-issues" placeholder="Usability issues, friction points"></textarea></div>
@@ -986,14 +1003,26 @@ function vUXImpact(){
   } else {
     content=logs.map(l=>{
       let qnums='';
-      if(l.task_success_rate!=null||l.time_on_task_secs!=null||l.drop_off_rate!=null||l.csat_score!=null){
-        qnums='<div class="impact-metrics">'
-          +(l.task_success_rate!=null?'<div class="im"><div class="im-val" style="color:var(--green)">'+Math.round(l.task_success_rate)+'%</div><div class="im-label">Success</div></div>':'')
-          +(l.time_on_task_secs!=null?'<div class="im"><div class="im-val">'+Math.round(l.time_on_task_secs)+'s</div><div class="im-label">Time on task</div></div>':'')
-          +(l.drop_off_rate!=null?'<div class="im"><div class="im-val" style="color:'+(l.drop_off_rate>30?'var(--red)':'var(--text)')+'">'+Math.round(l.drop_off_rate)+'%</div><div class="im-label">Drop-off</div></div>':'')
-          +(l.csat_score!=null?'<div class="im"><div class="im-val" style="color:var(--amber)">'+Number(l.csat_score).toFixed(1)+'</div><div class="im-label">CSAT</div></div>':'')
-          +(l.sample_size!=null?'<div class="im"><div class="im-val">'+l.sample_size+'</div><div class="im-label">Sample</div></div>':'')
-          +'</div>';
+      var hasQuant=l.task_success_rate!=null||l.time_on_task_secs!=null||l.drop_off_rate!=null||l.error_rate!=null||l.csat_score!=null||l.nps_score!=null||l.feature_adoption_rate!=null||l.retention_rate!=null||l.activation_rate!=null||l.conversion_rate!=null||l.bounce_rate!=null;
+      if(hasQuant){
+        qnums='<div style="margin-bottom:6px">';
+        var usab=[],sat=[],adopt=[];
+        if(l.task_success_rate!=null) usab.push('<div class="im"><div class="im-val" style="color:var(--green)">'+Math.round(l.task_success_rate)+'%</div><div class="im-label">Task success</div></div>');
+        if(l.time_on_task_secs!=null) usab.push('<div class="im"><div class="im-val">'+Math.round(l.time_on_task_secs)+'s</div><div class="im-label">Time on task</div></div>');
+        if(l.drop_off_rate!=null) usab.push('<div class="im"><div class="im-val" style="color:'+(l.drop_off_rate>30?'var(--red)':'var(--text)')+'">'+Math.round(l.drop_off_rate)+'%</div><div class="im-label">Drop-off</div></div>');
+        if(l.error_rate!=null) usab.push('<div class="im"><div class="im-val" style="color:'+(l.error_rate>10?'var(--red)':'var(--text)')+'">'+Math.round(l.error_rate)+'%</div><div class="im-label">Error rate</div></div>');
+        if(l.bounce_rate!=null) usab.push('<div class="im"><div class="im-val" style="color:'+(l.bounce_rate>50?'var(--red)':'var(--text)')+'">'+Math.round(l.bounce_rate)+'%</div><div class="im-label">Bounce</div></div>');
+        if(l.csat_score!=null) sat.push('<div class="im"><div class="im-val" style="color:var(--amber)">'+Number(l.csat_score).toFixed(1)+'</div><div class="im-label">CSAT</div></div>');
+        if(l.nps_score!=null) sat.push('<div class="im"><div class="im-val" style="color:'+(l.nps_score>=50?'var(--green)':l.nps_score>=0?'var(--amber)':'var(--red)')+'">'+Math.round(l.nps_score)+'</div><div class="im-label">NPS</div></div>');
+        if(l.feature_adoption_rate!=null) adopt.push('<div class="im"><div class="im-val" style="color:var(--blue)">'+Math.round(l.feature_adoption_rate)+'%</div><div class="im-label">Adoption</div></div>');
+        if(l.retention_rate!=null) adopt.push('<div class="im"><div class="im-val" style="color:var(--blue)">'+Math.round(l.retention_rate)+'%</div><div class="im-label">Retention</div></div>');
+        if(l.activation_rate!=null) adopt.push('<div class="im"><div class="im-val">'+Math.round(l.activation_rate)+'%</div><div class="im-label">Activation</div></div>');
+        if(l.conversion_rate!=null) adopt.push('<div class="im"><div class="im-val" style="color:var(--green)">'+Math.round(l.conversion_rate)+'%</div><div class="im-label">Conversion</div></div>');
+        if(l.sample_size!=null) adopt.push('<div class="im"><div class="im-val">'+l.sample_size+'</div><div class="im-label">Sample</div></div>');
+        if(usab.length) qnums+='<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Usability</div><div class="impact-metrics">'+usab.join('')+'</div>';
+        if(sat.length) qnums+='<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px">Satisfaction</div><div class="impact-metrics">'+sat.join('')+'</div>';
+        if(adopt.length) qnums+='<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px">Adoption &amp; Retention</div><div class="impact-metrics">'+adopt.join('')+'</div>';
+        qnums+='</div>';
       }
       let quals='';
       if(l.observations||l.user_feedback||l.issues_found||l.what_worked){
@@ -1271,7 +1300,7 @@ function openUXLog(){
   sel.innerHTML='<option value="">Select task…</option>'+(tasks||[]).map(t=>'<option value="'+t.id+'">'+t.name+'</option>').join('');
   document.getElementById('ux-task-name').textContent='';
   document.getElementById('ux-designer').textContent='';
-  ['ux-date','ux-success','ux-time','ux-dropoff','ux-csat','ux-sample','ux-obs','ux-feedback','ux-issues','ux-worked'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ux-date','ux-success','ux-time','ux-dropoff','ux-error-rate','ux-csat','ux-nps','ux-adoption','ux-retention','ux-activation','ux-conversion','ux-bounce','ux-sample','ux-obs','ux-feedback','ux-issues','ux-worked'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   openModal('moUX');
 }
 function onUXTask(){
@@ -1283,7 +1312,7 @@ async function submitUXLog(){
   if(!uxTaskId){toast('Please select a task');return;}
   const btn=document.getElementById('btnUX');btn.disabled=true;btn.textContent='Saving…';
   const t=(tasks||[]).find(x=>x.id===uxTaskId);
-  const payload={task_id:uxTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',went_live_at:document.getElementById('ux-date').value||null,observations:document.getElementById('ux-obs').value.trim()||null,user_feedback:document.getElementById('ux-feedback').value.trim()||null,issues_found:document.getElementById('ux-issues').value.trim()||null,what_worked:document.getElementById('ux-worked').value.trim()||null,task_success_rate:parseFloat(document.getElementById('ux-success').value)||null,time_on_task_secs:parseFloat(document.getElementById('ux-time').value)||null,drop_off_rate:parseFloat(document.getElementById('ux-dropoff').value)||null,csat_score:parseFloat(document.getElementById('ux-csat').value)||null,sample_size:parseInt(document.getElementById('ux-sample').value)||null};
+  const payload={task_id:uxTaskId,task_name:t?t.name:'—',designer_name:t?t.designer_name:'—',went_live_at:document.getElementById('ux-date').value||null,observations:document.getElementById('ux-obs').value.trim()||null,user_feedback:document.getElementById('ux-feedback').value.trim()||null,issues_found:document.getElementById('ux-issues').value.trim()||null,what_worked:document.getElementById('ux-worked').value.trim()||null,task_success_rate:parseFloat(document.getElementById('ux-success').value)||null,time_on_task_secs:parseFloat(document.getElementById('ux-time').value)||null,drop_off_rate:parseFloat(document.getElementById('ux-dropoff').value)||null,error_rate:parseFloat(document.getElementById('ux-error-rate').value)||null,csat_score:parseFloat(document.getElementById('ux-csat').value)||null,nps_score:parseFloat(document.getElementById('ux-nps').value)||null,feature_adoption_rate:parseFloat(document.getElementById('ux-adoption').value)||null,retention_rate:parseFloat(document.getElementById('ux-retention').value)||null,activation_rate:parseFloat(document.getElementById('ux-activation').value)||null,conversion_rate:parseFloat(document.getElementById('ux-conversion').value)||null,bounce_rate:parseFloat(document.getElementById('ux-bounce').value)||null,sample_size:parseInt(document.getElementById('ux-sample').value)||null};
   try{const res=await api('ux_logs',{method:'POST',headers:HR,body:JSON.stringify(payload)});if(res&&res[0])uxLogs.unshift(res[0]);closeModal('moUX');render();toast('Impact logged');}
   catch(e){toast('Error: '+e.message);}
   btn.disabled=false;btn.textContent='Save log';
@@ -2059,18 +2088,15 @@ function renderSmartFlags(r){
 }
 
 
-// ── SHIPPED LOG VIEW ──────────────────────────────────────────────────────
+// ── SHIPPED LOG VIEW ───────────────────────────────────────────────────
 var slTags={impact:'',complexity:'',effort:''};
 var slEditId=null;
 var slItems=[];
-
 function vShipped(){
-  return '<div style="padding:20px">'
-    +'<style>'
+  return '<div style="padding:20px"><style>'
     +'.sl-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}'
-    +'.sl-ttl{font-size:15px;font-weight:600;color:var(--text1)}'
-    +'.sl-sub{font-size:12px;color:var(--text3);margin-top:2px}'
-    +'.sl-modal-overlay{position:fixed;inset:0;background:rgba(26,25,23,.45);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}'
+    +'.sl-ttl{font-size:15px;font-weight:600;color:var(--text1)}.sl-sub{font-size:12px;color:var(--text3);margin-top:2px}'
+    +'.sl-modal-overlay{position:fixed;inset:0;background:rgba(26,25,23,.45);align-items:center;justify-content:center;z-index:1000;display:none}'
     +'.sl-modal-overlay.open{display:flex}'
     +'.sl-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:500px;max-width:95vw;max-height:88vh;overflow-y:auto}'
     +'.sl-modal h3{font-size:14px;font-weight:600;margin-bottom:18px;color:var(--text1)}'
@@ -2078,7 +2104,6 @@ function vShipped(){
     +'.sl-fl label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}'
     +'.sl-fl input,.sl-fl textarea,.sl-fl select{width:100%;border:1px solid var(--border2);border-radius:var(--r-md);padding:8px 10px;font-size:13px;color:var(--text1);background:var(--surface2);outline:none;font-family:var(--font);transition:border .12s}'
     +'.sl-fl input:focus,.sl-fl textarea:focus,.sl-fl select:focus{border-color:var(--accent);background:var(--surface)}'
-    +'.sl-fl textarea{resize:vertical;min-height:60px}'
     +'.sl-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}'
     +'.sl-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:13px}'
     +'.sl-tag-grp label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px}'
@@ -2088,75 +2113,59 @@ function vShipped(){
     +'.sl-tag-opts button.act-medium{background:#fff8e1;border-color:#ffd54f;color:#f57f17}'
     +'.sl-tag-opts button.act-high{background:#fce4ec;border-color:#f48fb1;color:#c62828}'
     +'.sl-mact{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}'
-    +'.sl-sprint-grp{margin-bottom:28px}'
-    +'.sl-sprint-hdr{display:flex;align-items:baseline;gap:8px;padding-bottom:8px;border-bottom:1.5px solid var(--border);margin-bottom:12px}'
-    +'.sl-sp-label{font-size:14px;font-weight:600;color:var(--text1)}'
-    +'.sl-sp-dates{font-size:11px;color:var(--text3)}'
-    +'.sl-sp-count{margin-left:auto;font-size:11px;color:var(--text3)}'
-    +'.sl-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}'
-    +'.sl-item:last-child{border-bottom:none}'
-    +'.sl-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}'
-    +'.sl-ib{flex:1;min-width:0}'
-    +'.sl-itop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px}'
-    +'.sl-iname{font-size:13px;font-weight:600;color:var(--text1);line-height:1.3}'
-    +'.sl-iact{display:flex;gap:4px;flex-shrink:0}'
-    +'.sl-iact button{background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;padding:2px 5px;border-radius:4px;transition:color .12s;font-family:var(--font)}'
-    +'.sl-iact button:hover{color:var(--text1)}'
-    +'.sl-idesc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:7px}'
-    +'.sl-meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center}'
-    +'.sl-chip{font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}'
-    +'.sl-cp{background:var(--surface2);color:var(--text2)}'
-    +'.sl-cd{background:#ede7f6;color:#512da8}'
+    +'.sl-empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}'
+    +'.sl-err{background:var(--red-light);border:1px solid #F09595;border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}'
+    +'.sl-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}'
+    +'.sl-col{flex:0 0 260px;display:flex;flex-direction:column;gap:0}'
+    +'.sl-col-hdr{padding:12px 14px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg) var(--r-lg) 0 0;border-bottom:none}'
+    +'.sl-col-title{font-size:13px;font-weight:700;color:var(--text1)}'
+    +'.sl-col-dates{font-size:11px;color:var(--text3);margin-top:2px}'
+    +'.sl-col-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;background:var(--accent);color:#fff;font-size:10px;font-weight:600;border-radius:20px;padding:0 6px;margin-left:6px;vertical-align:middle}'
+    +'.sl-col-body{display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-lg) var(--r-lg);min-height:60px}'
+    +'.sl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;cursor:default;transition:box-shadow .12s}'
+    +'.sl-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}'
+    +'.sl-card-name{font-size:13px;font-weight:500;color:var(--text1);line-height:1.35;margin-bottom:6px}'
+    +'.sl-card-desc{font-size:11px;color:var(--text3);line-height:1.45;margin-bottom:8px}'
+    +'.sl-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}'
+    +'.sl-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4px}'
+    +'.sl-card-designer{font-size:11px;font-weight:500;color:var(--text2)}'
+    +'.sl-card-acts{display:flex;gap:2px}'
+    +'.sl-card-acts button{background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;padding:2px 5px;border-radius:4px;font-family:var(--font);transition:color .12s}'
+    +'.sl-card-acts button:hover{color:var(--text1);background:var(--surface2)}'
+    +'.sl-del:hover{color:var(--red) !important}'
+    +'.sl-chip{display:inline-flex;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}'
+    +'.sl-cp{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}.sl-cd{background:#ede7f6;color:#512da8}'
     +'.sl-ci-low{background:#e8f5e9;color:#2e7d32}.sl-ci-medium{background:#fff8e1;color:#f57f17}.sl-ci-high{background:#fce4ec;color:#c62828}'
     +'.sl-cx-low{background:#e3f2fd;color:#1565c0}.sl-cx-medium{background:#fff3e0;color:#e65100}.sl-cx-high{background:#fce4ec;color:#880e4f}'
     +'.sl-ce-low{background:#f1f8e9;color:#33691e}.sl-ce-medium{background:#fff9c4;color:#827717}.sl-ce-high{background:#fff3e0;color:#bf360c}'
-    +'.sl-flink{font-size:10px;color:var(--text3);text-decoration:none;padding:2px 7px;border:1px solid var(--border2);border-radius:5px;transition:all .12s}'
+    +'.sl-flink{font-size:10px;color:var(--text3);text-decoration:none;padding:2px 6px;border:1px solid var(--border2);border-radius:4px;transition:all .12s}'
     +'.sl-flink:hover{color:var(--text1);border-color:var(--text2)}'
-    +'.sl-empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}'
-    +'.sl-err{background:var(--red-light);border:1px solid #F09595;border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}'
     +'</style>'
-    +'<div class="sl-hdr">'
-      +'<div><div class="sl-ttl">Shipped log</div><div class="sl-sub">What went live, sprint by sprint</div></div>'
-      +'<button class="btn accent" onclick="slOpenModal()">+ Log feature</button>'
-    +'</div>'
+    +'<div class="sl-hdr"><div><div class="sl-ttl">Shipped log</div><div class="sl-sub">What went live, sprint by sprint</div></div>'
+    +'<button class="btn accent" onclick="slOpenModal()">+ Log feature</button></div>'
     +'<div class="sl-err" id="sl-error"></div>'
     +'<div id="sl-timeline"><div class="sl-empty">Loading...</div></div>'
-    +'<div class="sl-modal-overlay" id="sl-modal-overlay">'
-      +'<div class="sl-modal">'
-        +'<h3 id="sl-modal-title">Log a shipped feature</h3>'
-        +'<div class="sl-fl"><label>Feature name *</label><input type="text" id="sl-f-name" placeholder="e.g. SIP Step-up Flow"/></div>'
-        +'<div class="sl-fl"><label>Description</label><textarea id="sl-f-desc" placeholder="What shipped? What problem does it solve?"></textarea></div>'
-        +'<div class="sl-2col">'
-          +'<div class="sl-fl"><label>Designer *</label><select id="sl-f-designer"><option value="">Select designer</option><option>Manaar Jafri</option><option>Ojus Thool</option><option>Varun Kewalramani</option><option>Tanushree Hanmattekar</option><option>Chirag Khushalani</option></select></div>'
-          +'<div class="sl-fl"><label>Product *</label><select id="sl-f-product"><option value="">Select product</option><option>Algo</option><option>Cash/Equity</option><option>Commodities</option><option>IPO</option><option>MF</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option></select></div>'
-        +'</div>'
-        +'<div class="sl-2col">'
-          +'<div class="sl-fl"><label>Sprint number *</label><input type="text" id="sl-f-sprint-num" placeholder="e.g. Sprint 14"/></div>'
-          +'<div class="sl-fl"><label>Sprint dates *</label><input type="text" id="sl-f-sprint-dates" placeholder="e.g. Apr 28 – May 9"/></div>'
-        +'</div>'
-        +'<div class="sl-fl"><label>Design file / ticket link</label><input type="text" id="sl-f-link" placeholder="Figma, Jira, Notion URL..."/></div>'
-        +'<div class="sl-3col">'
-          +'<div class="sl-tag-grp"><label>Impact</label><div class="sl-tag-opts" id="sl-impact-opts"><button onclick="slTag(\'impact\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'impact\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'impact\',\'High\',this)" data-val="High">High</button></div></div>'
-          +'<div class="sl-tag-grp"><label>Complexity</label><div class="sl-tag-opts" id="sl-complexity-opts"><button onclick="slTag(\'complexity\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'complexity\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'complexity\',\'High\',this)" data-val="High">High</button></div></div>'
-          +'<div class="sl-tag-grp"><label>Effort</label><div class="sl-tag-opts" id="sl-effort-opts"><button onclick="slTag(\'effort\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'effort\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'effort\',\'High\',this)" data-val="High">High</button></div></div>'
-        +'</div>'
-        +'<div class="sl-mact">'
-          +'<button class="btn" onclick="slCloseModal()">Cancel</button>'
-          +'<button class="btn accent" id="sl-save-btn" onclick="slSave()">Save</button>'
-        +'</div>'
-      +'</div>'
+    +'<div class="sl-modal-overlay" id="sl-modal-overlay"><div class="sl-modal">'
+    +'<h3 id="sl-modal-title">Log a shipped feature</h3>'
+    +'<div class="sl-fl"><label>Feature name *</label><input type="text" id="sl-f-name" placeholder="e.g. SIP Step-up Flow"/></div>'
+    +'<div class="sl-fl"><label>Description</label><textarea id="sl-f-desc" placeholder="What shipped?"></textarea></div>'
+    +'<div class="sl-2col"><div class="sl-fl"><label>Designer *</label><select id="sl-f-designer"><option value="">Select</option><option>Manaar Jafri</option><option>Ojus Thool</option><option>Varun Kewalramani</option><option>Tanushree Hanmattekar</option><option>Chirag Khushalani</option></select></div>'
+    +'<div class="sl-fl"><label>Product *</label><select id="sl-f-product"><option value="">Select</option><option>Algo</option><option>Cash/Equity</option><option>Commodities</option><option>IPO</option><option>MF</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option></select></div></div>'
+    +'<div class="sl-2col"><div class="sl-fl"><label>Sprint number *</label><input type="text" id="sl-f-sprint-num" placeholder="e.g. Sprint 14"/></div>'
+    +'<div class="sl-fl"><label>Sprint dates *</label><input type="text" id="sl-f-sprint-dates" placeholder="e.g. Apr 28 - May 9"/></div></div>'
+    +'<div class="sl-fl"><label>Design file / ticket link</label><input type="text" id="sl-f-link" placeholder="Figma, Jira, Notion URL..."/></div>'
+    +'<div class="sl-3col">'
+    +'<div class="sl-tag-grp"><label>Impact</label><div class="sl-tag-opts" id="sl-impact-opts"><button onclick="slTag(\'impact\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'impact\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'impact\',\'High\',this)" data-val="High">High</button></div></div>'
+    +'<div class="sl-tag-grp"><label>Complexity</label><div class="sl-tag-opts" id="sl-complexity-opts"><button onclick="slTag(\'complexity\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'complexity\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'complexity\',\'High\',this)" data-val="High">High</button></div></div>'
+    +'<div class="sl-tag-grp"><label>Effort</label><div class="sl-tag-opts" id="sl-effort-opts"><button onclick="slTag(\'effort\',\'Low\',this)" data-val="Low">Low</button><button onclick="slTag(\'effort\',\'Medium\',this)" data-val="Medium">Med</button><button onclick="slTag(\'effort\',\'High\',this)" data-val="High">High</button></div></div>'
     +'</div>'
-  +'</div>';
+    +'<div class="sl-mact"><button class="btn" onclick="slCloseModal()">Cancel</button><button class="btn accent" id="sl-save-btn" onclick="slSave()">Save</button></div>'
+    +'</div></div></div>';
 }
-
 function slOpenModal(item){
-  slEditId=null;
-  slTags={impact:'',complexity:'',effort:''};
+  slEditId=null;slTags={impact:'',complexity:'',effort:''};
   var title='Log a shipped feature';
-  if(item){
-    slEditId=item.id;
-    title='Edit shipped feature';
-  }
+  if(item){slEditId=item.id;title='Edit shipped feature';}
   var el=document.getElementById('sl-modal-overlay');
   if(!el) return;
   document.getElementById('sl-modal-title').textContent=title;
@@ -2174,28 +2183,17 @@ function slOpenModal(item){
   });
   el.classList.add('open');
 }
-
-function slCloseModal(){
-  var el=document.getElementById('sl-modal-overlay');
-  if(el) el.classList.remove('open');
-}
-
+function slCloseModal(){var el=document.getElementById('sl-modal-overlay');if(el) el.classList.remove('open');}
 function slTag(type,val,btn){
   var btns=document.querySelectorAll('#sl-'+type+'-opts button');
   btns.forEach(function(b){b.className='';});
-  btn.className='act-'+val.toLowerCase();
-  slTags[type]=val;
+  btn.className='act-'+val.toLowerCase();slTags[type]=val;
 }
-
 function slActivateTag(type,val){
   slTags[type]=val;
   var btns=document.querySelectorAll('#sl-'+type+'-opts button');
-  btns.forEach(function(b){
-    b.className='';
-    if(b.getAttribute('data-val')===val) b.className='act-'+val.toLowerCase();
-  });
+  btns.forEach(function(b){b.className='';if(b.getAttribute('data-val')===val) b.className='act-'+val.toLowerCase();});
 }
-
 async function slSave(){
   var name=document.getElementById('sl-f-name').value.trim();
   var designer=document.getElementById('sl-f-designer').value;
@@ -2203,54 +2201,29 @@ async function slSave(){
   var sprintNum=document.getElementById('sl-f-sprint-num').value.trim();
   var sprintDates=document.getElementById('sl-f-sprint-dates').value.trim();
   if(!name||!designer||!product||!sprintNum||!sprintDates){slShowErr('Fill in all required fields.');return;}
-  var btn=document.getElementById('sl-save-btn');
-  btn.disabled=true;btn.textContent='Saving...';
-  var payload={
-    feature_name:name,
-    description:document.getElementById('sl-f-desc').value.trim(),
-    designer_name:designer,
-    product:product,
-    sprint_number:sprintNum,
-    sprint_dates:sprintDates,
-    design_link:document.getElementById('sl-f-link').value.trim(),
-    impact:slTags.impact||null,
-    complexity:slTags.complexity||null,
-    effort:slTags.effort||null
-  };
+  var btn=document.getElementById('sl-save-btn');btn.disabled=true;btn.textContent='Saving...';
+  var payload={feature_name:name,description:document.getElementById('sl-f-desc').value.trim(),designer_name:designer,product:product,sprint_number:sprintNum,sprint_dates:sprintDates,design_link:document.getElementById('sl-f-link').value.trim(),impact:slTags.impact||null,complexity:slTags.complexity||null,effort:slTags.effort||null};
   try{
-    var res;
     if(slEditId){
       var upRes=await fetch(SB+'/rest/v1/shipped_log?id=eq.'+slEditId,{method:'PATCH',headers:HR,body:JSON.stringify(payload)});
       if(!upRes.ok){var t=await upRes.text();throw new Error(t);}
-      res={error:null};
     }else{
       var inRes=await fetch(SB+'/rest/v1/shipped_log',{method:'POST',headers:HR,body:JSON.stringify(payload)});
       if(!inRes.ok){var t2=await inRes.text();throw new Error(t2);}
-      res={error:null};
     }
-    if(res.error) throw res.error;
-    slCloseModal();
-    slLoadItems();
+    slCloseModal();slLoadItems();
   }catch(e){slShowErr('Error: '+e.message);}
   btn.disabled=false;btn.textContent='Save';
 }
-
 async function slDelete(id){
-  if(!confirm('Delete this shipped item?')) return;
+  if(!confirm('Delete?')) return;
   try{
     var delRes=await fetch(SB+'/rest/v1/shipped_log?id=eq.'+id,{method:'DELETE',headers:H});
     if(!delRes.ok){var t=await delRes.text();throw new Error(t);}
-    var res={error:null};
-    if(res.error) throw res.error;
     slLoadItems();
   }catch(e){slShowErr('Error: '+e.message);}
 }
-
-function slEdit(id){
-  var item=slItems.find(function(i){return i.id===id;});
-  if(item) slOpenModal(item);
-}
-
+function slEdit(id){var item=slItems.find(function(i){return i.id===id;});if(item) slOpenModal(item);}
 async function slLoadItems(){
   var tl=document.getElementById('sl-timeline');
   if(!tl) return;
@@ -2258,66 +2231,57 @@ async function slLoadItems(){
   try{
     var selRes=await fetch(SB+'/rest/v1/shipped_log?select=*&order=created_at.desc',{headers:H});
     if(!selRes.ok){var t=await selRes.text();throw new Error(t);}
-    slItems=await selRes.json();
-    slRender(slItems);
-  }catch(e){
-    if(tl) tl.innerHTML='<div class="sl-empty">Could not load: '+e.message+'</div>';
-  }
+    slItems=await selRes.json();slRender(slItems);
+  }catch(e){if(tl) tl.innerHTML='<div class="sl-empty">Could not load: '+e.message+'</div>';}
 }
-
 function slRender(items){
   var tl=document.getElementById('sl-timeline');
   if(!tl) return;
-  if(!items.length){tl.innerHTML='<div class="sl-empty">Nothing shipped yet — log your first feature above.</div>';return;}
-  var groups={};
-  var order=[];
+  if(!items.length){tl.innerHTML='<div class="sl-empty">Nothing shipped yet.</div>';return;}
+  var groups={},order=[];
   items.forEach(function(item){
     var key=item.sprint_number+'||'+item.sprint_dates;
     if(!groups[key]){groups[key]={sprint_number:item.sprint_number,sprint_dates:item.sprint_dates,items:[]};order.push(key);}
     groups[key].items.push(item);
   });
-  var isHoD=(currentRole==='DESIGN2026');
-  var html='';
+  var isHoD=(currentRole==='head');
+  var html='<div class="sl-board">';
   order.forEach(function(key){
     var g=groups[key];
-    html+='<div class="sl-sprint-grp">';
-    html+='<div class="sl-sprint-hdr"><span class="sl-sp-label">'+slE(g.sprint_number)+'</span><span class="sl-sp-dates">'+slE(g.sprint_dates)+'</span><span class="sl-sp-count">'+g.items.length+' shipped</span></div>';
-    g.items.forEach(function(item){
-      html+='<div class="sl-item"><div class="sl-dot"></div><div class="sl-ib">';
-      html+='<div class="sl-itop"><div class="sl-iname">'+slE(item.feature_name)+'</div><div class="sl-iact">';
-      if(isHoD||(currentDesigner&&currentDesigner===item.designer_name)){
-        html+='<button onclick="slEdit(\''+item.id+'\')">Edit</button>';
-      }
-      if(isHoD){
-        html+='<button onclick="slDelete(\''+item.id+'\')" style="color:var(--red)">Delete</button>';
-      }
-      html+='</div></div>';
-      if(item.description) html+='<div class="sl-idesc">'+slE(item.description)+'</div>';
-      html+='<div class="sl-meta">';
-      html+='<span class="sl-chip sl-cp">'+slE(item.product)+'</span>';
-      html+='<span class="sl-chip sl-cd">'+slE(item.designer_name)+'</span>';
-      if(item.impact) html+='<span class="sl-chip sl-ci-'+item.impact.toLowerCase()+'">Impact: '+item.impact+'</span>';
-      if(item.complexity) html+='<span class="sl-chip sl-cx-'+item.complexity.toLowerCase()+'">Complexity: '+item.complexity+'</span>';
-      if(item.effort) html+='<span class="sl-chip sl-ce-'+item.effort.toLowerCase()+'">Effort: '+item.effort+'</span>';
-      if(item.design_link) html+='<a class="sl-flink" href="'+slE(item.design_link)+'" target="_blank">View file</a>';
-      html+='</div></div></div>';
-    });
+    html+='<div class="sl-col">';
+    html+='<div class="sl-col-hdr">';
+    html+='<div class="sl-col-title">'+slE(g.sprint_number)+'<span class="sl-col-count">'+g.items.length+'</span></div>';
+    html+='<div class="sl-col-dates">'+slE(g.sprint_dates)+'</div>';
     html+='</div>';
+    html+='<div class="sl-col-body">';
+    g.items.forEach(function(item){
+      html+='<div class="sl-card">';
+      html+='<div class="sl-card-name">'+slE(item.feature_name)+'</div>';
+      if(item.description) html+='<div class="sl-card-desc">'+slE(item.description)+'</div>';
+      html+='<div class="sl-card-tags">';
+      html+='<span class="sl-chip sl-cp">'+slE(item.product)+'</span>';
+      if(item.impact) html+='<span class="sl-chip sl-ci-'+item.impact.toLowerCase()+'">'+item.impact+'</span>';
+      if(item.complexity) html+='<span class="sl-chip sl-cx-'+item.complexity.toLowerCase()+'">'+item.complexity+'</span>';
+      if(item.effort) html+='<span class="sl-chip sl-ce-'+item.effort.toLowerCase()+'">'+item.effort+'</span>';
+      html+='</div>';
+      html+='<div class="sl-card-foot">';
+      html+='<span class="sl-card-designer">'+slE(item.designer_name)+'</span>';
+      html+='<div class="sl-card-acts">';
+      if(item.design_link) html+='<a class="sl-flink" href="'+slE(item.design_link)+'" target="_blank">View</a>';
+      if(isHoD||(currentUser&&currentUser===item.designer_name)) html+='<button data-id="'+item.id+'" onclick="slEdit(this.dataset.id)">Edit</button>';
+      if(isHoD) html+='<button class="sl-del" data-id="'+item.id+'" onclick="slDelete(this.dataset.id)">Del</button>';
+      html+='</div>';
+      html+='</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
   });
+  html+='</div>';
   tl.innerHTML=html;
 }
+function slShowErr(msg){var el=document.getElementById('sl-error');if(!el) return;el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},4000);}
+function slE(str){if(!str) return '';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-function slShowErr(msg){
-  var el=document.getElementById('sl-error');
-  if(!el) return;
-  el.textContent=msg;el.style.display='block';
-  setTimeout(function(){el.style.display='none';},4000);
-}
-
-function slE(str){
-  if(!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
 
 // ── PM REQUEST FORM VIEW ──────────────────────────────────────────────────
 function vPMForm(){
