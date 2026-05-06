@@ -69,9 +69,11 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
 .s-review{background:var(--amber-light);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
-.mb-btn:hover{background:var(--surface2) !important;color:var(--text1) !important}
-.mb-item{padding:9px 14px;font-size:12px;color:var(--text1);cursor:pointer;white-space:nowrap;transition:background .1s}
+.mb-btn{background:none;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;padding:3px 8px;letter-spacing:1px;font-family:inherit;transition:all .12s;line-height:1}
+.mb-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text1)}
+.mb-item{padding:9px 14px;font-size:13px;color:var(--text1);cursor:pointer;white-space:nowrap;transition:background .1s}
 .mb-item:hover{background:var(--surface2)}
+.mb-sep{height:1px;background:var(--border);margin:3px 0}
 .mb-del{color:var(--red) !important}
 .mb-del:hover{background:var(--red-light) !important}
 .ds-sel{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--surface2);color:var(--text);font-family:var(--font);cursor:pointer;width:100%}
@@ -895,15 +897,9 @@ function vSprint(){
       +'<td>'+daysInBucketBadge(t)+'</td>'
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
       +'<td>'+renderTaskDates(t)+'</td>'
-      +'<td style="text-align:center;position:relative">'
+      +'<td style="text-align:center">'
       +(t.risk?'<span class="risk-pill" style="display:block;margin-bottom:4px;font-size:10px">'+t.risk_note+'</span>':'')
-      +'<div class="mb-wrap" style="display:inline-block;position:relative">'
-      +'<button class="mb-btn" data-tid="'+t.id+'" onclick="toggleMeatball(this.dataset.tid,event)" style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1;font-family:inherit">⋯</button>'
-      +'<div class="mb-menu" id="mb-'+t.id+'" style="display:none;position:absolute;right:0;top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;min-width:140px;overflow:hidden">'
-      +((can('editOwnTask')&&isOwnTask(t))||currentRole==='head'?'<div class="mb-item" data-tid="'+t.id+'" onclick="closeMeatballs();openEditTask(this.dataset.tid)">✏️ Edit task</div>':'')
-      +((can('markDone')&&isOwnTask(t))||currentRole==='head'?'<div class="mb-item" data-tid="'+t.id+'" data-done="'+(t.status==='done'?'1':'0')+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,this.dataset.done)">'+(t.status==='done'?'↩️ Undo done':'✅ Mark done')+'</div>':'')
-      +(currentRole==='head'?'<div class="mb-item mb-del" data-tid="'+t.id+'" onclick="closeMeatballs();deleteTaskById(this.dataset.tid)">🗑 Delete task</div>':'')
-      +'</div></div>'
+      +'<button class="mb-btn" data-tid="'+t.id+'" onclick="toggleMeatball(this.dataset.tid,event)">•••</button>'
       +'</td>'
       +'</tr>';
   }).join('');
@@ -1380,18 +1376,51 @@ function setLF(f,btn){lfilt=f;document.querySelectorAll('.fb').forEach(b=>b.clas
 
 function toggleMeatball(tid,e){
   e.stopPropagation();
-  var menu=document.getElementById('mb-'+tid);
-  if(!menu) return;
-  var isOpen=menu.style.display==='block';
   closeMeatballs();
-  if(!isOpen) menu.style.display='block';
+  var btn=e.currentTarget;
+  var rect=btn.getBoundingClientRect();
+  var t=(tasks||[]).find(function(x){return x.id===tid;});
+  if(!t) return;
+
+  var menu=document.getElementById('mb-global');
+  if(!menu){
+    menu=document.createElement('div');
+    menu.id='mb-global';
+    menu.style.cssText='position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.13);min-width:160px;overflow:hidden;display:none';
+    document.body.appendChild(menu);
+  }
+
+  var items='';
+  var canEdit=(can('editOwnTask')&&isOwnTask(t))||currentRole==='head';
+  var canDone=(can('markDone')&&isOwnTask(t))||currentRole==='head';
+  var canDel=currentRole==='head';
+  var canAssign=currentRole==='head';
+
+  if(canEdit)   items+='<div class="mb-item" onclick="closeMeatballs();openEditTask(\''+tid+'\')">✏️&nbsp; Edit</div>';
+  if(canDone)   items+='<div class="mb-item" onclick="closeMeatballs();toggleTaskDone(\''+tid+'\',\''+(t.status==='done'?'1':'0')+'\')">'+(t.status==='done'?'↩️&nbsp; Undo done':'✅&nbsp; Mark done')+'</div>';
+  if(canAssign) items+='<div class="mb-item" onclick="closeMeatballs();openEditTask(\''+tid+'\')">👤&nbsp; Assign</div>';
+  if(canDel)    items+='<div class="mb-sep"></div><div class="mb-item mb-del" onclick="closeMeatballs();deleteTaskById(\''+tid+'\')">🗑&nbsp; Delete</div>';
+
+  if(!items) return;
+  menu.innerHTML=items;
+  menu.style.display='block';
+
+  var menuW=168;
+  var left=rect.right-menuW;
+  var top=rect.bottom+4;
+  if(left<8) left=8;
+  if(top+200>window.innerHeight) top=rect.top-204;
+  menu.style.left=left+'px';
+  menu.style.top=top+'px';
 }
 
 function closeMeatballs(){
-  document.querySelectorAll('.mb-menu').forEach(function(m){m.style.display='none';});
+  var m=document.getElementById('mb-global');
+  if(m) m.style.display='none';
 }
 
-document.addEventListener('click', closeMeatballs);
+document.addEventListener('click',closeMeatballs);
+document.addEventListener('scroll',closeMeatballs,true);
 
 async function deleteTaskById(id){
   if(!confirm('Delete this task? This cannot be undone.')) return;
