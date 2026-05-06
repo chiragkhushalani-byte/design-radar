@@ -69,6 +69,11 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
 .s-review{background:var(--amber-light);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
+.mb-btn:hover{background:var(--surface2) !important;color:var(--text1) !important}
+.mb-item{padding:9px 14px;font-size:12px;color:var(--text1);cursor:pointer;white-space:nowrap;transition:background .1s}
+.mb-item:hover{background:var(--surface2)}
+.mb-del{color:var(--red) !important}
+.mb-del:hover{background:var(--red-light) !important}
 .ds-sel{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--surface2);color:var(--text);font-family:var(--font);cursor:pointer;width:100%}
 .bar-bg{height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex:1}
 .bar-fill{height:4px;border-radius:2px}
@@ -890,10 +895,15 @@ function vSprint(){
       +'<td>'+daysInBucketBadge(t)+'</td>'
       +'<td><span style="font-size:11px;color:var(--blue)">'+(t.jira_ref||'—')+'</span></td>'
       +'<td>'+renderTaskDates(t)+'</td>'
-      +'<td style="white-space:nowrap">'
-      +(t.risk?'<span class="risk-pill" style="margin-right:4px">'+t.risk_note+'</span>':'')
-      +(can('editOwnTask')&&isOwnTask(t)?'<button class="btn" style="font-size:10px;padding:3px 8px" data-tid="'+t.id+'" onclick="openEditTask(this.dataset.tid)">Edit</button> ':'')
-      +(( can('markDone')&&isOwnTask(t))||currentRole==='head'?'<button class="btn" style="font-size:10px;padding:3px 8px;'+(t.status==='done'?'background:var(--green-light);color:var(--green);border-color:var(--green)':'')+'" data-tid="'+t.id+'" data-done="'+(t.status==='done'?'1':'0')+'" onclick="toggleTaskDone(this.dataset.tid,this.dataset.done)">'+(t.status==='done'?'✓ Done':'Mark done')+'</button>':'')
+      +'<td style="text-align:center;position:relative">'
+      +(t.risk?'<span class="risk-pill" style="display:block;margin-bottom:4px;font-size:10px">'+t.risk_note+'</span>':'')
+      +'<div class="mb-wrap" style="display:inline-block;position:relative">'
+      +'<button class="mb-btn" data-tid="'+t.id+'" onclick="toggleMeatball(this.dataset.tid,event)" style="background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1;font-family:inherit">⋯</button>'
+      +'<div class="mb-menu" id="mb-'+t.id+'" style="display:none;position:absolute;right:0;top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;min-width:140px;overflow:hidden">'
+      +((can('editOwnTask')&&isOwnTask(t))||currentRole==='head'?'<div class="mb-item" data-tid="'+t.id+'" onclick="closeMeatballs();openEditTask(this.dataset.tid)">✏️ Edit task</div>':'')
+      +((can('markDone')&&isOwnTask(t))||currentRole==='head'?'<div class="mb-item" data-tid="'+t.id+'" data-done="'+(t.status==='done'?'1':'0')+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,this.dataset.done)">'+(t.status==='done'?'↩️ Undo done':'✅ Mark done')+'</div>':'')
+      +(currentRole==='head'?'<div class="mb-item mb-del" data-tid="'+t.id+'" onclick="closeMeatballs();deleteTaskById(this.dataset.tid)">🗑 Delete task</div>':'')
+      +'</div></div>'
       +'</td>'
       +'</tr>';
   }).join('');
@@ -1367,6 +1377,31 @@ async function submitSkillRatings(){
 // ── ACTIONS ───────────────────────────────────────────
 function setSF(f,btn){sfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
 function setLF(f,btn){lfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+
+function toggleMeatball(tid,e){
+  e.stopPropagation();
+  var menu=document.getElementById('mb-'+tid);
+  if(!menu) return;
+  var isOpen=menu.style.display==='block';
+  closeMeatballs();
+  if(!isOpen) menu.style.display='block';
+}
+
+function closeMeatballs(){
+  document.querySelectorAll('.mb-menu').forEach(function(m){m.style.display='none';});
+}
+
+document.addEventListener('click', closeMeatballs);
+
+async function deleteTaskById(id){
+  if(!confirm('Delete this task? This cannot be undone.')) return;
+  try{
+    await api('tasks?id=eq.'+id,{method:'DELETE',headers:H});
+    tasks=tasks.filter(function(x){return x.id!==id;});
+    render();
+    toast('Task deleted');
+  } catch(e){toast('Error: '+e.message);}
+}
 
 async function reassign(id,designer){
   try{
