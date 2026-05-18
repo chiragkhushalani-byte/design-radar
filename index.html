@@ -68,6 +68,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .bm{background:var(--blue-light);color:var(--blue)}.bl{background:var(--green-light);color:var(--green)}
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
 .s-review{background:var(--amber-light);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
+.s-live{background:#E1F5EE;color:#0A6E56;border:1px solid #9DD6C0}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
 .mb-btn{background:none;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;padding:3px 8px;letter-spacing:1px;font-family:inherit;transition:all .12s;line-height:1}
 .mb-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text1)}
@@ -300,7 +301,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       </div>
       <div class="mrow">
         <div class="mfield"><label>Priority</label><select id="f-priority"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
-        <div class="mfield"><label>Status</label><select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="review">Review</option><option value="done">Done</option></select></div>
+        <div class="mfield"><label>Status</label><select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="review">Review</option><option value="done">Done</option><option value="live">Live</option></select></div>
       </div>
       <div class="mrow">
         <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
@@ -602,6 +603,29 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
   </div>
 </div>
 
+<!-- MARK LIVE MODAL -->
+<div class="modal-overlay" id="moLive" onclick="if(event.target===this)closeModal('moLive')">
+  <div class="modal" style="width:400px">
+    <div class="modal-head">
+      <span class="modal-title">Mark as live</span>
+      <button class="modal-close" onclick="closeModal('moLive')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="live-task-name" style="font-size:13px;font-weight:500"></div>
+      </div>
+      <div class="mfield">
+        <label>Date went live</label>
+        <input type="date" id="live-date"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moLive')">Cancel</button>
+      <button class="btn accent" style="background:var(--green);border-color:var(--green)" onclick="submitMarkLive()">Mark live</button>
+    </div>
+  </div>
+</div>
+
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
@@ -689,7 +713,7 @@ function checkPasscode(){
       document.getElementById('lockStep2').style.display='flex';
       const picker=document.getElementById('lockNamePicker');
       // Populate after designers load — use hardcoded list as fallback
-      const designerNames=['Manaar Jafri','Ojus Thool','Varun Kewalramani','tanushree hanmattekar','Chirag Khushalani'];
+      const designerNames=['Manaar Jafri','Ojus Thool','Varun Kewalramani','tanushree hanmattekar','Chirag Khushalani','Sahil Malek'];
       picker.innerHTML=designerNames.map(function(n){
         return '<button data-dname="'+n+'" onclick="selectDesignerName(this.dataset.dname)" style="width:100%;padding:10px 14px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);cursor:pointer;font-family:var(--font);text-align:left;transition:all .15s">'+n+'</button>';
       }).join('');
@@ -891,7 +915,7 @@ function vSprint(){
     return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
       +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+(t.brd_link?'&nbsp;·&nbsp;<a href="'+t.brd_link+'" target="_blank" style="color:var(--blue);text-decoration:none">BRD ↗</a>':'')+'</div></td>'
       +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
-      +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status)+'</span></td>'
+      +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status==='live'?'🚀 live':t.status)+'</span></td>'
       +'<td>'+designerBadges+'</td>'
       +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
       +'<td>'+daysInBucketBadge(t)+'</td>'
@@ -1396,10 +1420,11 @@ function toggleMeatball(tid,e){
   var canDel=currentRole==='head';
   var canAssign=currentRole==='head';
 
-  if(canEdit)   items+='<div class="mb-item" onclick="closeMeatballs();openEditTask(\''+tid+'\')">✏️&nbsp; Edit</div>';
-  if(canDone)   items+='<div class="mb-item" onclick="closeMeatballs();toggleTaskDone(\''+tid+'\',\''+(t.status==='done'?'1':'0')+'\')">'+(t.status==='done'?'↩️&nbsp; Undo done':'✅&nbsp; Mark done')+'</div>';
-  if(canAssign) items+='<div class="mb-item" onclick="closeMeatballs();openEditTask(\''+tid+'\')">👤&nbsp; Assign</div>';
-  if(canDel)    items+='<div class="mb-sep"></div><div class="mb-item mb-del" onclick="closeMeatballs();deleteTaskById(\''+tid+'\')">🗑&nbsp; Delete</div>';
+  if(canEdit)   items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();openEditTask(this.dataset.tid)">✏️&nbsp; Edit</div>';
+  if(canDone&&t.status!=='done'&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'0\')">✅&nbsp; Mark done</div>';
+  if(canDone&&(t.status==='done'||t.status==='live')) items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'1\')">↩️&nbsp; Reopen</div>';
+  if(canDone&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();openMarkLive(this.dataset.tid)">🚀&nbsp; Mark live</div>';
+  if(canDel)    items+='<div class="mb-sep"></div><div class="mb-item mb-del" data-tid="'+tid+'" onclick="closeMeatballs();deleteTaskById(this.dataset.tid)">🗑&nbsp; Delete</div>';
 
   if(!items) return;
   menu.innerHTML=items;
@@ -2213,7 +2238,7 @@ function vShipped(){
     +'<h3 id="sl-modal-title">Log a shipped feature</h3>'
     +'<div class="sl-fl"><label>Feature name *</label><input type="text" id="sl-f-name" placeholder="e.g. SIP Step-up Flow"/></div>'
     +'<div class="sl-fl"><label>Description</label><textarea id="sl-f-desc" placeholder="What shipped?"></textarea></div>'
-    +'<div class="sl-2col"><div class="sl-fl"><label>Designer *</label><select id="sl-f-designer"><option value="">Select</option><option>Manaar Jafri</option><option>Ojus Thool</option><option>Varun Kewalramani</option><option>Tanushree Hanmattekar</option><option>Chirag Khushalani</option></select></div>'
+    +'<div class="sl-2col"><div class="sl-fl"><label>Designer *</label><select id="sl-f-designer"><option value="">Select</option><option>Manaar Jafri</option><option>Ojus Thool</option><option>Varun Kewalramani</option><option>Tanushree Hanmattekar</option><option>Chirag Khushalani</option><option>Sahil Malek</option></select></div>'
     +'<div class="sl-fl"><label>Product *</label><select id="sl-f-product"><option value="">Select</option><option>Algo</option><option>Cash/Equity</option><option>Commodities</option><option>IPO</option><option>MF</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option></select></div></div>'
     +'<div class="sl-2col"><div class="sl-fl"><label>Sprint number *</label><input type="text" id="sl-f-sprint-num" placeholder="e.g. Sprint 14"/></div>'
     +'<div class="sl-fl"><label>Sprint dates *</label><input type="text" id="sl-f-sprint-dates" placeholder="e.g. Apr 28 - May 9"/></div></div>'
@@ -2531,6 +2556,29 @@ async function toggleTaskDone(id, isDone){
     if(t){ t.status=newStatus; t.completed_at=patch.completed_at; autoFlagRisks(); }
     render();
     toast(newStatus==='done'?'Task marked done ✓':'Task reopened');
+  } catch(e){toast('Error: '+e.message);}
+}
+
+let liveTaskId = null;
+function openMarkLive(id){
+  const t=(tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  liveTaskId=id;
+  document.getElementById('live-task-name').textContent=t.name;
+  document.getElementById('live-date').value=new Date().toISOString().split('T')[0];
+  openModal('moLive');
+}
+async function submitMarkLive(){
+  if(!liveTaskId) return;
+  const dateVal=document.getElementById('live-date').value;
+  if(!dateVal){toast('Please select a date');return;}
+  try{
+    await api('tasks?id=eq.'+liveTaskId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({status:'live',completed_at:dateVal})});
+    const t=tasks.find(x=>x.id===liveTaskId);
+    if(t){t.status='live';t.completed_at=dateVal;}
+    closeModal('moLive');
+    render();
+    toast('Task marked live 🚀');
   } catch(e){toast('Error: '+e.message);}
 }
 
