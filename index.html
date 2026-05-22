@@ -2919,26 +2919,25 @@ var acQuickPrompts={
 };
 
 function vAskChirag(){
-  return '<div style="display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden">'
-    +'<div style="display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 2px;align-items:center">'
-    +'<button class="fb '+(acMode==='chat'?'active':'')+'" onclick="acSetMode(\'chat\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='chat'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">general</button>'
-    +'<button class="fb '+(acMode==='review'?'active':'')+'" onclick="acSetMode(\'review\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='review'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">design review</button>'
-    +'<button class="fb '+(acMode==='pm'?'active':'')+'" onclick="acSetMode(\'pm\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='pm'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">pm triage</button>'
-    +'<div style="flex:1"></div>'
-    +'</div>'
-    +'<div id="acMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:4px">'
-    +acRenderHistory()
-    +'</div>'
-    +'<div id="acQuickBar" style="padding:8px 20px 4px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;border-top:1px solid var(--border)">'
-    +acRenderQuickPrompts()
-    +'</div>'
-    +'<div style="display:flex;gap:8px;padding:10px 20px 16px;flex-shrink:0;align-items:flex-end">'
-    +'<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);display:flex;align-items:flex-end;padding:8px 12px;gap:8px">'
-    +'<textarea id="acInput" placeholder="Ask Chirag something…" rows="1" style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font,sans-serif);font-size:13px;line-height:1.5;resize:none;max-height:120px;min-height:20px;overflow-y:auto" onkeydown="acHandleKey(event)" oninput="acAutoResize(this)"></textarea>'
-    +'</div>'
-    +'<button id="acSendBtn" onclick="acSend()" style="width:34px;height:34px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;margin-bottom:1px" title="Send">↑</button>'
-    +'</div>'
-    +'</div>';
+  var html='<div style="display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden">';
+  html+='<div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center">';
+  html+='<button class="fb'+(acMode==='chat'?' active':'')+'" data-acmode="chat" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='chat'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">general</button>';
+  html+='<button class="fb'+(acMode==='review'?' active':'')+'" data-acmode="review" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='review'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">design review</button>';
+  html+='<button class="fb'+(acMode==='pm'?' active':'')+'" data-acmode="pm" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='pm'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">pm triage</button>';
+  html+='<div style="flex:1"></div></div>';
+  html+='<div id="acMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:4px">';
+  html+=acRenderHistory();
+  html+='</div>';
+  html+='<div style="padding:8px 20px 4px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;border-top:1px solid var(--border)">';
+  html+=acRenderQuickPrompts();
+  html+='</div>';
+  html+='<div style="display:flex;gap:8px;padding:10px 20px 16px;flex-shrink:0;align-items:flex-end">';
+  html+='<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);display:flex;align-items:flex-end;padding:8px 12px">';
+  html+='<textarea id="acInput" placeholder="Ask Chirag something" rows="1" style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:13px;line-height:1.5;resize:none;max-height:120px;min-height:20px;overflow-y:auto" onkeydown="acHandleKey(event)" oninput="acAutoResize(this)"></textarea>';
+  html+='</div>';
+  html+='<button id="acSendBtn" onclick="acSend()" style="width:34px;height:34px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0">&#8593;</button>';
+  html+='</div></div>';
+  return html;
 }
 
 function acRenderHistory(){
@@ -2977,10 +2976,9 @@ function acRenderHistory(){
 
 function acRenderQuickPrompts(){
   return acQuickPrompts[acMode].map(function(p){
-    return '<button class="fb" onclick="acUsePrompt(\''+p.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:4px 10px;border-radius:20px;font-family:var(--mono,monospace)">'+p+'</button>';
+    return '<button class="fb" data-prompt="'+p.replace(/"/g,'&quot;')+'" onclick="acUsePrompt(this.dataset.prompt)" style="font-size:11px;padding:4px 10px;border-radius:20px">'+p+'</button>';
   }).join('');
 }
-
 function acSetMode(m){
   acMode=m;
   var c=document.getElementById('content');
