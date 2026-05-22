@@ -279,6 +279,8 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" onclick="go('shipped')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 11l3-3 2 2 5-6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>Shipped log</div>
       <div class="nl">Share</div>
       <div class="ni" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
+      <div class="nl" id="nlAI">AI</div>
+      <div class="ni" onclick="go('askchirag')" id="askchiragNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 5v1.5M6.3 3.8c0-.4.3-.8.7-.8s.7.35.7.8c0 .3-.15.55-.38.68L7 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Ask Chirag</div>
     </div>
 
   </div>
@@ -796,10 +798,10 @@ function updateBadge(){
 function go(v){
   view=v;
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,capacity:3,uximpact:4,skills:5,tracker:6,shipped:7,pmform:8};
+  const map={dashboard:0,sprint:1,inbox:2,capacity:3,uximpact:4,skills:5,tracker:6,shipped:7,pmform:8,askchirag:9};
   const nis=document.querySelectorAll('.ni');
   if(nis[map[v]])nis[map[v]].classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -807,7 +809,7 @@ function go(v){
 function render(){
   const c=document.getElementById('content');
   const topBtn=document.getElementById('btnTopAddTask');
-  if(topBtn){topBtn.textContent=view==='tracker'?'+ Add todo':'+ Add task';}
+  if(topBtn){topBtn.textContent=view==='tracker'?'+ Add todo':'+ Add task';topBtn.style.display=view==='askchirag'?'none':'';}
   if(view==='dashboard')c.innerHTML=vDash();
   else if(view==='sprint')c.innerHTML=vSprint();
   else if(view==='inbox')c.innerHTML=vInbox();
@@ -817,6 +819,7 @@ function render(){
   else if(view==='tracker')c.innerHTML=vTracker();
   else if(view==='shipped'){c.innerHTML=vShipped();slLoadItems();}
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
+  else if(view==='askchirag'){c.innerHTML='<iframe src="ask_chirag.html" style="width:100%;height:calc(100vh - 52px);border:none;display:block;" allowtransparency="true"></iframe>';}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -2751,10 +2754,13 @@ function applyRoleRestrictions(){
   }
 
   if(currentRole==='designer'){
-    // Hide PM request form nav item
+    // Hide PM request form nav item and Ask Chirag
     allNis.forEach(function(ni){
       if(ni.textContent.includes('PM request form')) ni.style.display='none';
+      if(ni.textContent.includes('Ask Chirag')) ni.style.display='none';
     });
+    var nlAI=document.getElementById('nlAI');
+    if(nlAI) nlAI.style.display='none';
   }
 
   // Add user indicator to topbar
