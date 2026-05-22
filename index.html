@@ -121,6 +121,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .td2{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:blink 1.1s ease-in-out infinite}
 .td2:nth-child(2){animation-delay:.18s}.td2:nth-child(3){animation-delay:.36s}
 @keyframes blink{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+@keyframes acBlink{0%,80%,100%{opacity:.3;transform:scale(.85)}40%{opacity:1;transform:scale(1.1)}}
 .modal-overlay{position:fixed;inset:0;background:rgba(26,25,23,.45);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .18s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:480px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;transform:translateY(8px) scale(.98);transition:transform .18s}
@@ -265,22 +266,22 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <span class="logo-text">Design Radar</span>
     </div>
     <div class="nav">
-      <div class="ni active" onclick="go('dashboard')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/></svg>Dashboard</div>
+      <div class="ni active" data-view="dashboard" onclick="go('dashboard')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.1"/></svg>Dashboard</div>
       <div class="nl">Work</div>
-      <div class="ni" onclick="go('sprint')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Sprint tasks</div>
-      <div class="ni" onclick="go('inbox')" id="inboxNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.1"/><path d="M2 7h3l1.5 2h1L9 7h3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>PM requests<span class="nbadge" id="inboxBadge">0</span></div>
+      <div class="ni" data-view="sprint" onclick="go('sprint')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Sprint tasks</div>
+      <div class="ni" data-view="inbox" onclick="go('inbox')" id="inboxNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" stroke="currentColor" stroke-width="1.1"/><path d="M2 7h3l1.5 2h1L9 7h3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>PM requests<span class="nbadge" id="inboxBadge">0</span></div>
 
       <div class="nl">Team</div>
-      <div class="ni" onclick="go('capacity')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 12c0-2 1.567-3.5 3.5-3.5S8.5 10 8.5 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M12 12c0-1.5-1.2-2.8-2.5-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Capacity</div>
+      <div class="ni" data-view="capacity" onclick="go('capacity')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 12c0-2 1.567-3.5 3.5-3.5S8.5 10 8.5 12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10" cy="4.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M12 12c0-1.5-1.2-2.8-2.5-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Capacity</div>
       <div class="nl">Growth</div>
-      <div class="ni" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
-      <div class="ni" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
-      <div class="ni" onclick="go('tracker')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 1v4M9 1v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M4 8h2M4 10.5h4M8.5 8l1 1 1.5-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily tracker</div>
-      <div class="ni" onclick="go('shipped')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 11l3-3 2 2 5-6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>Shipped log</div>
+      <div class="ni" data-view="uximpact" onclick="go('uximpact')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l3-3 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>UX impact</div>
+      <div class="ni" data-view="skills" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
+      <div class="ni" data-view="tracker" onclick="go('tracker')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 1v4M9 1v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M4 8h2M4 10.5h4M8.5 8l1 1 1.5-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily tracker</div>
+      <div class="ni" data-view="shipped" onclick="go('shipped')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 11l3-3 2 2 5-6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>Shipped log</div>
       <div class="nl">Share</div>
-      <div class="ni" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
+      <div class="ni" data-view="pmform" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
       <div class="nl" id="nlAI">AI</div>
-      <div class="ni" onclick="go('askchirag')" id="askchiragNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 5v1.5M6.3 3.8c0-.4.3-.8.7-.8s.7.35.7.8c0 .3-.15.55-.38.68L7 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Ask Chirag</div>
+      <div class="ni" data-view="askchirag" onclick="go('askchirag')" id="askchiragNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 5v1.5M6.3 3.8c0-.4.3-.8.7-.8s.7.35.7.8c0 .3-.15.55-.38.68L7 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Ask Chirag</div>
     </div>
 
   </div>
@@ -797,10 +798,9 @@ function updateBadge(){
 // ── NAVIGATION ───────────────────────────────────────
 function go(v){
   view=v;
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
-  const map={dashboard:0,sprint:1,inbox:2,capacity:3,uximpact:4,skills:5,tracker:6,shipped:7,pmform:8,askchirag:9};
-  const nis=document.querySelectorAll('.ni');
-  if(nis[map[v]])nis[map[v]].classList.add('active');
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+  var target=document.querySelector('.ni[data-view="'+v+'"]');
+  if(target) target.classList.add('active');
   const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
@@ -819,7 +819,7 @@ function render(){
   else if(view==='tracker')c.innerHTML=vTracker();
   else if(view==='shipped'){c.innerHTML=vShipped();slLoadItems();}
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
-  else if(view==='askchirag'){c.innerHTML='<iframe src="ask_chirag.html" style="width:100%;height:calc(100vh - 52px);border:none;display:block;" allowtransparency="true"></iframe>';}
+  else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -2897,6 +2897,175 @@ document.addEventListener('keydown',e=>{
 
 // ── AUTO REFRESH ──────────────────────────────────────
 setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
+
+// ── ASK CHIRAG ────────────────────────────────────────
+var acHistory={chat:[],review:[],pm:[]};
+var acLoading=false;
+
+var acSystemPrompts={
+  chat:'You are an AI agent embodying Chirag Khushalani — Lead, Product Design at Ventura Securities, Mumbai. You have roughly a decade of product design experience across fintech, banking, and B2B platforms, including Axis Bank–Freecharge, Drip Capital, Oyster Living, and Isobar. You lead a 5-person design team: Manaar Jafri, Ojus Thool, Varun Kewalramani, and Tanushree Hanmattekar. Your team works across: Algo trading, Cash/Equity, Commodities, IPO, Mutual Funds, Wallet, COB, FD, and Bonds.\n\nYour design philosophy:\n- Clarity over cleverness. If something needs explanation, it is not designed well.\n- Data-forward: for a financial product, trust is built through information density done well — not hiding numbers behind vague summaries.\n- Hierarchy is everything. Users scan, not read. Every screen should have one primary action.\n- Mobile-first, but do not dumb it down for desktop.\n- Systems thinking: design a component, think about the system it belongs to.\n- Good UX is invisible. Bad UX is all you see.\n- Business goals and user goals are usually the same thing — find where they overlap.\n- Opinions from data, decisions from judgment.\n\nYour communication style:\n- Direct, no-fluff. You do not pad answers.\n- You use examples and analogies from fintech readily.\n- You will push back constructively when you disagree.\n- You are encouraging to the team but set a high bar.\n- You occasionally use Hinglish phrasing naturally (e.g. yaar, matlab, dekho).\n- You think out loud and show your reasoning, not just the conclusion.\n\nAlways respond as Chirag in first person. Be specific, opinionated, and useful.',
+
+  review:'You are Chirag Khushalani reviewing a design — a screen, flow, spec, or concept — as Lead, Product Design at Ventura Securities with 10 years in fintech UX.\n\nYour review framework:\n1. First impression — what does a first-time user feel in the first 3 seconds?\n2. Hierarchy — is there a clear primary action? Does the eye flow logically?\n3. Information clarity — are data, labels, and states unambiguous?\n4. Edge cases — what happens with 0 state, error state, loading state, long text?\n5. Consistency — does this align with existing design system patterns?\n6. Mobile — does this hold up on a small screen?\n7. Business alignment — does this design serve the metric we are optimizing for?\n8. One thing to fix first — if they can only change one thing, what is it?\n\nBe specific. "The button is confusing" is not feedback. "The CTA label Proceed is ambiguous — proceed to what?" is feedback. For every problem, offer a direction. Use Chirag\'s natural voice — direct, considered, occasionally Hinglish.',
+
+  pm:'You are Chirag Khushalani triaging a PM request as Lead, Product Design at Ventura Securities.\n\nWhen a PM submits a request, your job is to:\n1. Understand the ask — restate it to confirm alignment\n2. Flag ambiguity — identify what is unclear, missing, or assumed\n3. Scope it — break into design tasks (flows, states, components, edge cases)\n4. Push back if needed — call out if this is too vague, solving the wrong problem, or missing research\n5. Estimate effort — Small (0.5-1 day), Medium (2-3 days), Large (3-5 days), XL (1+ week)\n6. Flag dependencies — what does design need before starting?\n7. Recommend next step — what should happen before a design brief is written?\n\nYou protect the team bandwidth. You push back on scope creep. You ask about the user problem, not just the feature request. Speak in outcomes, not deliverables. Occasionally Hinglish, always direct.'
+};
+
+var acQuickPrompts={
+  chat:['what is your design philosophy?','how do you handle scope creep?','what makes a good fintech UX?','how should the team prioritise?'],
+  review:['what to check in an onboarding flow?','how do you review for mobile?','what does a good trading UI look like?','what do designers miss most often?'],
+  pm:['I need a new filter UI for the portfolio page','add a notifications centre to the app','we need to redesign the KYC flow ASAP','can you quickly add a dark mode?']
+};
+
+function vAskChirag(){
+  return '<div style="display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden">'
+    +'<div style="display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 2px;align-items:center">'
+    +'<button class="fb '+(acMode==='chat'?'active':'')+'" onclick="acSetMode(\'chat\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='chat'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">general</button>'
+    +'<button class="fb '+(acMode==='review'?'active':'')+'" onclick="acSetMode(\'review\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='review'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">design review</button>'
+    +'<button class="fb '+(acMode==='pm'?'active':'')+'" onclick="acSetMode(\'pm\')" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='pm'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px;letter-spacing:.03em;font-family:var(--mono,monospace)">pm triage</button>'
+    +'<div style="flex:1"></div>'
+    +'</div>'
+    +'<div id="acMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:4px">'
+    +acRenderHistory()
+    +'</div>'
+    +'<div id="acQuickBar" style="padding:8px 20px 4px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;border-top:1px solid var(--border)">'
+    +acRenderQuickPrompts()
+    +'</div>'
+    +'<div style="display:flex;gap:8px;padding:10px 20px 16px;flex-shrink:0;align-items:flex-end">'
+    +'<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);display:flex;align-items:flex-end;padding:8px 12px;gap:8px">'
+    +'<textarea id="acInput" placeholder="Ask Chirag something…" rows="1" style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--font,sans-serif);font-size:13px;line-height:1.5;resize:none;max-height:120px;min-height:20px;overflow-y:auto" onkeydown="acHandleKey(event)" oninput="acAutoResize(this)"></textarea>'
+    +'</div>'
+    +'<button id="acSendBtn" onclick="acSend()" style="width:34px;height:34px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;margin-bottom:1px" title="Send">↑</button>'
+    +'</div>'
+    +'</div>';
+}
+
+function acRenderHistory(){
+  var h=acHistory[acMode];
+  if(h.length===0){
+    var descs={chat:'Design decisions, team guidance, fintech UX opinions — answered the way Chirag would.',review:'Describe a screen or flow — I will review it the way I would in a crit session.',pm:'Drop a PM request — I will scope it, flag gaps, and tell you what we need before design starts.'};
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;text-align:center;gap:12px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff">CK</div>'
+      +'<div style="font-size:14px;font-weight:500;color:var(--text)">Ask Chirag anything</div>'
+      +'<div style="font-size:12px;color:var(--text3);max-width:300px;line-height:1.6">'+descs[acMode]+'</div>'
+      +'</div>';
+  }
+  var html='';
+  h.forEach(function(msg){
+    if(msg.role==='user'){
+      html+='<div style="display:flex;justify-content:flex-end;margin:4px 0">'
+        +'<div style="max-width:75%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;border-top-right-radius:2px;padding:9px 13px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word">'+acEscape(msg.content)+'</div>'
+        +'</div>';
+    } else {
+      var tagColor=acMode==='review'?'color:#5b8dee;background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.2)':acMode==='pm'?'color:var(--red);background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2)':'color:var(--accent);background:var(--accent-bg,rgba(212,168,75,.08));border:1px solid rgba(212,168,75,.2)';
+      var tagLabel=acMode==='review'?'design review':acMode==='pm'?'pm triage':'general';
+      html+='<div style="display:flex;gap:8px;margin:4px 0;align-items:flex-start">'
+        +'<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0;margin-top:2px">CK</div>'
+        +'<div style="max-width:80%">'
+        +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:var(--mono,monospace)">chirag</div>'
+        +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;border-top-left-radius:2px;padding:9px 13px;font-size:13px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word">'
+        +'<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin-bottom:6px;font-family:var(--mono,monospace);'+tagColor+'">'+tagLabel+'</span>\n'
+        +acFormatText(msg.content)
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }
+  });
+  return html;
+}
+
+function acRenderQuickPrompts(){
+  return acQuickPrompts[acMode].map(function(p){
+    return '<button class="fb" onclick="acUsePrompt(\''+p.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:4px 10px;border-radius:20px;font-family:var(--mono,monospace)">'+p+'</button>';
+  }).join('');
+}
+
+function acSetMode(m){
+  acMode=m;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vAskChirag();
+  setTimeout(function(){
+    var el=document.getElementById('acInput');
+    if(el) el.focus();
+  },50);
+}
+
+function acUsePrompt(text){
+  var el=document.getElementById('acInput');
+  if(el){el.value=text;acAutoResize(el);el.focus();}
+}
+
+function acAutoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+}
+
+function acHandleKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();acSend();}
+}
+
+function acEscape(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function acFormatText(t){
+  return acEscape(t)
+    .replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--text);font-weight:500">$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="font-family:var(--mono,monospace);font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:3px">$1</code>');
+}
+
+function acScrollBottom(){
+  var el=document.getElementById('acMessages');
+  if(el) el.scrollTop=el.scrollHeight;
+}
+
+async function acSend(){
+  var input=document.getElementById('acInput');
+  if(!input||acLoading) return;
+  var text=input.value.trim();
+  if(!text) return;
+  acLoading=true;
+  var btn=document.getElementById('acSendBtn');
+  if(btn) btn.disabled=true;
+  input.value='';
+  acAutoResize(input);
+  acHistory[acMode].push({role:'user',content:text});
+  var msgs=document.getElementById('acMessages');
+  if(msgs){
+    msgs.innerHTML=acRenderHistory();
+    msgs.innerHTML+='<div id="acTyping" style="display:flex;gap:8px;margin:4px 0;align-items:flex-start">'
+      +'<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">CK</div>'
+      +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;border-top-left-radius:2px;padding:10px 14px;display:flex;gap:5px;align-items:center">'
+      +'<span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block;animation:acBlink 1.2s ease infinite"></span>'
+      +'<span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block;animation:acBlink 1.2s ease .2s infinite"></span>'
+      +'<span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block;animation:acBlink 1.2s ease .4s infinite"></span>'
+      +'</div></div>';
+    acScrollBottom();
+  }
+  try{
+    var messages=acHistory[acMode].map(function(m){return{role:m.role,content:m.content};});
+    var model=acMode==='review'?'claude-sonnet-4-20250514':'claude-haiku-4-5-20251001';
+    var res=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:model,max_tokens:1000,system:acSystemPrompts[acMode],messages:messages})
+    });
+    var data=await res.json();
+    var reply=(data.content&&data.content[0]&&data.content[0].text)?data.content[0].text
+      :(data.error?'API error: '+data.error.message:'Something went wrong yaar — try again.');
+    acHistory[acMode].push({role:'assistant',content:reply});
+  } catch(e){
+    acHistory[acMode].push({role:'assistant',content:'Connection issue — try again in a moment.'});
+  }
+  if(msgs){msgs.innerHTML=acRenderHistory();acScrollBottom();}
+  acLoading=false;
+  if(btn) btn.disabled=false;
+  if(input) input.focus();
+}
+
+function initAskChirag(){
+  var el=document.getElementById('acInput');
+  if(el) el.focus();
+}
 
 // ── INIT ──────────────────────────────────────────────
 initLock();
