@@ -737,11 +737,12 @@ async function sendMessage() {
   try {
     const messages = conversationHistory[currentMode].map(m => ({ role: m.role, content: m.content }));
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const model = currentMode === 'review' ? 'claude-sonnet-4-20250514' : 'claude-haiku-4-5-20251001';
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: model,
         max_tokens: 1000,
         system: SYSTEM_PROMPTS[currentMode],
         messages: messages
