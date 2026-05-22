@@ -2901,6 +2901,7 @@ document.addEventListener('keydown',e=>{
 setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
 
 // ── ASK CHIRAG ────────────────────────────────────────
+var acMode='chat';
 var acHistory={chat:[],review:[],pm:[]};
 var acLoading=false;
 
