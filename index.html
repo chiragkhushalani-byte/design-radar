@@ -808,6 +808,8 @@ function go(v){
 
 function render(){
   const c=document.getElementById('content');
+  c.style.padding=view==='askchirag'?'0':'18px 20px';
+  c.style.overflow=view==='askchirag'?'hidden':'auto';
   const topBtn=document.getElementById('btnTopAddTask');
   if(topBtn){topBtn.textContent=view==='tracker'?'+ Add todo':'+ Add task';topBtn.style.display=view==='askchirag'?'none':'';}
   if(view==='dashboard')c.innerHTML=vDash();
