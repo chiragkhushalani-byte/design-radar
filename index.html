@@ -2756,13 +2756,10 @@ function applyRoleRestrictions(){
   }
 
   if(currentRole==='designer'){
-    // Hide PM request form nav item and Ask Chirag
+    // Hide PM request form nav item only
     allNis.forEach(function(ni){
       if(ni.textContent.includes('PM request form')) ni.style.display='none';
-      if(ni.textContent.includes('Ask Chirag')) ni.style.display='none';
     });
-    var nlAI=document.getElementById('nlAI');
-    if(nlAI) nlAI.style.display='none';
   }
 
   // Add user indicator to topbar
