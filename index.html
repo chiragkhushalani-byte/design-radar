@@ -2901,6 +2901,39 @@ setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at
 var acMode='chat';
 var acHistory={chat:[],review:[],pm:[]};
 var acLoading=false;
+var acHistoryLoaded={chat:false,review:false,pm:false};
+
+async function acLoadHistory(mode){
+  if(acHistoryLoaded[mode]) return;
+  try{
+    var res=await fetch(SB+'/rest/v1/chat_history?mode=eq.'+mode+'&order=created_at.asc&limit=50',{headers:H});
+    var rows=await res.json();
+    if(Array.isArray(rows)){
+      acHistory[mode]=rows.map(function(r){return{role:r.role,content:r.content};});
+    }
+    acHistoryLoaded[mode]=true;
+  } catch(e){ acHistoryLoaded[mode]=true; }
+}
+
+async function acSaveMessage(mode,role,content){
+  try{
+    await fetch(SB+'/rest/v1/chat_history',{
+      method:'POST',
+      headers:HR,
+      body:JSON.stringify({mode:mode,role:role,content:content})
+    });
+  } catch(e){}
+}
+
+async function acClearHistory(mode){
+  try{
+    await fetch(SB+'/rest/v1/chat_history?mode=eq.'+mode,{method:'DELETE',headers:H});
+    acHistory[mode]=[];
+    acHistoryLoaded[mode]=true;
+    var msgs=document.getElementById('acMessages');
+    if(msgs){msgs.innerHTML=acRenderHistory();}
+  } catch(e){}
+}
 
 var acSystemPrompts={
   chat:'You are an AI agent embodying Chirag Khushalani — Lead, Product Design at Ventura Securities, Mumbai. You have roughly a decade of product design experience across fintech, banking, and B2B platforms, including Axis Bank–Freecharge, Drip Capital, Oyster Living, and Isobar. You lead a 5-person design team: Manaar Jafri, Ojus Thool, Varun Kewalramani, and Tanushree Hanmattekar. Your team works across: Algo trading, Cash/Equity, Commodities, IPO, Mutual Funds, Wallet, COB, FD, and Bonds.\n\nYour design philosophy:\n- Clarity over cleverness. If something needs explanation, it is not designed well.\n- Data-forward: for a financial product, trust is built through information density done well — not hiding numbers behind vague summaries.\n- Hierarchy is everything. Users scan, not read. Every screen should have one primary action.\n- Mobile-first, but do not dumb it down for desktop.\n- Systems thinking: design a component, think about the system it belongs to.\n- Good UX is invisible. Bad UX is all you see.\n- Business goals and user goals are usually the same thing — find where they overlap.\n- Opinions from data, decisions from judgment.\n\nYour communication style:\n- Direct, no-fluff. You do not pad answers.\n- You use examples and analogies from fintech readily.\n- You will push back constructively when you disagree.\n- You are encouraging to the team but set a high bar.\n- You occasionally use Hinglish phrasing naturally (e.g. yaar, matlab, dekho).\n- You think out loud and show your reasoning, not just the conclusion.\n\nAlways respond as Chirag in first person. Be specific, opinionated, and useful.',
@@ -2922,7 +2955,9 @@ function vAskChirag(){
   html+='<button class="fb'+(acMode==='chat'?' active':'')+'" data-acmode="chat" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='chat'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">general</button>';
   html+='<button class="fb'+(acMode==='review'?' active':'')+'" data-acmode="review" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='review'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">design review</button>';
   html+='<button class="fb'+(acMode==='pm'?' active':'')+'" data-acmode="pm" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='pm'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">pm triage</button>';
-  html+='<div style="flex:1"></div></div>';
+  html+='<div style="flex:1"></div>';
+  html+='<button class="fb" onclick="if(confirm(\'Clear this conversation?\'))acClearHistory(acMode)" style="font-size:10px;padding:4px 10px;margin-right:8px;opacity:.4">clear</button>';
+  html+='</div>';
   html+='<div id="acMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:4px">';
   html+=acRenderHistory();
   html+='</div>';
@@ -2981,7 +3016,10 @@ function acSetMode(m){
   acMode=m;
   var c=document.getElementById('content');
   if(c) c.innerHTML=vAskChirag();
-  setTimeout(function(){
+  setTimeout(async function(){
+    await acLoadHistory(acMode);
+    var msgs=document.getElementById('acMessages');
+    if(msgs){msgs.innerHTML=acRenderHistory();msgs.scrollTop=msgs.scrollHeight;}
     var el=document.getElementById('acInput');
     if(el) el.focus();
   },50);
@@ -3027,6 +3065,7 @@ async function acSend(){
   input.value='';
   acAutoResize(input);
   acHistory[acMode].push({role:'user',content:text});
+  acSaveMessage(acMode,'user',text);
   var msgs=document.getElementById('acMessages');
   if(msgs){
     msgs.innerHTML=acRenderHistory();
@@ -3051,6 +3090,7 @@ async function acSend(){
     var reply=(data.content&&data.content[0]&&data.content[0].text)?data.content[0].text
       :(data.error?'API error: '+data.error.message:'Something went wrong yaar — try again.');
     acHistory[acMode].push({role:'assistant',content:reply});
+    acSaveMessage(acMode,'assistant',reply);
   } catch(e){
     acHistory[acMode].push({role:'assistant',content:'Connection issue — try again in a moment.'});
   }
@@ -3060,7 +3100,10 @@ async function acSend(){
   if(input) input.focus();
 }
 
-function initAskChirag(){
+async function initAskChirag(){
+  await acLoadHistory(acMode);
+  var msgs=document.getElementById('acMessages');
+  if(msgs){msgs.innerHTML=acRenderHistory();msgs.scrollTop=msgs.scrollHeight;}
   var el=document.getElementById('acInput');
   if(el) el.focus();
 }
