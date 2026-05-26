@@ -2925,10 +2925,12 @@ setInterval(async function(){
       toast('New PM request: '+(newest?newest.title:''),4000);
     }
 
-    // New task assigned to ME (designer only)
-    if(currentRole==='designer'&&_knownTaskIds.size>0){
+    // New task assigned to ME (anyone logged in)
+    if(_knownTaskIds.size>0){
+      var myName=(currentUser||'').toLowerCase();
       var myNewTasks=(tasks||[]).filter(function(t){
-        var mine=(t.designer_names&&t.designer_names.indexOf(currentUser)>=0)||(t.designer_name===currentUser);
+        var names=(t.designer_names&&t.designer_names.length>0)?t.designer_names:(t.designer_name?[t.designer_name]:[]);
+        var mine=names.some(function(n){return (n||'').toLowerCase()===myName;});
         return mine&&!_knownTaskIds.has(t.id);
       });
       if(myNewTasks.length>0){
