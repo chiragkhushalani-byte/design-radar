@@ -962,6 +962,7 @@ function vInbox(){
           :'<span style="font-size:10px;color:var(--text3)">pending</span>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
+    +'<div style="padding-left:13px;font-size:10px;color:var(--text3);margin-top:1px">Submitted: '+fmtD(r.created_at)+'</div>'
     +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px">'+r.description+'</div>':'')
     +(r.problem_statement?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Problem: </span>'+r.problem_statement+'</div>':'')
     +(r.expected_outcome?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Outcome: </span>'+r.expected_outcome+'</div>':'')
@@ -1482,7 +1483,7 @@ function openAssignModal(id){
   assignReqId = id;
   assignDesigners = [];
   document.getElementById('assign-req-title').textContent = r.title;
-  document.getElementById('assign-req-meta').textContent = r.pm_name + ' · ' + r.product + ' · ' + (r.urgency||'medium');
+  document.getElementById('assign-req-meta').textContent = r.pm_name + ' · ' + r.product + ' · ' + (r.urgency||'medium') + ' · Submitted ' + fmtD(r.created_at);
   document.getElementById('assign-priority').value = r.urgency==='high'?'high':r.urgency==='low'?'low':'medium';
   document.getElementById('assign-effort').value = '2';
   document.getElementById('assign-jira').value = r.jira_ref||'';
