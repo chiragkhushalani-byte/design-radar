@@ -783,6 +783,9 @@ async function loadAll(){
   try{goals=await api('goals?select=*&order=sort_order.asc');}catch(e){goals=[];}
   try{goalTasks=await api('goal_tasks?select=*');}catch(e){goalTasks=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  _lastReqCount=(requests||[]).length;
+  _lastTaskCount=(tasks||[]).length;
+  _knownTaskIds=new Set((tasks||[]).map(function(t){return t.id;}));
   autoFlagRisks();
   checkYesterdayTodos();
   updateBadge();
@@ -2896,7 +2899,59 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── AUTO REFRESH ──────────────────────────────────────
-setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
+var _lastReqCount=0;
+var _lastTaskCount=0;
+var _knownTaskIds=new Set();
+
+setInterval(async function(){
+  try{
+    var prevReqCount=_lastReqCount;
+    var prevTaskCount=_lastTaskCount;
+
+    requests=await api('requests?select=*&order=created_at.desc');
+    tasks=await api('tasks?select=*&order=sort_order.asc,created_at.desc');
+
+    updateBadge();
+    if(view==='inbox'||view==='sprint')render();
+
+    var newReqCount=(requests||[]).length;
+    var newTaskCount=(tasks||[]).length;
+
+    // New PM request alert (head only)
+    if(currentRole==='head'&&_lastReqCount>0&&newReqCount>prevReqCount){
+      var newest=requests[0];
+      flashTab('📬 New PM request!',8);
+      playAlertSound();
+      toast('New PM request: '+(newest?newest.title:''),4000);
+    }
+
+    // New task assigned to ME (designer only)
+    if(currentRole==='designer'&&_knownTaskIds.size>0){
+      var myNewTasks=(tasks||[]).filter(function(t){
+        var mine=(t.designer_names&&t.designer_names.indexOf(currentUser)>=0)||(t.designer_name===currentUser);
+        return mine&&!_knownTaskIds.has(t.id);
+      });
+      if(myNewTasks.length>0){
+        var t0=myNewTasks[0];
+        flashTab('📋 New task assigned!',8);
+        playAlertSound();
+        toast('New task assigned to you: '+t0.name,5000);
+      }
+    }
+
+    // New task added alert (head only)
+    if(currentRole==='head'&&_lastTaskCount>0&&newTaskCount>prevTaskCount){
+      var newestTask=tasks[0];
+      flashTab('🆕 New task added!',8);
+      playAlertSound();
+      toast('New task: '+(newestTask?newestTask.name:''),4000);
+    }
+
+    _lastReqCount=newReqCount;
+    _lastTaskCount=newTaskCount;
+    _knownTaskIds=new Set((tasks||[]).map(function(t){return t.id;}));
+  }catch(e){}
+},30000);
 
 // ── ASK CHIRAG ────────────────────────────────────────
 var acMode='chat';
