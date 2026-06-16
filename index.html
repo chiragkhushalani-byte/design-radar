@@ -72,15 +72,6 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
 .s-review{background:var(--amber-light);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
 .s-live{background:#E1F5EE;color:#0A6E56;border:1px solid #9DD6C0}
-.jira-badge{display:inline-flex;flex-direction:column;gap:2px;font-size:10px;line-height:1.2}
-.jira-badge .jira-id{color:var(--blue);font-weight:600;text-decoration:none}
-.jira-badge .jira-id:hover{text-decoration:underline}
-.jira-badge .jira-status{display:inline-block;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:600}
-.jira-todo{background:#E2E4E9;color:#44546F}
-.jira-inprogress{background:#CCE5FF;color:#0550AE}
-.jira-done{background:#DCFCE7;color:#166534}
-.jira-loading{color:var(--text3);font-size:10px;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
 .mb-btn{background:none;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;padding:3px 8px;letter-spacing:1px;font-family:inherit;transition:all .12s;line-height:1}
 .mb-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text1)}
@@ -668,7 +659,6 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
 
 <script>
 const SB = 'https://jthtaiqwsznazjdtahcs.supabase.co';
-const JIRA_PROXY = SB + '/functions/v1/jira-proxy';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHRhaXF3c3puYXpqZHRhaGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTk2NDUsImV4cCI6MjA5MTg3NTY0NX0.gRJ2YDdSZj-DnkSS3rfhLEcRaqz7a-HIqgqKv-pAOT8';
 const H = {'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 const HR = Object.assign({},H,{'Prefer':'return=representation'});
@@ -686,7 +676,7 @@ const SKILLS = [
 const AV = ['av0','av1','av2','av3','av4'];
 
 let DESIGNERS=[], tasks=[], requests=[], uxLogs=[], skillRatings=[], dailyTodos=[], goals=[], goalTasks=[];
-let view='dashboard', sfilt='all', lfilt='all';
+let view='dashboard', sfilt='all', lfilt='all', dfilt='all';
 let selDesigners=[], selSkills=[], editTaskId=null;
 let timerOn=false, timerSecs=0, timerTaskId=null, timerTaskName='', timerInt=null;
 let dragId=null;
@@ -793,9 +783,6 @@ async function loadAll(){
   try{goals=await api('goals?select=*&order=sort_order.asc');}catch(e){goals=[];}
   try{goalTasks=await api('goal_tasks?select=*');}catch(e){goalTasks=[];}
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-  _lastReqCount=(requests||[]).length;
-  _lastTaskCount=(tasks||[]).length;
-  _knownTaskIds=new Set((tasks||[]).map(function(t){return t.id;}));
   autoFlagRisks();
   checkYesterdayTodos();
   updateBadge();
@@ -826,7 +813,7 @@ function render(){
   const topBtn=document.getElementById('btnTopAddTask');
   if(topBtn){topBtn.textContent=view==='tracker'?'+ Add todo':'+ Add task';topBtn.style.display=view==='askchirag'?'none':'';}
   if(view==='dashboard')c.innerHTML=vDash();
-  else if(view==='sprint'){c.innerHTML=vSprint();setTimeout(fetchJiraStatuses,300);}
+  else if(view==='sprint')c.innerHTML=vSprint();
   else if(view==='inbox')c.innerHTML=vInbox();
   else if(view==='capacity')c.innerHTML=vCapacity();
   else if(view==='uximpact')c.innerHTML=vUXImpact();
@@ -925,6 +912,17 @@ function vSprint(){
   if(sfilt==='risk')filtered=filtered.filter(function(t){return t.risk;});
   else if(sfilt==='inprogress')filtered=filtered.filter(function(t){return t.status==='inprogress';});
   else if(sfilt==='review')filtered=filtered.filter(function(t){return t.status==='review';});
+  if(dfilt&&dfilt!=='all'){
+    var df=dfilt.toLowerCase();
+    filtered=filtered.filter(function(t){
+      var names=(t.designer_names&&t.designer_names.length>0)?t.designer_names:(t.designer_name?[t.designer_name]:[]);
+      return names.some(function(n){return (n||'').toLowerCase()===df;});
+    });
+  }
+  const designerNames=['Manaar Jafri','Ojus Thool','tanushree hanmattekar','Varun Kewalramani','Chirag Khushalani','Sahil Malek'];
+  const designerOptions=designerNames.map(function(n){
+    return '<option value="'+n+'"'+(dfilt===n?' selected':'')+'>'+n+'</option>';
+  }).join('');
   const rows=filtered.map(function(t){
     const designers=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
     const designerBadges=designers.length===0
@@ -948,11 +946,17 @@ function vSprint(){
       +'</td>'
       +'</tr>';
   }).join('');
-  return '<div class="section-row"><span class="st">Sprint tasks</span><div class="filters">'
+  return '<div class="section-row"><span class="st">Sprint tasks'+(dfilt!=='all'?' <span style="font-size:11px;background:var(--blue-light);color:var(--blue);padding:1px 7px;border-radius:10px;font-weight:500">'+dfilt+'</span>':'')+'</span><div class="filters" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<button class="fb '+(sfilt==='all'?'active':'')+'" data-f="all" onclick="setSF(this.dataset.f,this)">All</button>'
     +'<button class="fb '+(sfilt==='inprogress'?'active':'')+'" data-f="inprogress" onclick="setSF(this.dataset.f,this)">In progress</button>'
     +'<button class="fb '+(sfilt==='review'?'active':'')+'" data-f="review" onclick="setSF(this.dataset.f,this)">Review</button>'
     +'<button class="fb '+(sfilt==='risk'?'active':'')+'" data-f="risk" onclick="setSF(this.dataset.f,this)">At risk</button>'
+    +'<div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>'
+    +'<select onchange="setDF(this.value)" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);cursor:pointer">'
+    +'<option value="all"'+(dfilt==='all'?' selected':'')+'>👤 All designers</option>'
+    +designerOptions
+    +'</select>'
+    +(dfilt!=='all'?'<button onclick="setDF(\'all\')" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px">✕ Clear</button>':'')
     +'</div></div>'
     +'<div class="panel"><div style="overflow-x:auto"><table><thead><tr>'
     +'<th style="width:20%">Task</th><th style="width:8%">Priority</th><th style="width:9%">Status</th>'
@@ -975,7 +979,6 @@ function vInbox(){
           :'<span style="font-size:10px;color:var(--text3)">pending</span>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
-    +'<div style="padding-left:13px;font-size:10px;color:var(--text3);margin-top:1px">Submitted: '+fmtD(r.created_at)+'</div>'
     +(r.description?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px">'+r.description+'</div>':'')
     +(r.problem_statement?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Problem: </span>'+r.problem_statement+'</div>':'')
     +(r.expected_outcome?'<div style="padding-left:13px;font-size:11px;color:var(--text2);line-height:1.5"><span style="font-weight:500;color:var(--text3)">Outcome: </span>'+r.expected_outcome+'</div>':'')
@@ -1418,6 +1421,7 @@ async function submitSkillRatings(){
 
 // ── ACTIONS ───────────────────────────────────────────
 function setSF(f,btn){sfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+function setDF(val){dfilt=val;render();if(view==='sprint')setTimeout(fetchJiraStatuses,300);}
 function setLF(f,btn){lfilt=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
 
 function toggleMeatball(tid,e){
@@ -1496,7 +1500,7 @@ function openAssignModal(id){
   assignReqId = id;
   assignDesigners = [];
   document.getElementById('assign-req-title').textContent = r.title;
-  document.getElementById('assign-req-meta').textContent = r.pm_name + ' · ' + r.product + ' · ' + (r.urgency||'medium') + ' · Submitted ' + fmtD(r.created_at);
+  document.getElementById('assign-req-meta').textContent = r.pm_name + ' · ' + r.product + ' · ' + (r.urgency||'medium');
   document.getElementById('assign-priority').value = r.urgency==='high'?'high':r.urgency==='low'?'low':'medium';
   document.getElementById('assign-effort').value = '2';
   document.getElementById('assign-jira').value = r.jira_ref||'';
@@ -2908,111 +2912,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
 
-// ── JIRA INTEGRATION ──────────────────────────────────
-var _jiraCache={};
-async function fetchJiraStatuses(){
-  var cells=document.querySelectorAll('.jira-cell[data-jira]');
-  var toFetch=[];
-  cells.forEach(function(el){
-    var id=(el.getAttribute('data-jira')||'').trim().toUpperCase();
-    if(!id||id==='—') return;
-    if(_jiraCache[id]){
-      renderJiraCell(el,_jiraCache[id]);
-    } else {
-      el.innerHTML='<span class="jira-loading">⟳ '+id+'</span>';
-      toFetch.push({el:el,id:id});
-    }
-  });
-  // Fetch in parallel, max 5 at a time
-  var chunks=[];
-  for(var i=0;i<toFetch.length;i+=5) chunks.push(toFetch.slice(i,i+5));
-  for(var ci=0;ci<chunks.length;ci++){
-    await Promise.all(chunks[ci].map(async function(item){
-      try{
-        var res=await fetch(JIRA_PROXY+'?issue='+encodeURIComponent(item.id),{
-          headers:{'Authorization':'Bearer '+KEY}
-        });
-        if(!res.ok){
-          item.el.innerHTML='<a href="https://venturasec.atlassian.net/browse/'+item.id+'" target="_blank" class="jira-id">'+item.id+'</a>';
-          return;
-        }
-        var data=await res.json();
-        _jiraCache[item.id]=data;
-        renderJiraCell(item.el,data);
-      } catch(e){
-        item.el.innerHTML='<a href="https://venturasec.atlassian.net/browse/'+item.id+'" target="_blank" class="jira-id">'+item.id+'</a>';
-      }
-    }));
-  }
-}
-
-function renderJiraCell(el,data){
-  var cat=(data.category||'').toLowerCase();
-  var cls='jira-todo';
-  if(cat==='in progress'||cat==='indeterminate') cls='jira-inprogress';
-  else if(cat==='done'||cat==='complete') cls='jira-done';
-  el.innerHTML='<div class="jira-badge">'
-    +'<a href="'+data.url+'" target="_blank" class="jira-id">'+data.id+'</a>'
-    +'<span class="jira-status '+cls+'">'+data.status+'</span>'
-    +'</div>';
-}
-
 // ── AUTO REFRESH ──────────────────────────────────────
-var _lastReqCount=0;
-var _lastTaskCount=0;
-var _knownTaskIds=new Set();
-
-setInterval(async function(){
-  try{
-    var prevReqCount=_lastReqCount;
-    var prevTaskCount=_lastTaskCount;
-
-    requests=await api('requests?select=*&order=created_at.desc');
-    tasks=await api('tasks?select=*&order=sort_order.asc,created_at.desc');
-
-    updateBadge();
-    if(view==='inbox'||view==='sprint')render();
-
-    var newReqCount=(requests||[]).length;
-    var newTaskCount=(tasks||[]).length;
-
-    // New PM request alert (head only)
-    if(currentRole==='head'&&_lastReqCount>0&&newReqCount>prevReqCount){
-      var newest=requests[0];
-      flashTab('📬 New PM request!',8);
-      playAlertSound();
-      toast('New PM request: '+(newest?newest.title:''),4000);
-    }
-
-    // New task assigned to ME (anyone logged in)
-    if(_knownTaskIds.size>0){
-      var myName=(currentUser||'').toLowerCase();
-      var myNewTasks=(tasks||[]).filter(function(t){
-        var names=(t.designer_names&&t.designer_names.length>0)?t.designer_names:(t.designer_name?[t.designer_name]:[]);
-        var mine=names.some(function(n){return (n||'').toLowerCase()===myName;});
-        return mine&&!_knownTaskIds.has(t.id);
-      });
-      if(myNewTasks.length>0){
-        var t0=myNewTasks[0];
-        flashTab('📋 New task assigned!',8);
-        playAlertSound();
-        toast('New task assigned to you: '+t0.name,5000);
-      }
-    }
-
-    // New task added alert (head only)
-    if(currentRole==='head'&&_lastTaskCount>0&&newTaskCount>prevTaskCount){
-      var newestTask=tasks[0];
-      flashTab('🆕 New task added!',8);
-      playAlertSound();
-      toast('New task: '+(newestTask?newestTask.name:''),4000);
-    }
-
-    _lastReqCount=newReqCount;
-    _lastTaskCount=newTaskCount;
-    _knownTaskIds=new Set((tasks||[]).map(function(t){return t.id;}));
-  }catch(e){}
-},30000);
+setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
 
 // ── ASK CHIRAG ────────────────────────────────────────
 var acMode='chat';
