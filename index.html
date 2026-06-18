@@ -278,6 +278,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" data-view="skills" onclick="go('skills')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="7,1.5 8.5,5 12.5,5.5 9.5,8.5 10.3,12.5 7,10.5 3.7,12.5 4.5,8.5 1.5,5.5 5.5,5" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linejoin="round"/></svg>Skills</div>
       <div class="ni" data-view="tracker" onclick="go('tracker')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M5 1v4M9 1v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M4 8h2M4 10.5h4M8.5 8l1 1 1.5-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily tracker</div>
       <div class="ni" data-view="shipped" onclick="go('shipped')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 11l3-3 2 2 5-6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1"/></svg>Shipped log</div>
+      <div class="ni" data-view="growthplans" onclick="go('growthplans')" id="growthPlansNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 12V8M5.5 12V5M9 12V7M12.5 12V3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Team plans</div>
       <div class="nl">Share</div>
       <div class="ni" data-view="pmform" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
       <div class="nl" id="nlAI">AI</div>
@@ -801,7 +802,7 @@ function go(v){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   var target=document.querySelector('.ni[data-view="'+v+'"]');
   if(target) target.classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -822,6 +823,7 @@ function render(){
   else if(view==='shipped'){c.innerHTML=vShipped();slLoadItems();}
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
   else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
+  else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -2774,9 +2776,9 @@ function applyRoleRestrictions(){
   }
 
   if(currentRole==='designer'){
-    // Hide PM request form nav item only
+    // Hide PM request form and Team plans nav items only
     allNis.forEach(function(ni){
-      if(ni.textContent.includes('PM request form')) ni.style.display='none';
+      if(ni.textContent.includes('PM request form')||ni.textContent.includes('Team plans')) ni.style.display='none';
     });
   }
 
@@ -2799,6 +2801,7 @@ function signOut(){
   sessionStorage.removeItem('dr_ok');
   sessionStorage.removeItem('dr_role');
   sessionStorage.removeItem('dr_user');
+  sessionStorage.removeItem('dr_acmode');
   currentRole=null;currentUser=null;
   const ind=document.getElementById('userIndicator');
   if(ind) ind.remove();
@@ -2916,7 +2919,7 @@ document.addEventListener('keydown',e=>{
 setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
 
 // ── ASK CHIRAG ────────────────────────────────────────
-var acMode='chat';
+var acMode=sessionStorage.getItem('dr_acmode')||'chat';
 var acHistory={chat:[],review:[],pm:[],growth:[]};
 var acLoading=false;
 var acHistoryLoaded={chat:false,review:false,pm:false,growth:false};
@@ -3007,10 +3010,7 @@ async function gpShare(){
   } catch(e){ toast('Could not share — try again'); }
 }
 
-function gpRenderPlanCard(plan,status){
-  var shareBtn=status==='shared'
-    ?'<span class="badge bl">Shared with Chirag</span>'
-    :'<button class="btn accent" onclick="gpShare()" style="font-size:11px">Share with Chirag</button>';
+function gpPlanRowsHtml(plan){
   var sections=[
     ['Current Strengths',plan.strengths],
     ['Growth Opportunities',Array.isArray(plan.growth_opportunities)?plan.growth_opportunities.join('; '):plan.growth_opportunities],
@@ -3021,10 +3021,67 @@ function gpRenderPlanCard(plan,status){
     ['Projects To Avoid',plan.avoid],
     ['Manager Notes',plan.manager_notes]
   ];
-  var rows=sections.map(function(s){
+  return sections.map(function(s){
     return '<div style="padding:10px 14px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">'+s[0]+'</div><div style="font-size:12px;color:var(--text);line-height:1.6">'+acEscape(s[1]||'—')+'</div></div>';
   }).join('');
-  return '<div class="panel" style="margin-top:14px"><div class="ph"><span class="pt">Your Quarterly Growth Plan — '+gpQuarter+'</span>'+shareBtn+'</div>'+rows+'</div>';
+}
+
+function gpRenderPlanCard(plan,status){
+  var shareBtn=status==='shared'
+    ?'<span class="badge bl">Shared with Chirag</span>'
+    :'<button class="btn accent" onclick="gpShare()" style="font-size:11px">Share with Chirag</button>';
+  return '<div class="panel" style="margin-top:14px"><div class="ph"><span class="pt">Your Quarterly Growth Plan — '+gpQuarter+'</span>'+shareBtn+'</div>'+gpPlanRowsHtml(plan)+'</div>';
+}
+
+// ── TEAM PLANS (head view of shared growth plans) ──────
+var gpTeamPlans=[];
+var gpTeamPlansLoaded=false;
+
+async function gpLoadTeamPlans(){
+  try{
+    var res=await fetch(SB+'/rest/v1/growth_plans?status=eq.shared&order=shared_at.desc',{headers:H});
+    var rows=await res.json();
+    gpTeamPlans=Array.isArray(rows)?rows:[];
+  } catch(e){ gpTeamPlans=[]; }
+  gpTeamPlansLoaded=true;
+  var c=document.getElementById('content');
+  if(c&&view==='growthplans') c.innerHTML=vGrowthPlans();
+}
+
+function gpToggleTeamCard(id){
+  var el=document.getElementById(id);
+  if(el) el.style.display=(el.style.display==='none'?'block':'none');
+}
+
+function gpTeamPlanCardHtml(row,idx){
+  var i=DESIGNERS.findIndex(function(d){return d.name===row.designer_name;});
+  var avatarClass=AV[(i<0?0:i)%AV.length];
+  var bodyId='gpTeamBody'+idx;
+  var sharedDate=row.shared_at?new Date(row.shared_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
+  var focusPreview=row.plan&&row.plan.recommended_focus?row.plan.recommended_focus:'—';
+  return '<div class="panel" style="margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer" onclick="gpToggleTeamCard(\''+bodyId+'\')">'
+    +'<div class="avatar '+avatarClass+'" style="width:30px;height:30px;font-size:11px;flex-shrink:0">'+iniFor(row.designer_name)+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--text)">'+row.designer_name+'<span style="font-size:10px;color:var(--text3);font-weight:400;margin-left:8px">'+row.quarter+'</span></div>'
+    +'<div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+acEscape(focusPreview)+'</div>'
+    +'</div>'
+    +'<span class="badge bl" style="flex-shrink:0">Shared '+sharedDate+'</span>'
+    +'</div>'
+    +'<div id="'+bodyId+'" style="display:none;border-top:1px solid var(--border)">'+(row.plan?gpPlanRowsHtml(row.plan):'<div class="empty">No plan data</div>')+'</div>'
+    +'</div>';
+}
+
+function vGrowthPlans(){
+  if(!gpTeamPlansLoaded){
+    return '<div class="section-row"><span class="st">Team plans</span></div><div class="empty">Loading shared growth plans…</div>';
+  }
+  if(gpTeamPlans.length===0){
+    return '<div class="section-row"><span class="st">Team plans</span></div>'
+      +'<div class="empty">No growth plans have been shared yet. Designers can share theirs from the growth tab in Ask Chirag once they finish a coaching conversation.</div>';
+  }
+  var cards=gpTeamPlans.map(function(row,i){return gpTeamPlanCardHtml(row,i);}).join('');
+  return '<div class="section-row"><span class="st">Team plans</span><span style="font-size:11px;color:var(--text3)">'+gpTeamPlans.length+' shared</span></div>'+cards;
 }
 
 async function acLoadHistory(mode){
@@ -3151,6 +3208,7 @@ function acRenderQuickPrompts(){
 }
 function acSetMode(m){
   acMode=m;
+  sessionStorage.setItem('dr_acmode',m);
   var c=document.getElementById('content');
   if(c) c.innerHTML=vAskChirag();
   setTimeout(async function(){
