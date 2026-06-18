@@ -2917,12 +2917,119 @@ setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at
 
 // ── ASK CHIRAG ────────────────────────────────────────
 var acMode='chat';
-var acHistory={chat:[],review:[],pm:[]};
+var acHistory={chat:[],review:[],pm:[],growth:[]};
 var acLoading=false;
-var acHistoryLoaded={chat:false,review:false,pm:false};
+var acHistoryLoaded={chat:false,review:false,pm:false,growth:false};
+var gpRow=null;
+var gpQuarter=getQuarterLabel();
+
+function getQuarterLabel(){
+  var d=new Date();
+  var q=Math.floor(d.getMonth()/3)+1;
+  return 'Q'+q+' '+d.getFullYear();
+}
+
+async function gpLoad(){
+  try{
+    var url=SB+'/rest/v1/growth_plans?designer_name=eq.'+encodeURIComponent(currentUser)+'&quarter=eq.'+encodeURIComponent(gpQuarter)+'&order=created_at.desc&limit=1';
+    var res=await fetch(url,{headers:H});
+    var rows=await res.json();
+    if(Array.isArray(rows)&&rows.length>0){
+      gpRow=rows[0];
+      acHistory.growth=gpRow.messages||[];
+    } else {
+      gpRow=null;
+      acHistory.growth=[];
+    }
+  } catch(e){ gpRow=null; acHistory.growth=[]; }
+  acHistoryLoaded.growth=true;
+}
+
+async function gpPersist(){
+  try{
+    if(gpRow&&gpRow.id){
+      await fetch(SB+'/rest/v1/growth_plans?id=eq.'+gpRow.id,{
+        method:'PATCH',headers:H,
+        body:JSON.stringify({messages:acHistory.growth,updated_at:new Date().toISOString()})
+      });
+    } else {
+      var res=await fetch(SB+'/rest/v1/growth_plans',{
+        method:'POST',headers:HR,
+        body:JSON.stringify({designer_name:currentUser,quarter:gpQuarter,messages:acHistory.growth,status:'in_progress'})
+      });
+      var rows=await res.json();
+      if(Array.isArray(rows)&&rows[0]) gpRow=rows[0];
+    }
+  } catch(e){}
+}
+
+function gpStripMarker(t){
+  var i=t.indexOf('===GROWTH_PLAN===');
+  return i===-1?t:t.slice(0,i).trim();
+}
+
+function gpCheckCompletion(reply){
+  var marker='===GROWTH_PLAN===';
+  var idx=reply.indexOf(marker);
+  if(idx===-1) return;
+  var jsonPart=reply.slice(idx+marker.length).trim().replace(/^```json/,'').replace(/^```/,'').replace(/```$/,'').trim();
+  try{
+    var plan=JSON.parse(jsonPart);
+    gpFinalizePlan(plan);
+  } catch(e){}
+}
+
+async function gpFinalizePlan(plan){
+  try{
+    if(gpRow&&gpRow.id){
+      await fetch(SB+'/rest/v1/growth_plans?id=eq.'+gpRow.id,{
+        method:'PATCH',headers:H,
+        body:JSON.stringify({plan:plan,status:'completed',updated_at:new Date().toISOString()})
+      });
+      gpRow.plan=plan;gpRow.status='completed';
+    }
+    var msgs=document.getElementById('acMessages');
+    if(msgs){msgs.innerHTML=acRenderHistory();acScrollBottom();}
+  } catch(e){}
+}
+
+async function gpShare(){
+  if(!gpRow||!gpRow.id) return;
+  try{
+    await fetch(SB+'/rest/v1/growth_plans?id=eq.'+gpRow.id,{
+      method:'PATCH',headers:H,
+      body:JSON.stringify({status:'shared',shared_at:new Date().toISOString()})
+    });
+    gpRow.status='shared';
+    var msgs=document.getElementById('acMessages');
+    if(msgs){msgs.innerHTML=acRenderHistory();}
+    toast('Shared with Chirag');
+  } catch(e){ toast('Could not share — try again'); }
+}
+
+function gpRenderPlanCard(plan,status){
+  var shareBtn=status==='shared'
+    ?'<span class="badge bl">Shared with Chirag</span>'
+    :'<button class="btn accent" onclick="gpShare()" style="font-size:11px">Share with Chirag</button>';
+  var sections=[
+    ['Current Strengths',plan.strengths],
+    ['Growth Opportunities',Array.isArray(plan.growth_opportunities)?plan.growth_opportunities.join('; '):plan.growth_opportunities],
+    ['Recommended Quarterly Focus',plan.recommended_focus],
+    ['Why',plan.why],
+    ['Success Criteria',plan.success_criteria],
+    ['Recommended Project Types',Array.isArray(plan.project_types)?plan.project_types.join('; '):plan.project_types],
+    ['Projects To Avoid',plan.avoid],
+    ['Manager Notes',plan.manager_notes]
+  ];
+  var rows=sections.map(function(s){
+    return '<div style="padding:10px 14px;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">'+s[0]+'</div><div style="font-size:12px;color:var(--text);line-height:1.6">'+acEscape(s[1]||'—')+'</div></div>';
+  }).join('');
+  return '<div class="panel" style="margin-top:14px"><div class="ph"><span class="pt">Your Quarterly Growth Plan — '+gpQuarter+'</span>'+shareBtn+'</div>'+rows+'</div>';
+}
 
 async function acLoadHistory(mode){
   if(acHistoryLoaded[mode]) return;
+  if(mode==='growth'){ await gpLoad(); return; }
   try{
     var res=await fetch(SB+'/rest/v1/chat_history?mode=eq.'+mode+'&order=created_at.asc&limit=50',{headers:H});
     var rows=await res.json();
@@ -2934,6 +3041,7 @@ async function acLoadHistory(mode){
 }
 
 async function acSaveMessage(mode,role,content){
+  if(mode==='growth'){ gpPersist(); return; }
   try{
     await fetch(SB+'/rest/v1/chat_history',{
       method:'POST',
@@ -2958,21 +3066,28 @@ var acSystemPrompts={
 
   review:'You are Chirag Khushalani reviewing a design — a screen, flow, spec, or concept — as Lead, Product Design at Ventura Securities with 10 years in fintech UX.\n\nYour review framework:\n1. First impression — what does a first-time user feel in the first 3 seconds?\n2. Hierarchy — is there a clear primary action? Does the eye flow logically?\n3. Information clarity — are data, labels, and states unambiguous?\n4. Edge cases — what happens with 0 state, error state, loading state, long text?\n5. Consistency — does this align with existing design system patterns?\n6. Mobile — does this hold up on a small screen?\n7. Business alignment — does this design serve the metric we are optimizing for?\n8. One thing to fix first — if they can only change one thing, what is it?\n\nBe specific. "The button is confusing" is not feedback. "The CTA label Proceed is ambiguous — proceed to what?" is feedback. For every problem, offer a direction. Use Chirag\'s natural voice — direct, considered, occasionally Hinglish.',
 
-  pm:'You are Chirag Khushalani triaging a PM request as Lead, Product Design at Ventura Securities.\n\nWhen a PM submits a request, your job is to:\n1. Understand the ask — restate it to confirm alignment\n2. Flag ambiguity — identify what is unclear, missing, or assumed\n3. Scope it — break into design tasks (flows, states, components, edge cases)\n4. Push back if needed — call out if this is too vague, solving the wrong problem, or missing research\n5. Estimate effort — Small (0.5-1 day), Medium (2-3 days), Large (3-5 days), XL (1+ week)\n6. Flag dependencies — what does design need before starting?\n7. Recommend next step — what should happen before a design brief is written?\n\nYou protect the team bandwidth. You push back on scope creep. You ask about the user problem, not just the feature request. Speak in outcomes, not deliverables. Occasionally Hinglish, always direct.'
+  pm:'You are Chirag Khushalani triaging a PM request as Lead, Product Design at Ventura Securities.\n\nWhen a PM submits a request, your job is to:\n1. Understand the ask — restate it to confirm alignment\n2. Flag ambiguity — identify what is unclear, missing, or assumed\n3. Scope it — break into design tasks (flows, states, components, edge cases)\n4. Push back if needed — call out if this is too vague, solving the wrong problem, or missing research\n5. Estimate effort — Small (0.5-1 day), Medium (2-3 days), Large (3-5 days), XL (1+ week)\n6. Flag dependencies — what does design need before starting?\n7. Recommend next step — what should happen before a design brief is written?\n\nYou protect the team bandwidth. You push back on scope creep. You ask about the user problem, not just the feature request. Speak in outcomes, not deliverables. Occasionally Hinglish, always direct.',
+
+  growth:'You are an experienced Head of Design and Design Coach running a quarterly growth-planning conversation with a designer on the Ventura Securities product design team. Your job is to identify ONE primary focus area for next quarter — not three, not a vague list, one.\n\nAsk questions one at a time. Do not jump to conclusions. If an answer is vague or just restates something already said, push for a specific, concrete example before moving on — the way a good manager would in a real 1:1, not a survey.\n\nCover these areas over the course of the conversation, in whatever order feels natural based on their answers:\n1. What work they have enjoyed most in the last 6 months, and why — get a specific example, not a category.\n2. What work they have enjoyed least, and why.\n3. What they are currently known for on the team.\n4. What they would like to be known for 12 months from now.\n5. Which activities give them the most energy — Visual Design, Product Thinking, User Research, Design Systems, Strategy, AI & Prototyping, Stakeholder Management, Mentoring, UX Writing, Interaction Design.\n6. What skills they feel are holding them back today.\n7. What role they want in the next 1-2 years — Senior Product Designer, Lead Designer, Design Manager, Design Systems Specialist, Staff/Principal Designer, or something else.\n8. What project from the last year they are most proud of.\n9. Where they struggle most — Ambiguity, Presentations, Product Thinking, Stakeholder Alignment, Visual Design, Systems Thinking, Research, Execution.\n10. If they could improve only ONE capability this quarter, what would create the biggest career impact.\n\nYour tone: direct, warm, no-fluff — the way Chirag actually talks. Occasional Hinglish is fine, but do not perform it. You set a high bar but you are on their side.\n\nOnly finalize once you have real signal across most of these areas — usually 6 to 8 solid exchanges, not 2 or 3. Do not finalize just because the conversation has gone on a while; finalize because you actually have enough to make a confident, specific recommendation.\n\nWhen you are ready to finalize, write a short closing message to the designer summarising what you heard, then on a new line write exactly:\n===GROWTH_PLAN===\nfollowed immediately by a single valid JSON object — no markdown code fences, no extra commentary after it — with exactly these keys:\n{"strengths":"...","growth_opportunities":["...","...","..."],"recommended_focus":"...","why":"...","success_criteria":"...","project_types":["...","..."],"avoid":"...","manager_notes":"..."}\n\nKeep every field specific to what this designer actually said — never generic boilerplate. growth_opportunities must have exactly 3 items. project_types should have 2 to 3 items. manager_notes should be concrete advice for Chirag, not platitudes. Keep each field to 2-4 sentences.'
 };
 
 var acQuickPrompts={
   chat:['what is your design philosophy?','how do you handle scope creep?','what makes a good fintech UX?','how should the team prioritise?'],
   review:['what to check in an onboarding flow?','how do you review for mobile?','what does a good trading UI look like?','what do designers miss most often?'],
-  pm:['I need a new filter UI for the portfolio page','add a notifications centre to the app','we need to redesign the KYC flow ASAP','can you quickly add a dark mode?']
+  pm:['I need a new filter UI for the portfolio page','add a notifications centre to the app','we need to redesign the KYC flow ASAP','can you quickly add a dark mode?'],
+  growth:['I\'m ready to start']
 };
 
 function vAskChirag(){
+  if(acMode==='growth'&&currentRole!=='designer') acMode='chat';
   var html='<div style="display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden">';
   html+='<div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center">';
   html+='<button class="fb'+(acMode==='chat'?' active':'')+'" data-acmode="chat" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='chat'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">general</button>';
   html+='<button class="fb'+(acMode==='review'?' active':'')+'" data-acmode="review" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='review'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">design review</button>';
   html+='<button class="fb'+(acMode==='pm'?' active':'')+'" data-acmode="pm" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='pm'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">pm triage</button>';
+  if(currentRole==='designer'){
+    html+='<button class="fb'+(acMode==='growth'?' active':'')+'" data-acmode="growth" onclick="acSetMode(this.dataset.acmode)" style="border-radius:0;border:none;border-bottom:2px solid '+(acMode==='growth'?'var(--accent)':'transparent')+';padding:10px 16px;font-size:11px">growth</button>';
+  }
   html+='<div style="flex:1"></div>';
   html+='<button class="fb" onclick="if(confirm(\'Clear this conversation?\'))acClearHistory(acMode)" style="font-size:10px;padding:4px 10px;margin-right:8px;opacity:.4">clear</button>';
   html+='</div>';
@@ -2994,10 +3109,10 @@ function vAskChirag(){
 function acRenderHistory(){
   var h=acHistory[acMode];
   if(h.length===0){
-    var descs={chat:'Design decisions, team guidance, fintech UX opinions — answered the way Chirag would.',review:'Describe a screen or flow — I will review it the way I would in a crit session.',pm:'Drop a PM request — I will scope it, flag gaps, and tell you what we need before design starts.'};
+    var descs={chat:'Design decisions, team guidance, fintech UX opinions — answered the way Chirag would.',review:'Describe a screen or flow — I will review it the way I would in a crit session.',pm:'Drop a PM request — I will scope it, flag gaps, and tell you what we need before design starts.',growth:'A private space to figure out your one focus area for the quarter. Nothing here is visible to Chirag until you choose to share the finished plan.'};
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;text-align:center;gap:12px">'
       +'<div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff">CK</div>'
-      +'<div style="font-size:14px;font-weight:500;color:var(--text)">Ask Chirag anything</div>'
+      +'<div style="font-size:14px;font-weight:500;color:var(--text)">'+(acMode==='growth'?'Plan your quarter':'Ask Chirag anything')+'</div>'
       +'<div style="font-size:12px;color:var(--text3);max-width:300px;line-height:1.6">'+descs[acMode]+'</div>'
       +'</div>';
   }
@@ -3008,20 +3123,24 @@ function acRenderHistory(){
         +'<div style="max-width:75%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;border-top-right-radius:2px;padding:9px 13px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word">'+acEscape(msg.content)+'</div>'
         +'</div>';
     } else {
-      var tagColor=acMode==='review'?'color:#5b8dee;background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.2)':acMode==='pm'?'color:var(--red);background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2)':'color:var(--accent);background:var(--accent-bg,rgba(212,168,75,.08));border:1px solid rgba(212,168,75,.2)';
-      var tagLabel=acMode==='review'?'design review':acMode==='pm'?'pm triage':'general';
+      var tagColor=acMode==='review'?'color:#5b8dee;background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.2)':acMode==='pm'?'color:var(--red);background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2)':acMode==='growth'?'color:var(--green);background:var(--green-light);border:1px solid rgba(29,158,117,.2)':'color:var(--accent);background:var(--accent-bg,rgba(212,168,75,.08));border:1px solid rgba(212,168,75,.2)';
+      var tagLabel=acMode==='review'?'design review':acMode==='pm'?'pm triage':acMode==='growth'?'growth coach':'general';
+      var bodyText=acMode==='growth'?gpStripMarker(msg.content):msg.content;
       html+='<div style="display:flex;gap:8px;margin:4px 0;align-items:flex-start">'
         +'<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0;margin-top:2px">CK</div>'
         +'<div style="max-width:80%">'
         +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:var(--mono,monospace)">chirag</div>'
         +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;border-top-left-radius:2px;padding:9px 13px;font-size:13px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word">'
         +'<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin-bottom:6px;font-family:var(--mono,monospace);'+tagColor+'">'+tagLabel+'</span>\n'
-        +acFormatText(msg.content)
+        +acFormatText(bodyText)
         +'</div>'
         +'</div>'
         +'</div>';
     }
   });
+  if(acMode==='growth'&&gpRow&&gpRow.plan){
+    html+=gpRenderPlanCard(gpRow.plan,gpRow.status);
+  }
   return html;
 }
 
@@ -3098,17 +3217,19 @@ async function acSend(){
   }
   try{
     var messages=acHistory[acMode].map(function(m){return{role:m.role,content:m.content};});
-    var model=acMode==='review'?'claude-sonnet-4-20250514':'claude-haiku-4-5-20251001';
+    var model=(acMode==='review'||acMode==='growth')?'claude-sonnet-4-20250514':'claude-haiku-4-5-20251001';
+    var maxTok=acMode==='growth'?1600:1000;
     var res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:model,max_tokens:1000,system:acSystemPrompts[acMode],messages:messages})
+      body:JSON.stringify({model:model,max_tokens:maxTok,system:acSystemPrompts[acMode],messages:messages})
     });
     var data=await res.json();
     var reply=(data.content&&data.content[0]&&data.content[0].text)?data.content[0].text
       :(data.error?'API error: '+data.error.message:'Something went wrong yaar — try again.');
     acHistory[acMode].push({role:'assistant',content:reply});
     acSaveMessage(acMode,'assistant',reply);
+    if(acMode==='growth') gpCheckCompletion(reply);
   } catch(e){
     acHistory[acMode].push({role:'assistant',content:'Connection issue — try again in a moment.'});
   }
