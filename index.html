@@ -283,6 +283,8 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px}
       <div class="ni" data-view="pmform" onclick="go('pmform')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2H4a1 1 0 00-1 1v8a1 1 0 001 1h6a1 1 0 001-1V7M7 2l4 4M7 2v4h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>PM request form</div>
       <div class="nl" id="nlAI">AI</div>
       <div class="ni" data-view="askchirag" onclick="go('askchirag')" id="askchiragNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 5v1.5M6.3 3.8c0-.4.3-.8.7-.8s.7.35.7.8c0 .3-.15.55-.38.68L7 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Ask Chirag</div>
+      <div class="nl">Intel</div>
+      <div class="ni" data-view="pulse" onclick="go('pulse')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="3" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><line x1="7" y1="1.5" x2="10" y2="4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Market Pulse</div>
     </div>
 
   </div>
@@ -802,7 +804,7 @@ function go(v){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   var target=document.querySelector('.ni[data-view="'+v+'"]');
   if(target) target.classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -824,6 +826,7 @@ function render(){
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
   else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
   else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
+  else if(view==='pulse'){c.innerHTML=vPulse();setTimeout(loadPulse,100);}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -2914,6 +2917,93 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){['moAdd','moUX','moSkill','moEditRating','moTodo','moGoal','moProgress','moAssign','moMissed','moDiscard'].forEach(id=>closeModal(id));}
   if(e.key==='r'){loadAll();toast('Refreshing…');}
 });
+
+// ── MARKET PULSE ──────────────────────────────────────
+const PULSE_FEEDS = [
+  {id:'zerodha',   label:'Zerodha',      url:'https://zerodha.com/z-connect/feed',    cat:'competitor', color:'#387ED1'},
+  {id:'groww',     label:'Groww',        url:'https://groww.in/blog/feed',            cat:'competitor', color:'#5367FF'},
+  {id:'dhan',      label:'Dhan',         url:'https://dhan.co/blog/feed',             cat:'competitor', color:'#FF6B35'},
+  {id:'fivepaisa', label:'5paisa',       url:'https://5paisa.com/rss/blog.xml',       cat:'competitor', color:'#E31837'},
+  {id:'uxcol',     label:'UX Collective',url:'https://uxdesign.cc/feed',              cat:'design',     color:'#0066CC'},
+  {id:'nngroup',   label:'Nielsen Norman',url:'https://www.nngroup.com/feed/rss/',    cat:'design',     color:'#CC0000'},
+];
+const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
+var _pulseCache = {};
+var _pulseFilter = 'all';
+
+function vPulse(){
+  return '<div class="section-row"><span class="st">Market Pulse</span>'
+    +'<div class="filters" style="display:flex;align-items:center;gap:6px">'
+    +'<button class="fb '+(_pulseFilter==='all'?'active':'')+'" data-f="all" onclick="setPF(\'all\',this)">All</button>'
+    +'<button class="fb '+(_pulseFilter==='competitor'?'active':'')+'" data-f="competitor" onclick="setPF(\'competitor\',this)">🏦 Competitors</button>'
+    +'<button class="fb '+(_pulseFilter==='design'?'active':'')+'" data-f="design" onclick="setPF(\'design\',this)">🎨 Design</button>'
+    +'<button class="btn" style="margin-left:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
+    +'</div></div>'
+    +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:4px">'
+    +'<div class="empty" style="grid-column:1/-1">Loading feeds…</div>'
+    +'</div>';
+}
+
+function setPF(f,btn){
+  _pulseFilter=f;
+  document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderPulseGrid();
+}
+
+async function loadPulse(force){
+  var grid=document.getElementById('pulseGrid');
+  if(!grid) return;
+  if(!force && Object.keys(_pulseCache).length>0){renderPulseGrid();return;}
+  grid.innerHTML='<div class="empty" style="grid-column:1/-1">⟳ Fetching latest updates…</div>';
+  var feeds=PULSE_FEEDS;
+  await Promise.all(feeds.map(async function(feed){
+    try{
+      var res=await fetch(PULSE_PROXY+'?url='+encodeURIComponent(feed.url),{headers:{'Authorization':'Bearer '+KEY}});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var data=await res.json();
+      _pulseCache[feed.id]={feed:feed,items:data.items||[]};
+    }catch(e){
+      _pulseCache[feed.id]={feed:feed,items:[],error:e.message};
+    }
+  }));
+  renderPulseGrid();
+}
+
+function renderPulseGrid(){
+  var grid=document.getElementById('pulseGrid');
+  if(!grid) return;
+  var feeds=PULSE_FEEDS.filter(function(f){return _pulseFilter==='all'||f.cat===_pulseFilter;});
+  var html='';
+  feeds.forEach(function(feed){
+    var cached=_pulseCache[feed.id];
+    var items=cached?cached.items:[];
+    var error=cached?cached.error:null;
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden">';
+    html+='<div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">';
+    html+='<span style="width:8px;height:8px;border-radius:50%;background:'+feed.color+';display:inline-block;flex-shrink:0"></span>';
+    html+='<span style="font-weight:600;font-size:12px;color:var(--text1)">'+feed.label+'</span>';
+    html+='<span style="font-size:10px;color:var(--text3);margin-left:auto;background:var(--surface2);padding:1px 6px;border-radius:8px">'+(feed.cat==='competitor'?'Competitor':'Design')+'</span>';
+    html+='</div>';
+    html+='<div style="padding:8px 0">';
+    if(error){
+      html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">Could not load feed</div>';
+    } else if(items.length===0){
+      html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No items found</div>';
+    } else {
+      items.slice(0,5).forEach(function(item){
+        var date=item.date?new Date(item.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+        html+='<a href="'+item.link+'" target="_blank" style="display:block;padding:8px 14px;text-decoration:none;border-bottom:1px solid var(--border)">';
+        html+='<div style="font-size:11px;font-weight:500;color:var(--text1);line-height:1.4;margin-bottom:3px">'+item.title+'</div>';
+        html+='<div style="font-size:10px;color:var(--text3)">'+date+'</div>';
+        html+='</a>';
+      });
+    }
+    html+='</div></div>';
+  });
+  if(!html) html='<div class="empty" style="grid-column:1/-1">No feeds match this filter</div>';
+  grid.innerHTML=html;
+}
 
 // ── AUTO REFRESH ──────────────────────────────────────
 setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
