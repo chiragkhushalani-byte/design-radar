@@ -36,7 +36,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--t
 .logomark{width:22px;height:22px;border-radius:6px;background:var(--blue);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow-blue)}
 .logo-text{font-size:14px;font-weight:500;letter-spacing:-.01em;color:var(--text)}
 .nav{padding:8px;flex:1;overflow-y:auto}
-.nl{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;padding:10px 8px 4px}
+.nl{font-size:10px;color:#5A6478;letter-spacing:.07em;text-transform:uppercase;padding:10px 8px 4px}
 .ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--r-md);font-size:13px;color:var(--text2);cursor:pointer;transition:all .12s;user-select:none}
 .ni:hover{background:var(--surface2);color:var(--text)}
 .ni.active{background:rgba(0,122,255,0.18);color:var(--blue);font-weight:500;box-shadow:inset 2px 0 0 var(--blue)}
@@ -74,9 +74,9 @@ tr.task-row.dragging{opacity:.35}
 tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shadow:inset 0 0 12px rgba(0,122,255,0.12)}
 .badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
 .bc{background:rgba(255,59,92,0.18);color:var(--red)}.bh{background:rgba(255,179,71,0.18);color:var(--amber)}
-.bm{background:var(--blue-light);color:var(--blue)}.bl{background:var(--green-light);color:var(--green)}
+.bm{background:var(--blue-light);color:var(--blue)}.bl{background:rgba(57,255,20,0.1);color:var(--green)}
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
-.s-review{background:rgba(255,179,71,0.15);color:var(--amber)}.s-done{background:var(--green-light);color:var(--green)}
+.s-review{background:rgba(255,179,71,0.15);color:var(--amber)}.s-done{background:rgba(57,255,20,0.1);color:var(--green)}
 .s-live{background:rgba(57,255,20,0.15);color:#39FF14;border:1px solid rgba(57,255,20,0.3)}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:rgba(255,59,92,0.15);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
 .mb-btn{background:none;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;padding:3px 8px;letter-spacing:1px;font-family:inherit;transition:all .12s;line-height:1}
@@ -95,7 +95,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shado
 .bf-red{background:linear-gradient(90deg,#CC1030,#FF3B5C);box-shadow:0 0 6px rgba(255,59,92,0.4)}
 .bf-purple{background:linear-gradient(90deg,#8830CC,#BF5AF2);box-shadow:0 0 6px rgba(191,90,242,0.4)}
 .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
-.av0{background:var(--blue-light);color:var(--blue)}.av1{background:var(--green-light);color:var(--green)}
+.av0{background:var(--blue-light);color:var(--blue)}.av1{background:rgba(57,255,20,0.1);color:var(--green)}
 .av2{background:var(--purple-light);color:var(--purple)}.av3{background:rgba(255,179,71,0.2);color:var(--amber)}.av4{background:rgba(0,229,255,0.15);color:var(--cyan)}
 .log-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .1s}
 .log-row:last-child{border-bottom:none}
@@ -255,7 +255,7 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shado
 .pm-view .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .pm-view .err-banner{background:rgba(255,59,92,0.12);border:1px solid rgba(255,59,92,0.3);border-radius:var(--r-md);padding:10px 14px;font-size:12px;color:var(--red);display:none}
 .pm-view .success{width:100%;max-width:520px;text-align:center;padding:48px 24px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;display:none}
-.pm-view .success-icon{width:48px;height:48px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:var(--glow-green)}
+.pm-view .success-icon{width:48px;height:48px;border-radius:50%;background:rgba(57,255,20,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:var(--glow-green)}
 .pm-view .success-title{font-size:18px;font-weight:500;letter-spacing:-.02em;margin-bottom:8px}
 .pm-view .success-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:24px}
 .pm-view .success-detail{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;text-align:left;margin-bottom:24px}
@@ -918,7 +918,7 @@ function vDash(){
   const barCols=dm.slice(0,5).map(d=>{const pct=Math.round((d[1].mins/maxM)*100)||2;return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="font-size:9px;color:var(--text2);font-weight:500">'+fmtM(d[1].mins)+'</div><div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:'+pct+'%;min-height:3px"></div><div style="font-size:9px;color:var(--text3)">'+d[0].slice(0,3)+'</div></div>';}).join('');
   const reqCards=(requests||[]).filter(r=>!r.assigned).slice(0,3).map(function(r){
     const flags=getSmartFlags(r);
-    const flagBadge=flags.length?'<span style="font-size:10px;background:var(--amber-light);color:var(--amber);padding:1px 6px;border-radius:10px;font-weight:500;margin-left:4px">'+flags.length+' flag'+(flags.length>1?'s':'')+'</span>':'';
+    const flagBadge=flags.length?'<span style="font-size:10px;background:rgba(255,179,71,0.12);color:var(--amber);padding:1px 6px;border-radius:10px;font-weight:500;margin-left:4px">'+flags.length+' flag'+(flags.length>1?'s':'')+'</span>':'';
     return '<div class="inbox-item"><div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:3px"><div class="ii-dot'+(r.read?' read':'')+'"></div><span style="font-size:12px;font-weight:500;flex:1">'+r.title+'</span>'+flagBadge+'</div><div style="padding-left:13px;font-size:10px;color:var(--text3)">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span></div></div>';
   }).join('')||'<div class="empty">No pending requests</div>';
   return metrics()
@@ -998,11 +998,11 @@ function vInbox(){
     +'<div class="ii-dot'+(r.read?' read':'')+'"></div>'
     +'<span style="font-size:13px;font-weight:500;flex:1">'+r.title+'</span>'
     +(r.assigned
-      ?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>'
+      ?'<span style="font-size:10px;background:rgba(57,255,20,0.1);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">assigned</span>'
       :r.discarded
         ?'<span style="font-size:10px;background:var(--surface2);color:var(--text3);padding:1px 7px;border-radius:10px;font-weight:500">discarded</span>'
         :currentRole==='head'
-          ?'<div style="display:flex;gap:4px"><button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button><button style="font-size:10px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--r-md);padding:3px 8px;cursor:pointer;font-family:var(--font);font-weight:500" data-rid="'+r.id+'" onclick="openDiscardModal(this.dataset.rid)">Discard</button></div>'
+          ?'<div style="display:flex;gap:4px"><button class="assign-btn" data-rid="'+r.id+'" onclick="openAssignModal(this.dataset.rid)">Assign →</button><button style="font-size:10px;background:rgba(255,59,92,0.12);color:var(--red);border:none;border-radius:var(--r-md);padding:3px 8px;cursor:pointer;font-family:var(--font);font-weight:500" data-rid="'+r.id+'" onclick="openDiscardModal(this.dataset.rid)">Discard</button></div>'
           :'<span style="font-size:10px;color:var(--text3)">pending</span>')
     +'</div>'
     +'<div style="padding-left:13px;font-size:11px;color:var(--text3);margin-bottom:3px">'+r.pm_name+' · '+r.product+' · <span class="badge '+(r.urgency==='high'?'bc':r.urgency==='medium'?'bh':'bl')+'">'+r.urgency+'</span>'+(r.deadline?' · Due '+fmtD(r.deadline):'')+'</div>'
@@ -1061,7 +1061,7 @@ function vCapacity(){
     const l=load[d.name];const pct=Math.min(Math.round((l.effort/10)*100),100);
     const over=l.count>5,avail=l.count<=2;
     const fc=over?'bf-red':l.count>3?'bf-amber':'bf-green';
-    const tag=over?'<span style="font-size:10px;background:var(--red-light);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>':avail?'<span style="font-size:10px;background:var(--green-light);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>':'';
+    const tag=over?'<span style="font-size:10px;background:rgba(255,59,92,0.12);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>':avail?'<span style="font-size:10px;background:rgba(57,255,20,0.1);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>':'';
     const chips=l.tasks.map(t=>'<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">'+(t.name.length>20?t.name.slice(0,20)+'…':t.name)+'</span>').join('');
     return '<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div class="avatar '+AV[i%AV.length]+'">'+d.initials+'</div><span style="font-size:13px;font-weight:500;flex:1">'+d.name+'</span><span style="font-size:11px;color:var(--text3)">'+l.count+' tasks · '+l.effort+'/10 pts · '+fmtM(l.mins)+'</span>'+tag+'</div><div style="padding-left:36px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="bar-bg"><div class="bar-fill '+fc+'" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--text3);min-width:28px">'+pct+'%</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div></div>';
   }).join('');
@@ -1795,7 +1795,7 @@ function vTracker(){
   // Summary row
   const summaryBar = '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +'<div style="background:var(--surface2);border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500">'+dayTodos.length+'</span> <span style="color:var(--text3)">total</span></div>'
-    +'<div style="background:var(--green-light);border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:var(--green)">'+totalDone+'</span> <span style="color:var(--text3)">done</span></div>'
+    +'<div style="background:rgba(57,255,20,0.1);border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:var(--green)">'+totalDone+'</span> <span style="color:var(--text3)">done</span></div>'
     +'<div style="background:'+(totalPending>0?'var(--amber-light)':'var(--surface2)')+';border-radius:var(--r-md);padding:8px 14px;font-size:12px"><span style="font-weight:500;color:'+(totalPending>0?'var(--amber)':'var(--text2)')+'">'+totalPending+'</span> <span style="color:var(--text3)">pending</span></div>'
     +'</div>';
 
@@ -1822,20 +1822,20 @@ function vTracker(){
           const todoItems = dTodos.map(function(t){
             return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);margin-bottom:4px">'
               +'<span style="flex:1;font-size:12px;color:var(--text)">'+t.task+'</span>'
-              +'<button class="btn" style="font-size:10px;padding:2px 8px;color:var(--amber);border-color:var(--amber);white-space:nowrap;flex-shrink:0" data-tid="'+t.id+'" onclick="openMissedModal(this.dataset.tid)">Review</button>'
+              +'<button class="btn" style="font-size:10px;padding:2px 8px;color:var(--amber);border-color:rgba(255,179,71,0.4);background:rgba(255,179,71,0.08);white-space:nowrap;flex-shrink:0" data-tid="'+t.id+'" onclick="openMissedModal(this.dataset.tid)">Review</button>'
               +'</div>';
           }).join('');
-          return '<div style="background:rgba(255,255,255,0.55);border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(239,159,39,0.2)">'
+          return '<div style="background:var(--surface2);border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(255,179,71,0.18)">'
             +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer" onclick="toggleMissedDesigner(this)" data-open="0">'
             +'<div class="avatar '+av+'" style="width:22px;height:22px;font-size:9px">'+iniFor(dName)+'</div>'
             +'<span style="font-size:12px;font-weight:500;color:var(--text);flex:1">'+dName+'</span>'
-            +'<span style="font-size:10px;color:var(--amber);background:var(--amber-light);padding:1px 7px;border-radius:10px;border:1px solid #EF9F27;font-weight:500">'+dTodos.length+' pending</span>'
+            +'<span style="font-size:10px;color:var(--amber);background:rgba(255,179,71,0.12);padding:1px 7px;border-radius:10px;border:1px solid rgba(255,179,71,0.35);font-weight:500">'+dTodos.length+' pending</span>'
             +'<svg style="transition:transform .2s;flex-shrink:0" class="acc-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="#FFB347" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
             +'</div>'
             +'<div class="acc-body" style="display:none;padding:0 12px 10px">'+todoItems+'</div>'
             +'</div>';
         }).join('');
-        return '<div id="'+accordionId+'" style="background:var(--amber-light);border:1px solid #EF9F27;border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px">'
+        return '<div id="'+accordionId+'" style="background:rgba(255,179,71,0.06);border:1px solid rgba(255,179,71,0.35);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px;box-shadow:0 0 20px rgba(255,179,71,0.08)">'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
           +'<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2z" stroke="#FFB347" stroke-width="1.3"/><path d="M8 6v3" stroke="#FFB347" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11" r="0.5" fill="#FFB347" stroke="#FFB347"/></svg>'
           +'<span style="font-size:13px;font-weight:500;color:var(--amber)">'+total+' pending todo'+(total>1?'s':'')+' from yesterday</span>'
@@ -2224,7 +2224,7 @@ function renderSmartFlags(r){
     + flags.map(function(f){
         const isCrit = f.type === 'critical';
         return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:500;'
-          +'padding:2px 8px;border-radius:20px;background:'+(isCrit?'var(--red-light)':'var(--amber-light)')
+          +'padding:2px 8px;border-radius:20px;background:'+(isCrit?'rgba(255,59,92,0.15)':'rgba(255,179,71,0.12)')
           +';color:'+(isCrit?'var(--red)':'var(--amber)')+'">'
           +(isCrit?'🚨':'⚠️')+' '+f.text+'</span>';
       }).join('')
@@ -2258,7 +2258,7 @@ function vShipped(){
     +'.sl-tag-opts button.act-high{background:rgba(255,59,92,0.15);border-color:rgba(255,59,92,0.4);color:#FF3B5C}'
     +'.sl-mact{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}'
     +'.sl-empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}'
-    +'.sl-err{background:var(--red-light);border:1px solid #F09595;border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}'
+    +'.sl-err{background:rgba(255,59,92,0.12);border:1px solid #F09595;border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}'
     +'.sl-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}'
     +'.sl-col{flex:0 0 260px;display:flex;flex-direction:column;gap:0}'
     +'.sl-col-hdr{padding:12px 14px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg) var(--r-lg) 0 0;border-bottom:none}'
@@ -2593,7 +2593,7 @@ function daysInBucketBadge(task){
   const days = daysInBucket(task);
   if(days === null) return '—';
   const color = days > 7 ? 'var(--red)' : days > 3 ? 'var(--amber)' : 'var(--green)';
-  const bg    = days > 7 ? 'var(--red-light)' : days > 3 ? 'var(--amber-light)' : 'var(--green-light)';
+  const bg    = days > 7 ? 'rgba(255,59,92,0.15)' : days > 3 ? 'rgba(255,179,71,0.15)' : 'rgba(57,255,20,0.12)';
   const label = days === 0 ? 'Today' : days === 1 ? '1 day' : days + ' days';
   return '<span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:'+bg+';color:'+color+'">'+label+'</span>';
 }
@@ -3330,7 +3330,7 @@ function acRenderHistory(){
         +'<div style="max-width:75%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;border-top-right-radius:2px;padding:9px 13px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word">'+acEscape(msg.content)+'</div>'
         +'</div>';
     } else {
-      var tagColor=acMode==='review'?'color:#5b8dee;background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.2)':acMode==='pm'?'color:var(--red);background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2)':acMode==='growth'?'color:var(--green);background:var(--green-light);border:1px solid rgba(29,158,117,.2)':'color:var(--accent);background:var(--accent-bg,rgba(212,168,75,.08));border:1px solid rgba(212,168,75,.2)';
+      var tagColor=acMode==='review'?'color:#5b8dee;background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.2)':acMode==='pm'?'color:var(--red);background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2)':acMode==='growth'?'color:var(--green);background:rgba(57,255,20,0.1);border:1px solid rgba(29,158,117,.2)':'color:var(--accent);background:var(--accent-bg,rgba(212,168,75,.08));border:1px solid rgba(212,168,75,.2)';
       var tagLabel=acMode==='review'?'design review':acMode==='pm'?'pm triage':acMode==='growth'?'growth coach':'general';
       var bodyText=acMode==='growth'?gpStripMarker(msg.content):msg.content;
       html+='<div style="display:flex;gap:8px;margin:4px 0;align-items:flex-start">'
