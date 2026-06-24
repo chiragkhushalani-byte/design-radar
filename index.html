@@ -2930,24 +2930,52 @@ const PULSE_FEEDS = [
 const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
 var _pulseCache = {};
 var _pulseFilter = 'all';
+var _pulseSmartFilter = true;
+
+// Keywords that indicate product/design relevance
+const PULSE_KEYWORDS = [
+  'design','ui','ux','feature','app','update','launch','product','experience',
+  'interface','onboarding','dashboard','mobile','flow','screen','user','usability',
+  'navigation','button','chart','portfolio','order','trading','watchlist','widget',
+  'notification','dark mode','redesign','revamp','new','improved','introducing',
+  'platform','web','kite','coin','console','mutual fund','sip','invest','discovery',
+  'search','filter','performance','speed','error','bug fix','release','version'
+];
+
+function isPulseRelevant(item){
+  var text=(item.title+' '+(item.summary||'')).toLowerCase();
+  return PULSE_KEYWORDS.some(function(kw){return text.indexOf(kw)>=0;});
+}
 
 function vPulse(){
   return '<div class="section-row"><span class="st">Market Pulse</span>'
-    +'<div class="filters" style="display:flex;align-items:center;gap:6px">'
+    +'<div class="filters" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<button class="fb '+(_pulseFilter==='all'?'active':'')+'" data-f="all" onclick="setPF(\'all\',this)">All</button>'
     +'<button class="fb '+(_pulseFilter==='competitor'?'active':'')+'" data-f="competitor" onclick="setPF(\'competitor\',this)">🏦 Competitors</button>'
     +'<button class="fb '+(_pulseFilter==='design'?'active':'')+'" data-f="design" onclick="setPF(\'design\',this)">🎨 Design</button>'
-    +'<button class="btn" style="margin-left:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
+    +'<div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>'
+    +'<button class="fb '+(_pulseSmartFilter?'active':'')+'" onclick="togglePulseSmartFilter(this)" style="'+(  _pulseSmartFilter?'':'opacity:0.6')+'">✦ Product & Design only</button>'
+    +'<button class="btn" style="margin-left:4px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
     +'</div></div>'
     +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:4px">'
     +'<div class="empty" style="grid-column:1/-1">Loading feeds…</div>'
     +'</div>';
 }
 
+function togglePulseSmartFilter(btn){
+  _pulseSmartFilter=!_pulseSmartFilter;
+  btn.classList.toggle('active',_pulseSmartFilter);
+  btn.style.opacity=_pulseSmartFilter?'1':'0.6';
+  renderPulseGrid();
+}
+
 function setPF(f,btn){
   _pulseFilter=f;
   document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
+  // re-highlight smart filter btn since querySelectorAll removed it
+  var sf=document.querySelector('[onclick*="togglePulseSmartFilter"]');
+  if(sf&&_pulseSmartFilter) sf.classList.add('active');
   renderPulseGrid();
 }
 
@@ -2956,8 +2984,7 @@ async function loadPulse(force){
   if(!grid) return;
   if(!force && Object.keys(_pulseCache).length>0){renderPulseGrid();return;}
   grid.innerHTML='<div class="empty" style="grid-column:1/-1">⟳ Fetching latest updates…</div>';
-  var feeds=PULSE_FEEDS;
-  await Promise.all(feeds.map(async function(feed){
+  await Promise.all(PULSE_FEEDS.map(async function(feed){
     try{
       var res=await fetch(PULSE_PROXY+'?url='+encodeURIComponent(feed.url),{headers:{'Authorization':'Bearer '+KEY}});
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -2977,23 +3004,32 @@ function renderPulseGrid(){
   var html='';
   feeds.forEach(function(feed){
     var cached=_pulseCache[feed.id];
-    var items=cached?cached.items:[];
+    var allItems=cached?cached.items:[];
     var error=cached?cached.error:null;
+    // Apply smart filter
+    var items=_pulseSmartFilter?allItems.filter(isPulseRelevant):allItems;
+    var filtered=_pulseSmartFilter&&allItems.length>0&&items.length<allItems.length;
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden">';
+    // Header
     html+='<div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">';
     html+='<span style="width:8px;height:8px;border-radius:50%;background:'+feed.color+';display:inline-block;flex-shrink:0"></span>';
     html+='<span style="font-weight:600;font-size:12px;color:var(--text1)">'+feed.label+'</span>';
+    if(filtered) html+='<span style="font-size:9px;color:var(--text3);background:var(--surface2);padding:1px 5px;border-radius:6px">'+items.length+' relevant</span>';
     html+='<span style="font-size:10px;color:var(--text3);margin-left:auto;background:var(--surface2);padding:1px 6px;border-radius:8px">'+(feed.cat==='competitor'?'Competitor':'Design')+'</span>';
     html+='</div>';
+    // Items
     html+='<div style="padding:8px 0">';
     if(error){
       html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">Could not load feed</div>';
+    } else if(items.length===0&&allItems.length>0){
+      html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No product/design articles found in latest '+allItems.length+' posts</div>';
+      html+='<div style="padding:0 14px 8px"><button onclick="_pulseSmartFilter=false;renderPulseGrid()" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0">Show all articles →</button></div>';
     } else if(items.length===0){
       html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No items found</div>';
     } else {
       items.slice(0,5).forEach(function(item){
         var date=item.date?new Date(item.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-        html+='<a href="'+item.link+'" target="_blank" style="display:block;padding:8px 14px;text-decoration:none;border-bottom:1px solid var(--border)">';
+        html+='<a href="'+item.link+'" target="_blank" style="display:block;padding:8px 14px;text-decoration:none;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">';
         html+='<div style="font-size:11px;font-weight:500;color:var(--text1);line-height:1.4;margin-bottom:3px">'+item.title+'</div>';
         html+='<div style="font-size:10px;color:var(--text3)">'+date+'</div>';
         html+='</a>';
