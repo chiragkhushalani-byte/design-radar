@@ -2963,6 +2963,7 @@ const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
 var _pulseCache = {};
 var _pulseFilter = 'competitor';
 var _pulseSentiment = 'all';
+var _competitorFilter = 'all';
 var _pulseSmartFilter = false;
 
 // Keywords that indicate product/design relevance
@@ -3018,6 +3019,18 @@ const SENTIMENT_META = {
   idea:         {label:'Ideas',        emoji:'💡', color:'#00E5FF', bg:'rgba(0,229,255,0.12)'}
 };
 
+// Competitor tab topic filters
+const COMPETITOR_FILTER_KEYWORDS = {
+  features:  ['feature','new feature','update','improvement','enhance','added','now you can','ability to','support for','integration','api','widget','tool','option','setting','module','introducing','coming soon','rolling out'],
+  design:    ['design','ui','ux','interface','redesign','revamp','look and feel','theme','dark mode','layout','icon','visual','screen','flow','onboarding','navigation','typography','color','accessibility','responsive'],
+  launches:  ['launch','launched','introducing','new product','new app','release','released','announce','announced','now live','available now','rolling out','going live','beta','version','v2','update is live','just shipped']
+};
+const COMPETITOR_FILTER_META = {
+  features: {label:'Features',     emoji:'⚡', color:'#00E5FF', bg:'rgba(0,229,255,0.12)'},
+  design:   {label:'Design',       emoji:'🎨', color:'#BF5AF2', bg:'rgba(191,90,242,0.15)'},
+  launches: {label:'New Launches', emoji:'🚀', color:'#39FF14', bg:'rgba(57,255,20,0.12)'}
+};
+
 function isPulseRelevant(item){
   var text=(item.title+' '+(item.summary||item.description||'')).toLowerCase();
   return PULSE_KEYWORDS.some(function(kw){return text.indexOf(kw)>=0;});
@@ -3032,28 +3045,48 @@ function getItemSentiments(item){
   return found;
 }
 
+function getItemCompetitorTopics(item){
+  var text=(item.title+' '+(item.summary||item.description||'')).toLowerCase();
+  var found=[];
+  Object.keys(COMPETITOR_FILTER_KEYWORDS).forEach(function(t){
+    if(COMPETITOR_FILTER_KEYWORDS[t].some(function(kw){return text.indexOf(kw)>=0;})) found.push(t);
+  });
+  return found;
+}
+
 function vPulse(){
   var s=_pulseSentiment;
+  var cf=_competitorFilter;
   var isComp=_pulseFilter!=='community';
   var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
   var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
   var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
+  var filterRow='';
+  if(isComp){
+    // Competitor tab: topic filters
+    filterRow='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button class="fb '+(cf==='all'?'active':'')+'" onclick="setCF(\'all\')">All</button>'
+      +'<button class="fb '+(cf==='features'?'active':'')+'" onclick="setCF(\'features\')" style="'+(cf==='features'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">⚡ Features</button>'
+      +'<button class="fb '+(cf==='design'?'active':'')+'" onclick="setCF(\'design\')" style="'+(cf==='design'?'background:rgba(191,90,242,0.18);color:#BF5AF2;border-color:#BF5AF2':'')+'">🎨 Design</button>'
+      +'<button class="fb '+(cf==='launches'?'active':'')+'" onclick="setCF(\'launches\')" style="'+(cf==='launches'?'background:rgba(57,255,20,0.15);color:#39FF14;border-color:#39FF14':'')+'">🚀 New Launches</button>'
+      +'</div>';
+  } else {
+    // Community tab: sentiment signal filters
+    filterRow='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button class="fb '+(s==='all'?'active':'')+'" onclick="setSentiment(\'all\')">All</button>'
+      +'<button class="fb '+(s==='complaint'?'active':'')+'" onclick="setSentiment(\'complaint\')" style="'+(s==='complaint'?'background:rgba(255,59,92,0.2);color:#FF3B5C;border-color:#FF3B5C':'')+'">🚨 Complaints</button>'
+      +'<button class="fb '+(s==='feedback'?'active':'')+'" onclick="setSentiment(\'feedback\')" style="'+(s==='feedback'?'background:rgba(255,179,71,0.2);color:#FFB347;border-color:#FFB347':'')+'">💬 Feedback</button>'
+      +'<button class="fb '+(s==='appreciation'?'active':'')+'" onclick="setSentiment(\'appreciation\')" style="'+(s==='appreciation'?'background:rgba(57,255,20,0.15);color:#39FF14;border-color:#39FF14':'')+'">👏 Appreciation</button>'
+      +'<button class="fb '+(s==='idea'?'active':'')+'" onclick="setSentiment(\'idea\')" style="'+(s==='idea'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">💡 Ideas</button>'
+      +'</div>';
+  }
   return ''
-    // L1 Tab bar
     +'<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
     +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🏦 What competitors are doing</button>'
     +'<button onclick="setPF(\'community\')" style="'+(!isComp?tabOn:tabOff)+'">🌐 What community is saying</button>'
     +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
     +'</div>'
-    // Signal filters
-    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
-    +'<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px">Signal</span>'
-    +'<button class="fb '+(s==='all'?'active':'')+'" onclick="setSentiment(\'all\')">All</button>'
-    +'<button class="fb '+(s==='complaint'?'active':'')+'" onclick="setSentiment(\'complaint\')" style="'+(s==='complaint'?'background:rgba(255,59,92,0.2);color:#FF3B5C;border-color:#FF3B5C':'')+'">🚨 Complaints</button>'
-    +'<button class="fb '+(s==='feedback'?'active':'')+'" onclick="setSentiment(\'feedback\')" style="'+(s==='feedback'?'background:rgba(255,179,71,0.2);color:#FFB347;border-color:#FFB347':'')+'">💬 Feedback</button>'
-    +'<button class="fb '+(s==='appreciation'?'active':'')+'" onclick="setSentiment(\'appreciation\')" style="'+(s==='appreciation'?'background:rgba(57,255,20,0.15);color:#39FF14;border-color:#39FF14':'')+'">👏 Appreciation</button>'
-    +'<button class="fb '+(s==='idea'?'active':'')+'" onclick="setSentiment(\'idea\')" style="'+(s==='idea'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">💡 Ideas</button>'
-    +'</div>'
+    +filterRow
     +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'
     +'<div class="empty" style="grid-column:1/-1">Loading feeds…</div>'
     +'</div>';
@@ -3061,6 +3094,12 @@ function vPulse(){
 
 function setPF(f){
   _pulseFilter=f;
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();loadPulse();}
+}
+
+function setCF(f){
+  _competitorFilter=f;
   var c=document.getElementById('content');
   if(c){c.innerHTML=vPulse();loadPulse();}
 }
@@ -3101,10 +3140,15 @@ function renderPulseGrid(){
     var cached=_pulseCache[feed.id];
     var allItems=cached?cached.items:[];
     var error=cached?cached.error:null;
-    // Apply smart filter
-    var baseItems=_pulseSmartFilter?allItems.filter(isPulseRelevant):allItems;
-    // Apply sentiment filter
-    var items=_pulseSentiment==='all'?baseItems:baseItems.filter(function(item){return getItemSentiments(item).indexOf(_pulseSentiment)>=0;});
+    var baseItems=allItems;
+    var items;
+    if(_pulseFilter==='community'){
+      // Community tab: filter by sentiment signal
+      items=_pulseSentiment==='all'?baseItems:baseItems.filter(function(item){return getItemSentiments(item).indexOf(_pulseSentiment)>=0;});
+    } else {
+      // Competitor tab: filter by topic
+      items=_competitorFilter==='all'?baseItems:baseItems.filter(function(item){return getItemCompetitorTopics(item).indexOf(_competitorFilter)>=0;});
+    }
     var catLabel=feed.cat==='competitor'?'Competitor':feed.cat==='community'?'Community':'Design';
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:linear-gradient(160deg,var(--surface2) 0%,var(--surface) 100%)">';
     // Header
@@ -3124,9 +3168,9 @@ function renderPulseGrid(){
     html+='<div style="padding:8px 0">';
     if(error){
       html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">Could not load feed</div>';
-    } else if(items.length===0&&baseItems.length>0&&_pulseSentiment!=='all'){
-      var meta=SENTIMENT_META[_pulseSentiment];
-      html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No '+(meta?meta.label.toLowerCase():'matching signals')+' found in '+baseItems.length+' posts</div>';
+    } else if(items.length===0&&baseItems.length>0&&(_pulseSentiment!=='all'||_competitorFilter!=='all')){
+      var activeFilter=_pulseFilter==='community'?(_pulseSentiment!=='all'?(SENTIMENT_META[_pulseSentiment]||{}).label:''):(_competitorFilter!=='all'?(COMPETITOR_FILTER_META[_competitorFilter]||{}).label:'');
+      html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No '+(activeFilter?activeFilter.toLowerCase()+' ':'')+'posts found in latest '+baseItems.length+' items</div>';
     } else if(items.length===0&&allItems.length>0){
       html+='<div style="padding:8px 14px;font-size:11px;color:var(--text3)">No product/design articles in latest '+allItems.length+' posts</div>';
       html+='<div style="padding:0 14px 8px"><button onclick="_pulseSmartFilter=false;renderPulseGrid()" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0">Show all articles →</button></div>';
@@ -3135,8 +3179,15 @@ function renderPulseGrid(){
     } else {
       items.slice(0,5).forEach(function(item){
         var date=item.date?new Date(item.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-        var sentiments=getItemSentiments(item);
-        var sentBadges=sentiments.map(function(sk){var m=SENTIMENT_META[sk];return m?'<span style="font-size:9px;color:'+m.color+';background:'+m.bg+';padding:1px 5px;border-radius:6px;font-weight:500">'+m.emoji+' '+m.label+'</span>':'';}).join('');
+        var badges='';
+        if(_pulseFilter==='community'){
+          var sentiments=getItemSentiments(item);
+          badges=sentiments.map(function(sk){var m=SENTIMENT_META[sk];return m?'<span style="font-size:9px;color:'+m.color+';background:'+m.bg+';padding:1px 5px;border-radius:6px;font-weight:500">'+m.emoji+' '+m.label+'</span>':'';}).join('');
+        } else {
+          var topics=getItemCompetitorTopics(item);
+          badges=topics.map(function(tk){var m=COMPETITOR_FILTER_META[tk];return m?'<span style="font-size:9px;color:'+m.color+';background:'+m.bg+';padding:1px 5px;border-radius:6px;font-weight:500">'+m.emoji+' '+m.label+'</span>':'';}).join('');
+        }
+        var sentBadges=badges;
         html+='<a href="'+item.link+'" target="_blank" style="display:block;padding:8px 14px;text-decoration:none;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background=\'rgba(0,122,255,0.06)\'" onmouseout="this.style.background=\'\'">';
         html+='<div style="font-size:11px;font-weight:500;color:var(--text);line-height:1.4;margin-bottom:5px">'+item.title+'</div>';
         html+='<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
