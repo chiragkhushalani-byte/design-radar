@@ -849,7 +849,7 @@ function render(){
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
   else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
   else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
-  else if(view==='pulse'){c.innerHTML=vPulse();if(_pulseFilter==='issues'){setTimeout(renderIssueTable,100);}else{setTimeout(loadPulse,100);}}
+  else if(view==='pulse'){c.innerHTML=vPulse();if(_pulseFilter==='issues'){loadIssuesFromDB().then(function(){if(view==='pulse'&&_pulseFilter==='issues'){c.innerHTML=vPulse();setTimeout(renderIssueTable,100);}});}else{setTimeout(loadPulse,100);}}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -3032,38 +3032,193 @@ const COMPETITOR_FILTER_META = {
 };
 
 // ── COB / KYC ISSUE TRACKER ───────────────────────────
-var _issueData=[];
+function _lsSave(){try{localStorage.setItem('dr_issues',JSON.stringify(_issueData));}catch(e){}}
+function _lsLoad(){try{var d=localStorage.getItem('dr_issues');return d?JSON.parse(d):[];}catch(e){return[];}}
+var _issueData=_lsLoad();
+var _issuesLoaded=false;
 var _issueViewFilter='all';
 var _issueTypeFilter='all';
 
+function _rowToIssue(r){return{id:r.id,date:r.date,time:r.time||'',sender:r.sender,text:r.text,type:r.type,sentiment:r.sentiment,status:r.status,resolvedAt:r.resolved_at||null};}
+function _issueToRow(i){return{id:i.id,date:i.date,time:i.time,sender:i.sender,text:i.text,type:i.type,sentiment:i.sentiment,status:i.status,resolved_at:i.resolvedAt||null};}
+
+async function loadIssuesFromDB(){
+  try{
+    var rows=await api('cob_kyc_issues?select=*&order=date.desc');
+    _issueData=(rows||[]).map(_rowToIssue);
+    _issuesLoaded=true;_lsSave();
+  }catch(e){
+    console.warn('Issues DB load failed, using cache:',e);
+    _issueData=_lsLoad();_issuesLoaded=true;
+  }
+}
+
+async function insertIssuesToDB(issues){
+  if(!issues.length) return;
+  try{
+    await fetch(SB+'/rest/v1/cob_kyc_issues',{
+      method:'POST',
+      headers:Object.assign({},H,{'Prefer':'resolution=ignore-duplicates'}),
+      body:JSON.stringify(issues.map(_issueToRow))
+    });
+  }catch(e){console.warn('Insert failed:',e);}
+  _lsSave();
+}
+
+async function updateIssueStatusDB(id,status,resolvedAt){
+  try{
+    await fetch(SB+'/rest/v1/cob_kyc_issues?id=eq.'+id,{
+      method:'PATCH',
+      headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+      body:JSON.stringify({status:status,resolved_at:resolvedAt||null})
+    });
+  }catch(e){console.warn('Status update failed:',e);}
+  _lsSave();
+}
+
 const ISSUE_TYPES_META={
-  'KYC Rejected':  {color:'#FF3B5C',bg:'rgba(255,59,92,0.15)'},
-  'KYC Pending':   {color:'#FFB347',bg:'rgba(255,179,71,0.15)'},
-  'KYC Issue':     {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
-  'COB Failed':    {color:'#BF5AF2',bg:'rgba(191,90,242,0.15)'},
-  'COB Delayed':   {color:'#8B5CF6',bg:'rgba(139,92,246,0.15)'},
-  'COB Issue':     {color:'#A855F7',bg:'rgba(168,85,247,0.15)'},
-  'OTP Issue':     {color:'#00E5FF',bg:'rgba(0,229,255,0.12)'},
-  'Document Issue':{color:'#F59E0B',bg:'rgba(245,158,11,0.15)'},
-  'Account Issue': {color:'#EF4444',bg:'rgba(239,68,68,0.15)'},
-  'Other':         {color:'#6B7280',bg:'rgba(107,114,128,0.15)'}
+  // ── KYC ──
+  'KYC Rejected':      {color:'#FF3B5C',bg:'rgba(255,59,92,0.15)'},
+  'KYC Pending':       {color:'#FFB347',bg:'rgba(255,179,71,0.15)'},
+  'KYC Re-do':         {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
+  'KYC Issue':         {color:'#FF9F0A',bg:'rgba(255,159,10,0.15)'},
+  // ── COB ──
+  'COB Failed':        {color:'#BF5AF2',bg:'rgba(191,90,242,0.15)'},
+  'COB Delayed':       {color:'#8B5CF6',bg:'rgba(139,92,246,0.15)'},
+  'COB Holdings':      {color:'#A855F7',bg:'rgba(168,85,247,0.15)'},
+  'COB Issue':         {color:'#9B59B6',bg:'rgba(155,89,182,0.15)'},
+  // ── Login / Session ──
+  'Login / Logout':    {color:'#5E5CE6',bg:'rgba(94,92,230,0.15)'},
+  // ── Account ──
+  'Account Blocked':   {color:'#EF4444',bg:'rgba(239,68,68,0.15)'},
+  'Account Issue':     {color:'#DC2626',bg:'rgba(220,38,38,0.15)'},
+  // ── OTP ──
+  'OTP Not Received':  {color:'#00E5FF',bg:'rgba(0,229,255,0.12)'},
+  'OTP Invalid':       {color:'#00BCD4',bg:'rgba(0,188,212,0.12)'},
+  'OTP Issue':         {color:'#0097A7',bg:'rgba(0,151,167,0.12)'},
+  // ── Documents / KYC docs ──
+  'Document Rejected': {color:'#F59E0B',bg:'rgba(245,158,11,0.15)'},
+  'Document Issue':    {color:'#E69D00',bg:'rgba(230,157,0,0.15)'},
+  // ── Bank / Funds ──
+  'Bank / Fund Issue': {color:'#34C759',bg:'rgba(52,199,89,0.15)'},
+  'Refund Issue':      {color:'#30D158',bg:'rgba(48,209,88,0.15)'},
+  // ── Trading ──
+  'Trading Issue':     {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
+  // ── App / Platform ──
+  'App Issue':         {color:'#636366',bg:'rgba(99,99,102,0.15)'},
+  'Data Display Issue':{color:'#AF52DE',bg:'rgba(175,82,222,0.15)'},
+  'Other':             {color:'#6B7280',bg:'rgba(107,114,128,0.15)'}
 };
+
+// ── Smart relevance scoring — filters out junk/chatter ──
+var _JUNK_SYS=/messages? and calls? are end-to-end encrypted|joined using this group|added .{2,40} to this group|left this group|removed .{2,40} from|changed the (subject|icon|description)|created this group|media omitted|image omitted|video omitted|audio omitted|sticker omitted|document omitted|gif omitted|contact card omitted|this message was deleted|you deleted this message|missed (voice|video) call|security code (changed|updated)/i;
+var _JUNK_ACK=['ok','okay','thanks','thank you','thnx','thx','noted','done','yes','no','hi','hello','hii','hiii','sure','alright','hmm','great','nice','welcome','np','seen','received','ok thanks','ok noted','thank u','ty','tnx','checking','accha','haan','sahi','theek hai','ok ok','👍','👏','🙏','✅','😊','👌','😄','🤝','💯'];
+
+function _scoreRelevance(text){
+  var t=text.toLowerCase().trim();
+  if(!t||t.length<18) return 0;
+  if(_JUNK_SYS.test(t)) return 0;
+  var clean=t.replace(/[^a-z0-9 ]/g,' ').trim();
+  if(_JUNK_ACK.some(function(j){return clean===j||(clean.length<14&&clean===j.replace(/[^a-z0-9 ]/g,' ').trim());})) return 0;
+  var sc=0;
+  // Strong issue signals (+3)
+  ['kyc','cob','change of broker','broker transfer','dp transfer','demat transfer','not working',
+   'failed','rejected','error','issue','problem','complaint','unable to','cannot','stuck',
+   'not able','blocked','freeze','suspend','demat','cdsl','nsdl','aadhaar','aadhar','signature',
+   'otp','login','logout','log out','unblock','unlock','device',
+   'not showing','not visible','not available','not updated','not display','not show','show 0',
+   'add money','add fund','net banking','fund not','credit','not credited','amount deduct',
+   'order','square off','trading','fno','f&o','margin call',
+   'download','install','app not','crash','tablets','not launch',
+   'selfie error','esign','ipv','pan '].forEach(function(kw){if(t.includes(kw))sc+=3;});
+  // Medium signals (+2)
+  ['please help','help me','urgent','asap','since days','since weeks','still',
+   'waiting','not resolved','no response','when will','how long','solve',
+   'pls solve','plz solve','look into','pls check','plz check'].forEach(function(kw){if(t.includes(kw))sc+=2;});
+  // Weak signals (+1)
+  ['pls','plz','client','help','support','resolve','fix','update','status'].forEach(function(kw){if(t.includes(kw))sc+=1;});
+  if(t.length>100) sc+=2; if(t.length>250) sc+=1;
+  return sc;
+}
+
+// Threshold 4 for WhatsApp bulk import (stricter), 3 for manual entry check
+function isIssueMessage(text){return _scoreRelevance(text)>=4;}
+
+function getUrgency(text){
+  var t=text.toLowerCase();
+  if(['urgent','asap','immediately','critical','emergency','not resolved since','no response since','please please','escalate','very frustrated','fed up','totally disappointed','since many days','since weeks','not working since'].some(function(kw){return t.includes(kw);})) return 'high';
+  if(['please help','still pending','waiting for','not working','disappointed','when will','how many days','how long','pls solve'].some(function(kw){return t.includes(kw);})) return 'medium';
+  return 'normal';
+}
 
 function classifyIssue(text){
   var t=text.toLowerCase();
-  if(t.includes('kyc')){
-    if(t.includes('reject')||t.includes('failed')||t.includes('decline')||t.includes('not accepted')) return 'KYC Rejected';
-    if(t.includes('pend')||t.includes('wait')||t.includes('processing')) return 'KYC Pending';
+  // ── KYC ──
+  if(t.includes('kyc')||t.includes('kra')){
+    if(t.includes('reject')||t.includes('fail')||t.includes('decline')||t.includes('not accepted')||t.includes('unsuccessful')||t.includes('kra')||t.includes('cvl')) return 'KYC Rejected';
+    if(t.includes('pend')||t.includes('wait')||t.includes('process')||t.includes('under review')) return 'KYC Pending';
+    if(t.includes('expir')||t.includes('re-do')||t.includes('redo')||t.includes('do again')) return 'KYC Re-do';
     return 'KYC Issue';
   }
-  if(t.includes('cob')||t.includes('change of broker')){
-    if(t.includes('fail')||t.includes('error')||t.includes('reject')) return 'COB Failed';
-    if(t.includes('delay')||t.includes('pending')||t.includes('wait')) return 'COB Delayed';
+  // ── COB ──
+  if(t.includes('cob')||t.includes('change of broker')||t.includes('broker transfer')||t.includes('dp transfer')||t.includes('demat transfer')){
+    if(t.includes('fail')||t.includes('error')||t.includes('reject')||t.includes('unsuccessful')) return 'COB Failed';
+    if(t.includes('delay')||t.includes('pend')||t.includes('wait')||t.includes('not done')||t.includes('still not')) return 'COB Delayed';
+    if(t.includes('holding')||t.includes('portfolio')||t.includes('cdsl')||t.includes('nsdl')||t.includes('stock')||t.includes('shares')) return 'COB Holdings';
     return 'COB Issue';
   }
-  if(t.includes('otp')) return 'OTP Issue';
-  if(t.includes('document')||t.includes(' doc ')||t.includes('upload')||t.includes('pan ')||t.includes('aadhaar')||t.includes('aadhar')) return 'Document Issue';
-  if(t.includes('account')&&(t.includes('block')||t.includes('suspend')||t.includes('freeze')||t.includes('lock'))) return 'Account Issue';
+  // ── OTP ──
+  if(t.includes('otp')||t.includes('one time password')){
+    if(t.includes('not receiv')||t.includes("didn't receive")||t.includes('no otp')||t.includes('not coming')||t.includes('not getting')||t.includes('asking otp')) return 'OTP Not Received';
+    if(t.includes('invalid')||t.includes('wrong')||t.includes('incorrect')||t.includes('expired')) return 'OTP Invalid';
+    return 'OTP Issue';
+  }
+  // ── Login / Logout ──
+  if(t.includes('login')||t.includes('logout')||t.includes('log out')||t.includes('log in')||
+     t.includes('sign in')||t.includes('invalid credentials')||t.includes('every time asking')||
+     t.includes('asking login')||t.includes('logged out')||t.includes('logs out')||t.includes('automatically logout')){
+    return 'Login / Logout';
+  }
+  // ── Account Blocked / Device ──
+  if(t.includes('unblock')||t.includes('unlock')||(t.includes('device')&&t.includes('block'))||
+     (t.includes('account')&&(t.includes('block')||t.includes('suspend')||t.includes('freeze')||t.includes('lock')))){
+    return 'Account Blocked';
+  }
+  // ── Documents / KYC docs ──
+  if(t.includes('signature')||t.includes('selfie')||t.includes('esign')||t.includes('ipv')||
+     t.includes('pan ')||t.includes('aadhaar')||t.includes('aadhar')||(t.includes('document')&&t.includes('upload'))){
+    if(t.includes('reject')||t.includes('invalid')||t.includes('mismatch')||t.includes('not upload')||t.includes('not being')||t.includes('error')||t.includes('blur')) return 'Document Rejected';
+    return 'Document Issue';
+  }
+  // ── Refund / Bank / Fund ──
+  if(t.includes('refund')||(t.includes('money')&&t.includes('not'))||(t.includes('amount')&&(t.includes('deduct')||t.includes('debited')))){
+    return 'Refund Issue';
+  }
+  if(t.includes('add money')||t.includes('add fund')||t.includes('net banking')||t.includes('fund not')||
+     t.includes('not credited')||t.includes('pending')||t.includes('bank')||t.includes('upi')||
+     t.includes('neft')||t.includes('imps')||(t.includes('fund')&&t.includes('show'))){
+    return 'Bank / Fund Issue';
+  }
+  // ── Trading ──
+  if(t.includes('order')||t.includes('trade')||t.includes('trading')||t.includes('fno')||
+     t.includes('f&o')||t.includes('cnc')||t.includes('square off')||t.includes('margin')){
+    return 'Trading Issue';
+  }
+  // ── Data display ──
+  if(t.includes('not showing')||t.includes('not visible')||t.includes('not available')||
+     t.includes('not display')||t.includes('not updated')||t.includes('show 0')||
+     t.includes('not show')||t.includes('not loading')||t.includes('blank screen')||
+     t.includes('nav')||t.includes('p&l')||t.includes('pnl')||t.includes('sip details')||
+     t.includes('mf details')||t.includes('holdings')||t.includes('profile')){
+    return 'Data Display Issue';
+  }
+  // ── App / Platform ──
+  if(t.includes('download')||t.includes('install')||t.includes('app not')||t.includes('crash')||
+     t.includes('tablet')||t.includes('ios')||t.includes('android')||t.includes('not launch')||
+     t.includes("can't download")){
+    return 'App Issue';
+  }
+  if(t.includes('account')) return 'Account Issue';
   return 'Other';
 }
 
@@ -3073,11 +3228,6 @@ function getIssueSentimentLabel(text){
   if(SENTIMENT_KEYWORDS.appreciation.some(function(kw){return t.includes(kw);})) return 'appreciation';
   if(SENTIMENT_KEYWORDS.feedback.some(function(kw){return t.includes(kw);})) return 'feedback';
   return 'neutral';
-}
-
-function isIssueMessage(text){
-  var t=text.toLowerCase();
-  return ['kyc','cob','change of broker','issue','problem','error','failed','reject','pend','not working','unable','cannot','otp','document','pan ','aadhaar','verify','verification','complaint','stuck','help'].some(function(kw){return t.includes(kw);});
 }
 
 function parseWhatsAppExport(text){
@@ -3107,7 +3257,7 @@ function toggleIssueStatus(id){
   if(issue){
     issue.status=issue.status==='open'?'resolved':'open';
     issue.resolvedAt=issue.status==='resolved'?new Date().toISOString().split('T')[0]:null;
-    renderIssueTable();
+    updateIssueStatusDB(issue.id,issue.status,issue.resolvedAt);renderIssueTable();
   }
 }
 
@@ -3127,9 +3277,14 @@ function renderIssueTable(){
     var tm=ISSUE_TYPES_META[issue.type]||ISSUE_TYPES_META['Other'];
     var sm=SENTIMENT_META[issue.sentiment];
     var statusStyle=issue.status==='resolved'?'background:rgba(57,255,20,0.12);color:#39FF14':'background:rgba(255,179,71,0.15);color:#FFB347';
-    return '<tr class="tr" onclick="toggleIssueStatus('+issue.id+')" title="Click to toggle resolved/open">'
-      +'<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">'+issue.date+'</td>'
-      +'<td style="font-size:11px;color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+issue.text.replace(/"/g,'')+'">'+issue.text+'</td>'
+    var urg=getUrgency(issue.text);
+    var urgIcon=urg==='high'?'<span style="font-size:10px;margin-right:3px" title="High urgency">🔥</span>':urg==='medium'?'<span style="font-size:10px;margin-right:3px" title="Medium urgency">⚡</span>':'';
+    var daysOpen=issue.status==='open'?_daysAgo(issue.date):0;
+    var escalBadge=daysOpen>=3?'<span style="font-size:8px;background:rgba(255,59,92,0.2);color:#FF3B5C;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:600">'+daysOpen+'d</span>':'';
+    var rowBg=urg==='high'&&issue.status==='open'?'background:rgba(255,59,92,0.04);':'';
+    return '<tr class="tr" onclick="toggleIssueStatus('+issue.id+')" title="Click to toggle resolved/open" style="'+rowBg+'">'
+      +'<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">'+issue.date+escalBadge+'</td>'
+      +'<td style="font-size:11px;color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+issue.text.replace(/"/g,"'")+'">'+urgIcon+issue.text+'</td>'
       +'<td><span style="font-size:10px;color:'+tm.color+';background:'+tm.bg+';padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap">'+issue.type+'</span></td>'
       +'<td style="font-size:11px;color:var(--text2)">'+issue.sender+'</td>'
       +'<td>'+(sm?'<span style="font-size:9px;color:'+sm.color+';background:'+sm.bg+';padding:1px 5px;border-radius:6px">'+sm.emoji+' '+sm.label+'</span>':'<span style="font-size:10px;color:var(--text3)">—</span>')+'</td>'
@@ -3141,7 +3296,7 @@ function renderIssueTable(){
 function vIssueVolumeChart(){
   var today=new Date();
   var days=[];
-  for(var i=13;i>=0;i--){
+  for(var i=29;i>=0;i--){
     var d=new Date(today);d.setDate(d.getDate()-i);
     var ds=d.toISOString().split('T')[0];
     days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:_issueData.filter(function(x){return x.date===ds;}).length});
@@ -3157,6 +3312,76 @@ function vIssueVolumeChart(){
         +'</div>';
     }).join('')
     +'</div>';
+}
+
+function _daysAgo(dateStr){
+  var d=new Date(dateStr);var now=new Date();
+  return isNaN(d.getTime())?999:Math.floor((now-d)/(1000*60*60*24));
+}
+
+function vWeekTrend(){
+  var thisW=0,lastW=0;
+  _issueData.forEach(function(i){var days=_daysAgo(i.date);if(days<7)thisW++;else if(days<14)lastW++;});
+  var delta=thisW-lastW;
+  var arrow=delta>0?'↑':delta<0?'↓':'→';
+  var col=delta>0?'#FF3B5C':delta<0?'#39FF14':'#FFB347';
+  var pct=lastW>0?' ('+Math.abs(Math.round((delta/lastW)*100))+'%)':'';
+  return '<div style="display:flex;gap:14px;align-items:center;padding:6px 0">'
+    +'<div style="text-align:center"><div style="font-size:26px;font-weight:700;color:var(--text)">'+thisW+'</div><div style="font-size:9px;color:var(--text3);margin-top:1px">This week</div></div>'
+    +'<div style="font-size:18px;font-weight:700;color:'+col+'">'+arrow+pct+'</div>'
+    +'<div style="text-align:center"><div style="font-size:26px;font-weight:700;color:var(--text3)">'+lastW+'</div><div style="font-size:9px;color:var(--text3);margin-top:1px">Last week</div></div>'
+    +'</div>';
+}
+
+function vUrgencyBreakdown(){
+  var high=0,med=0,norm=0;
+  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){var u=getUrgency(i.text);if(u==='high')high++;else if(u==='medium')med++;else norm++;});
+  return '<div style="display:flex;gap:5px">'
+    +'<div style="flex:1;text-align:center;padding:7px 2px;background:rgba(255,59,92,0.1);border-radius:8px;border:1px solid rgba(255,59,92,0.3)">'
+    +'<div style="font-size:22px;font-weight:700;color:#FF3B5C">'+high+'</div>'
+    +'<div style="font-size:9px;color:var(--text3);margin-top:1px">🔥 High</div></div>'
+    +'<div style="flex:1;text-align:center;padding:7px 2px;background:rgba(255,179,71,0.1);border-radius:8px;border:1px solid rgba(255,179,71,0.3)">'
+    +'<div style="font-size:22px;font-weight:700;color:#FFB347">'+med+'</div>'
+    +'<div style="font-size:9px;color:var(--text3);margin-top:1px">⚡ Medium</div></div>'
+    +'<div style="flex:1;text-align:center;padding:7px 2px;background:rgba(107,114,128,0.1);border-radius:8px;border:1px solid rgba(107,114,128,0.3)">'
+    +'<div style="font-size:22px;font-weight:700;color:var(--text3)">'+norm+'</div>'
+    +'<div style="font-size:9px;color:var(--text3);margin-top:1px">— Normal</div></div>'
+    +'</div>';
+}
+
+function vEscalationRadar(){
+  var hot=_issueData.filter(function(i){return i.status==='open'&&_daysAgo(i.date)>=3;}).sort(function(a,b){return _daysAgo(b.date)-_daysAgo(a.date);});
+  if(!hot.length) return '<div style="font-size:11px;color:#39FF14;padding:12px 0;text-align:center">✅ No escalation risks — all issues are recent</div>';
+  return hot.slice(0,5).map(function(i){
+    var days=_daysAgo(i.date);
+    var urg=getUrgency(i.text);
+    var ucol=urg==='high'?'#FF3B5C':urg==='medium'?'#FFB347':'#8E8E93';
+    var urgTxt=urg==='high'?'🔥':urg==='medium'?'⚡':'•';
+    return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:9px;background:rgba(255,59,92,0.15);color:#FF3B5C;padding:2px 6px;border-radius:10px;white-space:nowrap;font-weight:600;min-width:28px;text-align:center">'+days+'d</span>'
+      +'<span style="font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)" title="'+i.text.replace(/"/g,"'")+'">'+urgTxt+' '+i.text+'</span>'
+      +'<span style="font-size:9px;color:'+ucol+';white-space:nowrap;opacity:0.8">'+i.sender.split(' ')[0]+'</span>'
+      +'</div>';
+  }).join('')+(hot.length>5?'<div style="font-size:10px;color:#FF3B5C;margin-top:5px;text-align:right">+'+(hot.length-5)+' more at risk</div>':'');
+}
+
+function vTopReporters(){
+  var counts={};
+  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){counts[i.sender]=(counts[i.sender]||0)+1;});
+  var sorted=Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  if(!sorted.length) return '<div style="font-size:11px;color:var(--text3);padding:12px 0;text-align:center">No open issues — all resolved ✅</div>';
+  var max=sorted[0][1];
+  var medals=['🥇','🥈','🥉','',''];
+  return sorted.map(function(e,idx){
+    var pct=Math.round((e[1]/max)*100);
+    return '<div style="margin-bottom:7px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+      +'<span style="font-size:11px;color:var(--text)">'+medals[idx]+' '+e[0]+'</span>'
+      +'<span style="font-size:10px;color:#FFB347;font-family:var(--mono)">'+e[1]+' open</span>'
+      +'</div>'
+      +'<div class="bar-bg"><div class="bar-fill" style="background:linear-gradient(90deg,#FF3B5C,#FF6B35);width:'+pct+'%"></div></div>'
+      +'</div>';
+  }).join('');
 }
 
 function vIssueTypeBreakdown(){
@@ -3195,26 +3420,36 @@ function vPulseIssues(){
       +'</div></div>';
   }
 
+  var highUrgency=_issueData.filter(function(i){return i.status==='open'&&getUrgency(i.text)==='high';}).length;
+  var escalations=_issueData.filter(function(i){return i.status==='open'&&_daysAgo(i.date)>=3;}).length;
   return ''
-    // Stat cards
-    +'<div class="metrics" style="margin-bottom:14px">'
-    +'<div class="mc blue"><div class="mc-l">Total Issues</div><div class="mc-v">'+total+'</div><div class="mc-s">from WhatsApp group</div></div>'
+    // ── Row 1: KPI cards ──
+    +'<div class="metrics" style="margin-bottom:10px">'
+    +'<div class="mc blue"><div class="mc-l">Total Logged</div><div class="mc-v">'+total+'</div><div class="mc-s">relevant issues</div></div>'
     +'<div class="mc amber"><div class="mc-l">Open</div><div class="mc-v">'+open+'</div><div class="mc-s">awaiting resolution</div></div>'
-    +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+resolved+'</div><div class="mc-s">closed</div></div>'
-    +'<div class="mc '+(rate>=70?'green':rate>=40?'amber':'red')+'"><div class="mc-l">Resolution Rate</div><div class="mc-v">'+rate+'%</div><div class="mc-s">of all issues</div></div>'
+    +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+resolved+'</div><div class="mc-s">'+rate+'% resolution rate</div></div>'
+    +'<div class="mc '+(highUrgency>0?'red':'green')+'"><div class="mc-l">🔥 High Urgency</div><div class="mc-v">'+highUrgency+'</div><div class="mc-s">needs immediate action</div></div>'
+    +'<div class="mc '+(escalations>0?'red':'green')+'"><div class="mc-l">⚠️ Escalation Risk</div><div class="mc-v">'+escalations+'</div><div class="mc-s">open &gt; 3 days</div></div>'
     +'</div>'
-    // Charts
-    +'<div class="two-col" style="margin-bottom:14px">'
-    +'<div class="panel"><div class="ph"><span class="pt">📊 Volume — Last 14 Days</span></div><div style="padding:12px 14px">'+vIssueVolumeChart()+'</div></div>'
-    +'<div style="display:flex;flex-direction:column;gap:10px">'
-    +'<div class="panel" style="flex:1"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">💬 Sentiment Split</span></div>'
+    // ── Row 2: Volume chart + Week-over-Week + Open Urgency ──
+    +'<div style="display:grid;grid-template-columns:1fr 185px 210px;gap:10px;margin-bottom:10px">'
+    +'<div class="panel"><div class="ph"><span class="pt">📊 30-Day Volume</span><span style="font-size:10px;color:var(--text3);font-weight:400">All-time in table below</span></div><div style="padding:10px 14px">'+vIssueVolumeChart()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">📅 Week vs Week</span></div><div style="padding:12px 14px">'+vWeekTrend()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">🔥 Open Urgency</span></div><div style="padding:10px 14px">'+vUrgencyBreakdown()+'</div></div>'
+    +'</div>'
+    // ── Row 3: Type Breakdown + Escalation Radar + Top Reporters ──
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'
+    +'<div class="panel"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">⚠️ Escalation Radar</span><span style="font-size:9px;color:#FF3B5C;font-weight:400">Open ≥ 3 days</span></div><div style="padding:10px 14px">'+vEscalationRadar()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">👤 Top Reporters</span><span style="font-size:9px;color:var(--text3);font-weight:400">by open count</span></div><div style="padding:12px 14px">'+vTopReporters()+'</div></div>'
+    +'</div>'
+    // ── Row 4: Sentiment split ──
+    +'<div class="panel" style="margin-bottom:10px"><div class="ph"><span class="pt">💬 Sentiment Split</span></div>'
     +'<div style="padding:10px 14px;display:flex;gap:10px">'
-    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#FF3B5C">'+sc.complaint+'</div><div style="font-size:9px;color:var(--text3)">🚨 Complaints</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#FFB347">'+sc.feedback+'</div><div style="font-size:9px;color:var(--text3)">💬 Feedback</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#39FF14">'+sc.appreciation+'</div><div style="font-size:9px;color:var(--text3)">👏 Positive</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:var(--text3)">'+sc.neutral+'</div><div style="font-size:9px;color:var(--text3)">— Neutral</div></div>'
-    +'</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FF3B5C">'+sc.complaint+'</div><div style="font-size:9px;color:var(--text3)">🚨 Complaints</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FFB347">'+sc.feedback+'</div><div style="font-size:9px;color:var(--text3)">💬 Feedback</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#39FF14">'+sc.appreciation+'</div><div style="font-size:9px;color:var(--text3)">👏 Positive</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:var(--text3)">'+sc.neutral+'</div><div style="font-size:9px;color:var(--text3)">— Neutral</div></div>'
     +'</div></div>'
     // Issue log table
     +'<div class="panel">'
@@ -3248,6 +3483,7 @@ function handleWAUpload(input){
     var msgs=parseWhatsAppExport(e.target.result);
     var issues=processWAMessages(msgs);
     _issueData=_issueData.concat(issues);
+    insertIssuesToDB(issues);
     toast('Imported '+issues.length+' issues from '+msgs.length+' messages');
     var c=document.getElementById('content');
     if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
@@ -3268,7 +3504,7 @@ function saveManualIssue(){
     text:text,type:document.getElementById('issueType').value||classifyIssue(text),
     sentiment:getIssueSentimentLabel(text),status:'open',resolvedAt:null
   });
-  closeModal('moAddIssue');toast('Issue logged');
+  insertIssuesToDB([_issueData[_issueData.length-1]]);closeModal('moAddIssue');toast('Issue logged');
   var c=document.getElementById('content');
   if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
 }
@@ -3340,8 +3576,14 @@ function setPF(f){
   _pulseFilter=f;
   var c=document.getElementById('content');
   if(!c) return;
-  c.innerHTML=vPulse();
-  if(f==='issues'){setTimeout(renderIssueTable,60);}else{loadPulse();}
+  if(f==='issues'){
+    c.innerHTML=vPulse();
+    loadIssuesFromDB().then(function(){
+      if(_pulseFilter==='issues'){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+    });
+  } else {
+    c.innerHTML=vPulse();loadPulse();
+  }
 }
 
 function setCF(f){
