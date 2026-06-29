@@ -2961,9 +2961,9 @@ const PULSE_FEEDS = [
 ];
 const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
 var _pulseCache = {};
-var _pulseFilter = 'all';
+var _pulseFilter = 'competitor';
 var _pulseSentiment = 'all';
-var _pulseSmartFilter = true;
+var _pulseSmartFilter = false;
 
 // Keywords that indicate product/design relevance
 const PULSE_KEYWORDS = [
@@ -3034,61 +3034,41 @@ function getItemSentiments(item){
 
 function vPulse(){
   var s=_pulseSentiment;
-  return '<div style="margin-bottom:12px">'
-    +'<div class="section-row" style="margin-bottom:10px"><span class="st">Market Pulse</span>'
-    +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
+  var isComp=_pulseFilter!=='community';
+  var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
+  var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
+  var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
+  return ''
+    // L1 Tab bar
+    +'<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
+    +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🏦 What competitors are doing</button>'
+    +'<button onclick="setPF(\'community\')" style="'+(!isComp?tabOn:tabOff)+'">🌐 What community is saying</button>'
+    +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
     +'</div>'
-    // Row 1: Source filters
-    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px">'
-    +'<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;min-width:44px">Source</span>'
-    +'<button class="fb '+(_pulseFilter==='all'?'active':'')+'" data-f="all" onclick="setPF(\'all\',this)">All</button>'
-    +'<button class="fb '+(_pulseFilter==='competitor'?'active':'')+'" data-f="competitor" onclick="setPF(\'competitor\',this)">🏦 Competitors</button>'
-    +'<button class="fb '+(_pulseFilter==='community'?'active':'')+'" data-f="community" onclick="setPF(\'community\',this)">🌐 Community</button>'
-    +'<button class="fb '+(_pulseFilter==='design'?'active':'')+'" data-f="design" onclick="setPF(\'design\',this)">🎨 Design</button>'
-    +'<div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>'
-    +'<button class="fb '+(_pulseSmartFilter?'active':'')+'" onclick="togglePulseSmartFilter(this)" style="'+(_pulseSmartFilter?'':'opacity:0.6')+'">✦ Product & Design only</button>'
+    // Signal filters
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px">Signal</span>'
+    +'<button class="fb '+(s==='all'?'active':'')+'" onclick="setSentiment(\'all\')">All</button>'
+    +'<button class="fb '+(s==='complaint'?'active':'')+'" onclick="setSentiment(\'complaint\')" style="'+(s==='complaint'?'background:rgba(255,59,92,0.2);color:#FF3B5C;border-color:#FF3B5C':'')+'">🚨 Complaints</button>'
+    +'<button class="fb '+(s==='feedback'?'active':'')+'" onclick="setSentiment(\'feedback\')" style="'+(s==='feedback'?'background:rgba(255,179,71,0.2);color:#FFB347;border-color:#FFB347':'')+'">💬 Feedback</button>'
+    +'<button class="fb '+(s==='appreciation'?'active':'')+'" onclick="setSentiment(\'appreciation\')" style="'+(s==='appreciation'?'background:rgba(57,255,20,0.15);color:#39FF14;border-color:#39FF14':'')+'">👏 Appreciation</button>'
+    +'<button class="fb '+(s==='idea'?'active':'')+'" onclick="setSentiment(\'idea\')" style="'+(s==='idea'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">💡 Ideas</button>'
     +'</div>'
-    // Row 2: Sentiment / Signal filters
-    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-    +'<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;min-width:44px">Signal</span>'
-    +'<button class="fb '+(s==='all'?'active':'')+'" onclick="setSentiment(\'all\',this)">All Topics</button>'
-    +'<button class="fb '+(s==='complaint'?'active':'')+'" onclick="setSentiment(\'complaint\',this)" style="'+(s==='complaint'?'background:rgba(255,59,92,0.2);color:#FF3B5C;border-color:#FF3B5C':'')+'">🚨 Complaints</button>'
-    +'<button class="fb '+(s==='feedback'?'active':'')+'" onclick="setSentiment(\'feedback\',this)" style="'+(s==='feedback'?'background:rgba(255,179,71,0.2);color:#FFB347;border-color:#FFB347':'')+'">💬 Feedback</button>'
-    +'<button class="fb '+(s==='appreciation'?'active':'')+'" onclick="setSentiment(\'appreciation\',this)" style="'+(s==='appreciation'?'background:rgba(57,255,20,0.15);color:#39FF14;border-color:#39FF14':'')+'">👏 Appreciation</button>'
-    +'<button class="fb '+(s==='idea'?'active':'')+'" onclick="setSentiment(\'idea\',this)" style="'+(s==='idea'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">💡 Ideas</button>'
-    +'</div>'
-    +'</div>'
-    +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:4px">'
+    +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'
     +'<div class="empty" style="grid-column:1/-1">Loading feeds…</div>'
     +'</div>';
 }
 
-function togglePulseSmartFilter(btn){
-  _pulseSmartFilter=!_pulseSmartFilter;
-  btn.classList.toggle('active',_pulseSmartFilter);
-  btn.style.opacity=_pulseSmartFilter?'1':'0.6';
-  renderPulseGrid();
-}
-
-function setPF(f,btn){
+function setPF(f){
   _pulseFilter=f;
-  document.querySelectorAll('[data-f]').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
-  var sf=document.querySelector('[onclick*="togglePulseSmartFilter"]');
-  if(sf&&_pulseSmartFilter) sf.classList.add('active');
-  renderPulseGrid();
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();loadPulse();}
 }
 
-function setSentiment(s,btn){
+function setSentiment(s){
   _pulseSentiment=s;
-  document.querySelectorAll('[onclick*="setSentiment"]').forEach(function(b){
-    b.classList.remove('active');
-    var m=b.getAttribute('onclick').match(/setSentiment\('([^']+)'/);
-    if(m&&m[1]!=='all') b.style.cssText='';
-  });
-  btn.classList.add('active');
-  if(s!=='all'){var meta=SENTIMENT_META[s];if(meta)btn.style.cssText='background:'+meta.bg+';color:'+meta.color+';border-color:'+meta.color;}
-  renderPulseGrid();
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();loadPulse();}
 }
 
 async function loadPulse(force){
@@ -3112,7 +3092,10 @@ async function loadPulse(force){
 function renderPulseGrid(){
   var grid=document.getElementById('pulseGrid');
   if(!grid) return;
-  var feeds=PULSE_FEEDS.filter(function(f){return _pulseFilter==='all'||f.cat===_pulseFilter;});
+  var feeds=PULSE_FEEDS.filter(function(f){
+    if(_pulseFilter==='community') return f.cat==='community';
+    return f.cat==='competitor'||f.cat==='design';
+  });
   var html='';
   feeds.forEach(function(feed){
     var cached=_pulseCache[feed.id];
