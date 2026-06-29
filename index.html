@@ -3246,10 +3246,41 @@ function parseWhatsAppExport(text){
   return msgs;
 }
 
+// Resolution signal keywords — if any appear within 15 messages after an issue, mark as resolved
+var _RESOLVE_KW=['resolved','fixed','working now','check now','please check now','please check','please try now','try now','sorted','closed','issue resolved','has been resolved','been resolved','resolution has been communicated','check kar','solved','working fine','done now','its resolved','is resolved','ok now','already resolved','has been fixed','been fixed','been sorted'];
+
+function _detectResolution(msgs, issueIdx, issueDate){
+  var WINDOW=15;
+  for(var j=issueIdx+1; j<Math.min(issueIdx+WINDOW+1, msgs.length); j++){
+    var m=msgs[j];
+    // Only look within same day or next 2 calendar days
+    if(m.date>issueDate){
+      var diff=(new Date(m.date)-new Date(issueDate))/(86400000);
+      if(diff>2) break;
+    }
+    var t=m.text.toLowerCase();
+    if(_RESOLVE_KW.some(function(kw){return t.includes(kw);})){
+      return m.date; // resolved on this date
+    }
+  }
+  return null;
+}
+
 function processWAMessages(msgs){
-  return msgs.filter(function(m){return isIssueMessage(m.text);}).map(function(m,i){
-    return {id:Date.now()+i,date:m.date,time:m.time,sender:m.sender,text:m.text,type:classifyIssue(m.text),sentiment:getIssueSentimentLabel(m.text),status:'open',resolvedAt:null};
+  var issues=[];
+  msgs.forEach(function(m,i){
+    if(!isIssueMessage(m.text)) return;
+    var rDate=_detectResolution(msgs,i,m.date);
+    issues.push({
+      id:Date.now()+i,
+      date:m.date,time:m.time,sender:m.sender,text:m.text,
+      type:classifyIssue(m.text),
+      sentiment:getIssueSentimentLabel(m.text),
+      status:rDate?'resolved':'open',
+      resolvedAt:rDate||null
+    });
   });
+  return issues;
 }
 
 function toggleIssueStatus(id){
@@ -3294,23 +3325,50 @@ function renderIssueTable(){
 }
 
 function vIssueVolumeChart(){
-  var today=new Date();
+  if(!_issueData.length) return '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No data yet</div>';
+  var dates=_issueData.map(function(i){return i.date;}).filter(Boolean).sort();
+  var minD=new Date(dates[0]),maxD=new Date(dates[dates.length-1]);
+  var daySpan=Math.round((maxD-minD)/86400000);
+  // Monthly view for data spanning > 45 days, daily otherwise
+  if(daySpan>45){
+    var months=[];
+    var cur=new Date(minD.getFullYear(),minD.getMonth(),1);
+    while(cur<=maxD){
+      var key=cur.toISOString().substr(0,7);
+      var label=cur.toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+      var cnt=_issueData.filter(function(x){return x.date&&x.date.substr(0,7)===key;}).length;
+      months.push({label:label,count:cnt});
+      cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    }
+    var maxC=Math.max.apply(null,months.map(function(m){return m.count;}))||1;
+    return '<div style="display:flex;align-items:flex-end;gap:3px;height:90px;overflow-x:auto">'
+      +months.map(function(m){
+        var h=Math.max(3,Math.round((m.count/maxC)*72));
+        var hasData=m.count>0;
+        return '<div style="min-width:28px;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="'+m.label+': '+m.count+' issues">'
+          +'<div style="font-size:8px;color:var(--text3);font-family:var(--mono)">'+( hasData?m.count:'')+'</div>'
+          +'<div style="width:100%;background:linear-gradient(180deg,#00C896,#387ED1);border-radius:3px 3px 0 0;height:'+h+'px;opacity:'+(hasData?0.9:0.15)+';transition:opacity .2s"></div>'
+          +'<div style="font-size:8px;color:var(--text3);white-space:nowrap">'+m.label+'</div>'
+          +'</div>';
+      }).join('')+'</div>';
+  }
+  // Daily — show last 30 days from latest data date
   var days=[];
   for(var i=29;i>=0;i--){
-    var d=new Date(today);d.setDate(d.getDate()-i);
+    var d=new Date(maxD);d.setDate(d.getDate()-i);
     var ds=d.toISOString().split('T')[0];
-    days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:_issueData.filter(function(x){return x.date===ds;}).length});
+    days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:_issueData.filter(function(x){return x.date===ds;}).length,ds:ds});
   }
-  var max=Math.max.apply(null,days.map(function(d){return d.count;}))||1;
-  return '<div style="display:flex;align-items:flex-end;gap:3px;height:90px">'
+  var maxC=Math.max.apply(null,days.map(function(d){return d.count;}))||1;
+  return '<div style="display:flex;align-items:flex-end;gap:2px;height:90px">'
     +days.map(function(d){
-      var h=Math.max(2,Math.round((d.count/max)*70));
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">'
-        +'<span style="font-size:8px;color:var(--text3);font-family:var(--mono)">'+(d.count||'')+'</span>'
-        +'<div style="width:100%;background:'+(d.count?'var(--blue)':'var(--border)')+';border-radius:2px 2px 0 0;height:'+h+'px;'+(d.count?'box-shadow:var(--glow-blue)':'')+'">'+'</div>'
-        +'<span style="font-size:7px;color:var(--text3);white-space:nowrap;overflow:hidden;max-width:100%;text-overflow:ellipsis">'+d.label+'</span>'
+      var h=Math.max(d.count?3:1,Math.round((d.count/maxC)*72));
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="'+d.label+': '+d.count+' issues">'
+        +'<div style="width:100%;background:linear-gradient(180deg,#00C896,#387ED1);border-radius:2px 2px 0 0;height:'+h+'px;opacity:'+(d.count?0.9:0.12)+'"></div>'
         +'</div>';
-    }).join('')
+    }).join('')+'</div>'
+    +'<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--text3)">'
+    +'<span>'+days[0].label+'</span><span>'+days[14].label+'</span><span>'+days[29].label+'</span>'
     +'</div>';
 }
 
@@ -3320,8 +3378,13 @@ function _daysAgo(dateStr){
 }
 
 function vWeekTrend(){
+  var today=new Date();
   var thisW=0,lastW=0;
-  _issueData.forEach(function(i){var days=_daysAgo(i.date);if(days<7)thisW++;else if(days<14)lastW++;});
+  _issueData.forEach(function(i){
+    var days=_daysAgo(i.date);
+    if(days<7) thisW++;
+    else if(days<14) lastW++;
+  });
   var delta=thisW-lastW;
   var arrow=delta>0?'↑':delta<0?'↓':'→';
   var col=delta>0?'#FF3B5C':delta<0?'#39FF14':'#FFB347';
@@ -3335,7 +3398,10 @@ function vWeekTrend(){
 
 function vUrgencyBreakdown(){
   var high=0,med=0,norm=0;
-  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){var u=getUrgency(i.text);if(u==='high')high++;else if(u==='medium')med++;else norm++;});
+  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){
+    var u=getUrgency(i.text);
+    if(u==='high')high++;else if(u==='medium')med++;else norm++;
+  });
   return '<div style="display:flex;gap:5px">'
     +'<div style="flex:1;text-align:center;padding:7px 2px;background:rgba(255,59,92,0.1);border-radius:8px;border:1px solid rgba(255,59,92,0.3)">'
     +'<div style="font-size:22px;font-weight:700;color:#FF3B5C">'+high+'</div>'
@@ -3350,19 +3416,24 @@ function vUrgencyBreakdown(){
 }
 
 function vEscalationRadar(){
-  var hot=_issueData.filter(function(i){return i.status==='open'&&_daysAgo(i.date)>=3;}).sort(function(a,b){return _daysAgo(b.date)-_daysAgo(a.date);});
-  if(!hot.length) return '<div style="font-size:11px;color:#39FF14;padding:12px 0;text-align:center">✅ No escalation risks — all issues are recent</div>';
-  return hot.slice(0,5).map(function(i){
-    var days=_daysAgo(i.date);
+  var uOrder={high:0,medium:1,normal:2};
+  var open=_issueData.filter(function(i){return i.status==='open';})
+    .sort(function(a,b){
+      var ud=(uOrder[getUrgency(a.text)]||2)-(uOrder[getUrgency(b.text)]||2);
+      if(ud!==0) return ud;
+      return a.date<b.date?-1:1;
+    });
+  if(!open.length) return '<div style="font-size:11px;color:#39FF14;padding:12px 0;text-align:center">✅ All issues resolved!</div>';
+  return open.slice(0,5).map(function(i){
     var urg=getUrgency(i.text);
     var ucol=urg==='high'?'#FF3B5C':urg==='medium'?'#FFB347':'#8E8E93';
-    var urgTxt=urg==='high'?'🔥':urg==='medium'?'⚡':'•';
+    var urgBadge=urg==='high'?'<span style="font-size:8px;background:rgba(255,59,92,0.2);color:#FF3B5C;padding:1px 5px;border-radius:8px;font-weight:600">🔥 HIGH</span>':urg==='medium'?'<span style="font-size:8px;background:rgba(255,179,71,0.2);color:#FFB347;padding:1px 5px;border-radius:8px">⚡ MED</span>':'<span style="font-size:8px;color:var(--text3)">—</span>';
     return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="font-size:9px;background:rgba(255,59,92,0.15);color:#FF3B5C;padding:2px 6px;border-radius:10px;white-space:nowrap;font-weight:600;min-width:28px;text-align:center">'+days+'d</span>'
-      +'<span style="font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)" title="'+i.text.replace(/"/g,"'")+'">'+urgTxt+' '+i.text+'</span>'
+      +urgBadge
+      +'<span style="font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)" title="'+i.text.replace(/"/g,"'")+'">'+i.text+'</span>'
       +'<span style="font-size:9px;color:'+ucol+';white-space:nowrap;opacity:0.8">'+i.sender.split(' ')[0]+'</span>'
       +'</div>';
-  }).join('')+(hot.length>5?'<div style="font-size:10px;color:#FF3B5C;margin-top:5px;text-align:right">+'+(hot.length-5)+' more at risk</div>':'');
+  }).join('')+(open.length>5?'<div style="font-size:10px;color:#FFB347;margin-top:5px;text-align:right">+'+(open.length-5)+' more unresolved</div>':'');
 }
 
 function vTopReporters(){
@@ -3421,7 +3492,6 @@ function vPulseIssues(){
   }
 
   var highUrgency=_issueData.filter(function(i){return i.status==='open'&&getUrgency(i.text)==='high';}).length;
-  var escalations=_issueData.filter(function(i){return i.status==='open'&&_daysAgo(i.date)>=3;}).length;
   return ''
     // ── Row 1: KPI cards ──
     +'<div class="metrics" style="margin-bottom:10px">'
@@ -3429,7 +3499,7 @@ function vPulseIssues(){
     +'<div class="mc amber"><div class="mc-l">Open</div><div class="mc-v">'+open+'</div><div class="mc-s">awaiting resolution</div></div>'
     +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+resolved+'</div><div class="mc-s">'+rate+'% resolution rate</div></div>'
     +'<div class="mc '+(highUrgency>0?'red':'green')+'"><div class="mc-l">🔥 High Urgency</div><div class="mc-v">'+highUrgency+'</div><div class="mc-s">needs immediate action</div></div>'
-    +'<div class="mc '+(escalations>0?'red':'green')+'"><div class="mc-l">⚠️ Escalation Risk</div><div class="mc-v">'+escalations+'</div><div class="mc-s">open &gt; 3 days</div></div>'
+    +'<div class="mc '+(open>0?'amber':'green')+'"><div class="mc-l">📋 Unresolved</div><div class="mc-v">'+open+'</div><div class="mc-s">still needs action</div></div>'
     +'</div>'
     // ── Row 2: Volume chart + Week-over-Week + Open Urgency ──
     +'<div style="display:grid;grid-template-columns:1fr 185px 210px;gap:10px;margin-bottom:10px">'
@@ -3440,7 +3510,7 @@ function vPulseIssues(){
     // ── Row 3: Type Breakdown + Escalation Radar + Top Reporters ──
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'
     +'<div class="panel"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">⚠️ Escalation Radar</span><span style="font-size:9px;color:#FF3B5C;font-weight:400">Open ≥ 3 days</span></div><div style="padding:10px 14px">'+vEscalationRadar()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">📋 Unresolved Issues</span><span style="font-size:9px;color:#FFB347;font-weight:400">sorted by urgency</span></div><div style="padding:10px 14px">'+vEscalationRadar()+'</div></div>'
     +'<div class="panel"><div class="ph"><span class="pt">👤 Top Reporters</span><span style="font-size:9px;color:var(--text3);font-weight:400">by open count</span></div><div style="padding:12px 14px">'+vTopReporters()+'</div></div>'
     +'</div>'
     // ── Row 4: Sentiment split ──
