@@ -1144,8 +1144,9 @@ function vSkills(){
     ? '<div class="empty">No skills tagged yet — tag skills when adding tasks</div>'
     : taskSkills.map(t => {
         const chips = t.skills.map(s => {
-          const sk = SKILLS.find(x => x.name===s);
-          return '<span class="skill-chip" style="background:'+(sk?sk.color:'#888')+';color:#fff;border-color:'+(sk?sk.color:'#888')+'">'+s+'</span>';
+          const sk = SKILLS.find(x => x.name===s) || SKILLS.find(x => x.name.toLowerCase().includes((s||'').toLowerCase().split(' ')[0]));
+          const col = sk ? sk.color : '#4A5568';
+          return '<span class="skill-chip" style="background:'+col+';color:#fff;border-color:'+col+'">'+s+'</span>';
         }).join('');
         return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:12px;font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.designer_name+'</div></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div>';
       }).join('');
@@ -1154,8 +1155,9 @@ function vSkills(){
   const allRatings = skillRatings||[];
   const last3 = allRatings.slice(0,3);
   const ratingRowsHtml = (rows) => rows.map(r => {
-    const sk = SKILLS.find(x => x.name===r.skill);
-    const chip = sk ? '<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>' : r.skill;
+    const sk = SKILLS.find(x => x.name===r.skill) || SKILLS.find(x => x.name.toLowerCase().includes((r.skill||'').toLowerCase().split(' ')[0]));
+    const col = sk ? sk.color : '#4A5568';
+    const chip = '<span class="skill-chip" style="background:'+col+';color:#fff;border-color:'+col+'">'+r.skill+'</span>';
     return '<tr class="tr">'
       +'<td style="font-weight:500">'+(r.task_name||'—')+'</td>'
       +'<td style="color:var(--text2)">'+r.designer_name+'</td>'
@@ -1200,8 +1202,9 @@ function toggleRatingHistory(){
   const all = skillRatings||[];
   const rows = ratingHistoryExpanded ? all : all.slice(0,3);
   tbody.innerHTML = rows.map(r => {
-    const sk = SKILLS.find(x => x.name===r.skill);
-    const chip = sk ? '<span class="skill-chip" style="background:'+sk.color+';color:#fff;border-color:'+sk.color+'">'+r.skill+'</span>' : r.skill;
+    const sk = SKILLS.find(x => x.name===r.skill) || SKILLS.find(x => x.name.toLowerCase().includes((r.skill||'').toLowerCase().split(' ')[0]));
+    const col = sk ? sk.color : '#4A5568';
+    const chip = '<span class="skill-chip" style="background:'+col+';color:#fff;border-color:'+col+'">'+r.skill+'</span>';
     return '<tr class="tr"><td style="font-weight:500">'+(r.task_name||'—')+'</td><td style="color:var(--text2)">'+r.designer_name+'</td><td>'+chip+'</td><td>'+starsHtml(r.self_rating)+'</td><td>'+starsHtml(r.head_rating)+'</td><td style="color:var(--text3)">'+(r.notes||'—')+'</td><td style="color:var(--text3)">'+(r.rated_at||'—')+'</td><td><button class="btn" style="font-size:10px;padding:3px 8px" onclick="openEditRating(this.dataset.id)" data-id="'+r.id+'">Edit</button></td></tr>';
   }).join('');
   if(btn) btn.textContent = ratingHistoryExpanded ? 'Show less' : 'See all ('+all.length+')';
