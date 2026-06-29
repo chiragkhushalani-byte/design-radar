@@ -849,7 +849,7 @@ function render(){
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
   else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
   else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
-  else if(view==='pulse'){c.innerHTML=vPulse();setTimeout(loadPulse,100);}
+  else if(view==='pulse'){c.innerHTML=vPulse();if(_pulseFilter==='issues'){setTimeout(renderIssueTable,100);}else{setTimeout(loadPulse,100);}}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -3031,6 +3031,248 @@ const COMPETITOR_FILTER_META = {
   launches: {label:'New Launches', emoji:'🚀', color:'#39FF14', bg:'rgba(57,255,20,0.12)'}
 };
 
+// ── COB / KYC ISSUE TRACKER ───────────────────────────
+var _issueData=[];
+var _issueViewFilter='all';
+var _issueTypeFilter='all';
+
+const ISSUE_TYPES_META={
+  'KYC Rejected':  {color:'#FF3B5C',bg:'rgba(255,59,92,0.15)'},
+  'KYC Pending':   {color:'#FFB347',bg:'rgba(255,179,71,0.15)'},
+  'KYC Issue':     {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
+  'COB Failed':    {color:'#BF5AF2',bg:'rgba(191,90,242,0.15)'},
+  'COB Delayed':   {color:'#8B5CF6',bg:'rgba(139,92,246,0.15)'},
+  'COB Issue':     {color:'#A855F7',bg:'rgba(168,85,247,0.15)'},
+  'OTP Issue':     {color:'#00E5FF',bg:'rgba(0,229,255,0.12)'},
+  'Document Issue':{color:'#F59E0B',bg:'rgba(245,158,11,0.15)'},
+  'Account Issue': {color:'#EF4444',bg:'rgba(239,68,68,0.15)'},
+  'Other':         {color:'#6B7280',bg:'rgba(107,114,128,0.15)'}
+};
+
+function classifyIssue(text){
+  var t=text.toLowerCase();
+  if(t.includes('kyc')){
+    if(t.includes('reject')||t.includes('failed')||t.includes('decline')||t.includes('not accepted')) return 'KYC Rejected';
+    if(t.includes('pend')||t.includes('wait')||t.includes('processing')) return 'KYC Pending';
+    return 'KYC Issue';
+  }
+  if(t.includes('cob')||t.includes('change of broker')){
+    if(t.includes('fail')||t.includes('error')||t.includes('reject')) return 'COB Failed';
+    if(t.includes('delay')||t.includes('pending')||t.includes('wait')) return 'COB Delayed';
+    return 'COB Issue';
+  }
+  if(t.includes('otp')) return 'OTP Issue';
+  if(t.includes('document')||t.includes(' doc ')||t.includes('upload')||t.includes('pan ')||t.includes('aadhaar')||t.includes('aadhar')) return 'Document Issue';
+  if(t.includes('account')&&(t.includes('block')||t.includes('suspend')||t.includes('freeze')||t.includes('lock'))) return 'Account Issue';
+  return 'Other';
+}
+
+function getIssueSentimentLabel(text){
+  var t=text.toLowerCase();
+  if(SENTIMENT_KEYWORDS.complaint.some(function(kw){return t.includes(kw);})) return 'complaint';
+  if(SENTIMENT_KEYWORDS.appreciation.some(function(kw){return t.includes(kw);})) return 'appreciation';
+  if(SENTIMENT_KEYWORDS.feedback.some(function(kw){return t.includes(kw);})) return 'feedback';
+  return 'neutral';
+}
+
+function isIssueMessage(text){
+  var t=text.toLowerCase();
+  return ['kyc','cob','change of broker','issue','problem','error','failed','reject','pend','not working','unable','cannot','otp','document','pan ','aadhaar','verify','verification','complaint','stuck','help'].some(function(kw){return t.includes(kw);});
+}
+
+function parseWhatsAppExport(text){
+  var lines=text.split('\n');
+  var msgs=[];
+  var r1=/^\[(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4}),\s*([\d:]+(?:\s*[AP]M)?)\]\s*([^:]+):\s*(.+)$/;
+  var r2=/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4}),\s*([\d:]+(?:\s*[AP]M)?)\s*[-–]\s*([^:]+):\s*(.+)$/;
+  lines.forEach(function(line){
+    var m=line.match(r1)||line.match(r2);
+    if(!m) return;
+    var d=m[1],mo=m[2],y=m[3],time=m[4],sender=m[5],msgText=m[6];
+    var yr=y.length===2?'20'+y:y;
+    var dateStr=yr+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0');
+    msgs.push({date:dateStr,time:time.trim(),sender:sender.trim(),text:msgText.trim()});
+  });
+  return msgs;
+}
+
+function processWAMessages(msgs){
+  return msgs.filter(function(m){return isIssueMessage(m.text);}).map(function(m,i){
+    return {id:Date.now()+i,date:m.date,time:m.time,sender:m.sender,text:m.text,type:classifyIssue(m.text),sentiment:getIssueSentimentLabel(m.text),status:'open',resolvedAt:null};
+  });
+}
+
+function toggleIssueStatus(id){
+  var issue=_issueData.find(function(i){return i.id===id;});
+  if(issue){
+    issue.status=issue.status==='open'?'resolved':'open';
+    issue.resolvedAt=issue.status==='resolved'?new Date().toISOString().split('T')[0]:null;
+    renderIssueTable();
+  }
+}
+
+function renderIssueTable(){
+  var tbody=document.getElementById('issueTableBody');
+  if(!tbody) return;
+  var filtered=_issueData.filter(function(i){
+    if(_issueViewFilter!=='all'&&i.status!==_issueViewFilter) return false;
+    if(_issueTypeFilter!=='all'&&i.type!==_issueTypeFilter) return false;
+    return true;
+  });
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;font-size:12px;color:var(--text3)">No issues match the filter</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(issue){
+    var tm=ISSUE_TYPES_META[issue.type]||ISSUE_TYPES_META['Other'];
+    var sm=SENTIMENT_META[issue.sentiment];
+    var statusStyle=issue.status==='resolved'?'background:rgba(57,255,20,0.12);color:#39FF14':'background:rgba(255,179,71,0.15);color:#FFB347';
+    return '<tr class="tr" onclick="toggleIssueStatus('+issue.id+')" title="Click to toggle resolved/open">'
+      +'<td style="font-family:var(--mono);font-size:11px;color:var(--text3)">'+issue.date+'</td>'
+      +'<td style="font-size:11px;color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+issue.text.replace(/"/g,'')+'">'+issue.text+'</td>'
+      +'<td><span style="font-size:10px;color:'+tm.color+';background:'+tm.bg+';padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap">'+issue.type+'</span></td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+issue.sender+'</td>'
+      +'<td>'+(sm?'<span style="font-size:9px;color:'+sm.color+';background:'+sm.bg+';padding:1px 5px;border-radius:6px">'+sm.emoji+' '+sm.label+'</span>':'<span style="font-size:10px;color:var(--text3)">—</span>')+'</td>'
+      +'<td><span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;'+statusStyle+'">'+issue.status+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function vIssueVolumeChart(){
+  var today=new Date();
+  var days=[];
+  for(var i=13;i>=0;i--){
+    var d=new Date(today);d.setDate(d.getDate()-i);
+    var ds=d.toISOString().split('T')[0];
+    days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:_issueData.filter(function(x){return x.date===ds;}).length});
+  }
+  var max=Math.max.apply(null,days.map(function(d){return d.count;}))||1;
+  return '<div style="display:flex;align-items:flex-end;gap:3px;height:90px">'
+    +days.map(function(d){
+      var h=Math.max(2,Math.round((d.count/max)*70));
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">'
+        +'<span style="font-size:8px;color:var(--text3);font-family:var(--mono)">'+(d.count||'')+'</span>'
+        +'<div style="width:100%;background:'+(d.count?'var(--blue)':'var(--border)')+';border-radius:2px 2px 0 0;height:'+h+'px;'+(d.count?'box-shadow:var(--glow-blue)':'')+'">'+'</div>'
+        +'<span style="font-size:7px;color:var(--text3);white-space:nowrap;overflow:hidden;max-width:100%;text-overflow:ellipsis">'+d.label+'</span>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+}
+
+function vIssueTypeBreakdown(){
+  var counts={};
+  _issueData.forEach(function(i){counts[i.type]=(counts[i.type]||0)+1;});
+  var total=_issueData.length||1;
+  return Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    var meta=ISSUE_TYPES_META[e[0]]||ISSUE_TYPES_META['Other'];
+    var pct=Math.round((e[1]/total)*100);
+    return '<div style="margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+      +'<span style="font-size:11px;color:var(--text)">'+e[0]+'</span>'
+      +'<span style="font-size:10px;color:var(--text3);font-family:var(--mono)">'+e[1]+' · '+pct+'%</span>'
+      +'</div>'
+      +'<div class="bar-bg"><div class="bar-fill" style="background:'+meta.color+';width:'+pct+'%;box-shadow:0 0 6px '+meta.color+'50"></div></div>'
+      +'</div>';
+  }).join('');
+}
+
+function vPulseIssues(){
+  var total=_issueData.length;
+  var open=_issueData.filter(function(i){return i.status==='open';}).length;
+  var resolved=_issueData.filter(function(i){return i.status==='resolved';}).length;
+  var rate=total>0?Math.round((resolved/total)*100):0;
+  var sc={complaint:0,feedback:0,appreciation:0,neutral:0};
+  _issueData.forEach(function(i){if(sc[i.sentiment]!==undefined)sc[i.sentiment]++;});
+
+  if(!total){
+    return '<div style="text-align:center;padding:60px 20px">'
+      +'<div style="font-size:36px;margin-bottom:12px">📱</div>'
+      +'<div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No issues logged yet</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:20px">Upload your WhatsApp group export (.txt) or add issues manually</div>'
+      +'<div style="display:flex;justify-content:center;gap:10px">'
+      +'<label class="btn accent" style="cursor:pointer">📤 Upload WhatsApp Export<input type="file" accept=".txt" style="display:none" onchange="handleWAUpload(this)"></label>'
+      +'<button class="btn" onclick="openAddIssue()">+ Add Manually</button>'
+      +'</div></div>';
+  }
+
+  return ''
+    // Stat cards
+    +'<div class="metrics" style="margin-bottom:14px">'
+    +'<div class="mc blue"><div class="mc-l">Total Issues</div><div class="mc-v">'+total+'</div><div class="mc-s">from WhatsApp group</div></div>'
+    +'<div class="mc amber"><div class="mc-l">Open</div><div class="mc-v">'+open+'</div><div class="mc-s">awaiting resolution</div></div>'
+    +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+resolved+'</div><div class="mc-s">closed</div></div>'
+    +'<div class="mc '+(rate>=70?'green':rate>=40?'amber':'red')+'"><div class="mc-l">Resolution Rate</div><div class="mc-v">'+rate+'%</div><div class="mc-s">of all issues</div></div>'
+    +'</div>'
+    // Charts
+    +'<div class="two-col" style="margin-bottom:14px">'
+    +'<div class="panel"><div class="ph"><span class="pt">📊 Volume — Last 14 Days</span></div><div style="padding:12px 14px">'+vIssueVolumeChart()+'</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div class="panel" style="flex:1"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">💬 Sentiment Split</span></div>'
+    +'<div style="padding:10px 14px;display:flex;gap:10px">'
+    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#FF3B5C">'+sc.complaint+'</div><div style="font-size:9px;color:var(--text3)">🚨 Complaints</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#FFB347">'+sc.feedback+'</div><div style="font-size:9px;color:var(--text3)">💬 Feedback</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:#39FF14">'+sc.appreciation+'</div><div style="font-size:9px;color:var(--text3)">👏 Positive</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:500;color:var(--text3)">'+sc.neutral+'</div><div style="font-size:9px;color:var(--text3)">— Neutral</div></div>'
+    +'</div></div>'
+    +'</div></div>'
+    // Issue log table
+    +'<div class="panel">'
+    +'<div class="ph"><span class="pt">Issue Log</span>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<select class="ds-sel" style="width:auto" onchange="_issueViewFilter=this.value;renderIssueTable()"><option value="all">All Status</option><option value="open">Open</option><option value="resolved">Resolved</option></select>'
+    +'<select class="ds-sel" style="width:auto" onchange="_issueTypeFilter=this.value;renderIssueTable()"><option value="all">All Types</option>'+Object.keys(ISSUE_TYPES_META).map(function(t){return '<option>'+t+'</option>';}).join('')+'</select>'
+    +'<label class="btn" style="cursor:pointer;font-size:11px;padding:4px 10px">📤 Upload<input type="file" accept=".txt" style="display:none" onchange="handleWAUpload(this)"></label>'
+    +'<button class="btn" onclick="openAddIssue()" style="font-size:11px;padding:4px 10px">+ Add</button>'
+    +'</div></div>'
+    +'<table><thead><tr><th style="width:88px">Date</th><th>Message</th><th style="width:130px">Type</th><th style="width:110px">Sender</th><th style="width:100px">Signal</th><th style="width:80px">Status</th></tr></thead>'
+    +'<tbody id="issueTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">Loading…</td></tr></tbody></table>'
+    +'</div>'
+    // Manual add modal
+    +'<div id="moAddIssue" class="modal-overlay" onclick="if(event.target===this)closeModal(\'moAddIssue\')">'
+    +'<div class="modal"><div class="modal-head"><span class="modal-title">Log Issue Manually</span><button class="modal-close" onclick="closeModal(\'moAddIssue\')">×</button></div>'
+    +'<div class="modal-body">'
+    +'<div class="mfield"><label>Message / Description</label><textarea id="issueText" placeholder="Paste the WhatsApp message or describe the issue…" oninput="var d=classifyIssue(this.value);var s=document.getElementById(\'issueType\');if(s)s.value=d"></textarea></div>'
+    +'<div class="mrow"><div class="mfield"><label>Sender Name</label><input id="issueSender" placeholder="e.g. Rahul M"></div>'
+    +'<div class="mfield"><label>Date</label><input id="issueDate" type="date" value="'+new Date().toISOString().split('T')[0]+'"></div></div>'
+    +'<div class="mfield"><label>Issue Type (auto-detected)</label><select id="issueType">'+Object.keys(ISSUE_TYPES_META).map(function(t){return '<option>'+t+'</option>';}).join('')+'</select></div>'
+    +'</div>'
+    +'<div class="modal-footer"><button class="btn" onclick="closeModal(\'moAddIssue\')">Cancel</button><button class="btn accent" onclick="saveManualIssue()">Log Issue</button></div>'
+    +'</div></div>';
+}
+
+function handleWAUpload(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var msgs=parseWhatsAppExport(e.target.result);
+    var issues=processWAMessages(msgs);
+    _issueData=_issueData.concat(issues);
+    toast('Imported '+issues.length+' issues from '+msgs.length+' messages');
+    var c=document.getElementById('content');
+    if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+  };
+  reader.readAsText(file);
+}
+
+function openAddIssue(){
+  document.getElementById('moAddIssue').classList.add('open');
+}
+
+function saveManualIssue(){
+  var text=document.getElementById('issueText').value.trim();
+  if(!text){toast('Please enter a message');return;}
+  _issueData.push({
+    id:Date.now(),date:document.getElementById('issueDate').value||new Date().toISOString().split('T')[0],
+    time:'',sender:document.getElementById('issueSender').value.trim()||'Unknown',
+    text:text,type:document.getElementById('issueType').value||classifyIssue(text),
+    sentiment:getIssueSentimentLabel(text),status:'open',resolvedAt:null
+  });
+  closeModal('moAddIssue');toast('Issue logged');
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+}
+
 function isPulseRelevant(item){
   var text=(item.title+' '+(item.summary||item.description||'')).toLowerCase();
   return PULSE_KEYWORDS.some(function(kw){return text.indexOf(kw)>=0;});
@@ -3061,6 +3303,14 @@ function vPulse(){
   var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
   var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
   var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
+  var isIssues=_pulseFilter==='issues';
+  var tabBar='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
+    +'<button onclick="setPF(\'competitor\')" style="'+(isComp&&!isIssues?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
+    +'<button onclick="setPF(\'community\')" style="'+(!isComp&&!isIssues?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
+    +'<button onclick="setPF(\'issues\')" style="'+(isIssues?tabOn:tabOff)+'">📱 COB / KYC Issues</button>'
+    +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="'+(isIssues?'openAddIssue()':'loadPulse(true)')+'">'+( isIssues?'+ Add Issue':'↻ Refresh')+'</button>'
+    +'</div>';
+  if(isIssues) return tabBar+vPulseIssues();
   var filterRow='';
   if(isComp){
     // Competitor tab: topic filters
@@ -3080,13 +3330,7 @@ function vPulse(){
       +'<button class="fb '+(s==='idea'?'active':'')+'" onclick="setSentiment(\'idea\')" style="'+(s==='idea'?'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF':'')+'">💡 Ideas</button>'
       +'</div>';
   }
-  return ''
-    +'<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
-    +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
-    +'<button onclick="setPF(\'community\')" style="'+(!isComp?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
-    +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
-    +'</div>'
-    +filterRow
+  return tabBar+filterRow
     +'<div id="pulseGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'
     +'<div class="empty" style="grid-column:1/-1">Loading feeds…</div>'
     +'</div>';
@@ -3095,7 +3339,9 @@ function vPulse(){
 function setPF(f){
   _pulseFilter=f;
   var c=document.getElementById('content');
-  if(c){c.innerHTML=vPulse();loadPulse();}
+  if(!c) return;
+  c.innerHTML=vPulse();
+  if(f==='issues'){setTimeout(renderIssueTable,60);}else{loadPulse();}
 }
 
 function setCF(f){
