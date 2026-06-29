@@ -2948,12 +2948,13 @@ document.addEventListener('keydown',e=>{
 
 // ── MARKET PULSE ──────────────────────────────────────
 const PULSE_FEEDS = [
-  {id:'zerodha',   label:'Zerodha',      url:'https://zerodha.com/z-connect/feed',    cat:'competitor', color:'#387ED1'},
-  {id:'groww',     label:'Groww',        url:'https://groww.in/blog/feed',            cat:'competitor', color:'#5367FF'},
-  {id:'dhan',      label:'Dhan',         url:'https://dhan.co/blog/feed',             cat:'competitor', color:'#FF6B35'},
-  {id:'fivepaisa', label:'5paisa',       url:'https://5paisa.com/rss/blog.xml',       cat:'competitor', color:'#E31837'},
-  {id:'uxcol',     label:'UX Collective',url:'https://uxdesign.cc/feed',              cat:'design',     color:'#0066CC'},
-  {id:'nngroup',   label:'Nielsen Norman',url:'https://www.nngroup.com/feed/rss/',    cat:'design',     color:'#CC0000'},
+  {id:'zerodha',      label:'Zerodha',        url:'https://zerodha.com/z-connect/feed',    cat:'competitor', color:'#387ED1'},
+  {id:'groww',        label:'Groww',          url:'https://groww.in/blog/feed',            cat:'competitor', color:'#5367FF'},
+  {id:'dhan',         label:'Dhan',           url:'https://dhan.co/blog/feed',             cat:'competitor', color:'#FF6B35'},
+  {id:'fivepaisa',    label:'5paisa',         url:'https://5paisa.com/rss/blog.xml',       cat:'competitor', color:'#E31837'},
+  {id:'madefortrade', label:'Made for Trade', url:'https://madefortrade.in/feed',          cat:'community',  color:'#00C896'},
+  {id:'uxcol',        label:'UX Collective',  url:'https://uxdesign.cc/feed',              cat:'design',     color:'#0066CC'},
+  {id:'nngroup',      label:'Nielsen Norman', url:'https://www.nngroup.com/feed/rss/',     cat:'design',     color:'#CC0000'},
 ];
 const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
 var _pulseCache = {};
@@ -2980,6 +2981,7 @@ function vPulse(){
     +'<div class="filters" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<button class="fb '+(_pulseFilter==='all'?'active':'')+'" data-f="all" onclick="setPF(\'all\',this)">All</button>'
     +'<button class="fb '+(_pulseFilter==='competitor'?'active':'')+'" data-f="competitor" onclick="setPF(\'competitor\',this)">🏦 Competitors</button>'
+    +'<button class="fb '+(_pulseFilter==='community'?'active':'')+'" data-f="community" onclick="setPF(\'community\',this)">🌐 Community</button>'
     +'<button class="fb '+(_pulseFilter==='design'?'active':'')+'" data-f="design" onclick="setPF(\'design\',this)">🎨 Design</button>'
     +'<div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>'
     +'<button class="fb '+(_pulseSmartFilter?'active':'')+'" onclick="togglePulseSmartFilter(this)" style="'+(  _pulseSmartFilter?'':'opacity:0.6')+'">✦ Product & Design only</button>'
@@ -3043,7 +3045,8 @@ function renderPulseGrid(){
     html+='<span style="width:8px;height:8px;border-radius:50%;background:'+feed.color+';display:inline-block;flex-shrink:0;box-shadow:0 0 6px '+feed.color+'80"></span>';
     html+='<span style="font-weight:600;font-size:12px;color:var(--text)">'+feed.label+'</span>';
     if(filtered) html+='<span style="font-size:9px;color:var(--cyan);background:rgba(0,229,255,0.1);padding:1px 5px;border-radius:6px">'+items.length+' relevant</span>';
-    html+='<span style="font-size:10px;color:var(--text3);margin-left:auto;background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:8px">'+(feed.cat==='competitor'?'Competitor':'Design')+'</span>';
+    var catLabel=feed.cat==='competitor'?'Competitor':feed.cat==='community'?'Community':'Design';
+    html+='<span style="font-size:10px;color:var(--text3);margin-left:auto;background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:8px">'+catLabel+'</span>';
     html+='</div>';
     // Items
     html+='<div style="padding:8px 0">';
