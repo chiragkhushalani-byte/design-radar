@@ -3574,17 +3574,17 @@ function vPulseIssues(){
   var df=_issueDateFilter;
   var dateBar='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">'
     +'<span style="font-size:11px;color:var(--text3);margin-right:4px">📅 Range:</span>'
-    +'<button style="'+dfBase+(df==='all'?dfOn:dfOff)+'" onclick="setIssueDateFilter('all')">All Time</button>'
-    +'<button style="'+dfBase+(df==='7d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('7d')">Last 7 Days</button>'
-    +'<button style="'+dfBase+(df==='30d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('30d')">Last 30 Days</button>'
-    +'<button style="'+dfBase+(df==='90d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('90d')">Last Quarter</button>'
-    +'<button style="'+dfBase+(df==='180d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('180d')">Last 6 Months</button>'
-    +'<button style="'+dfBase+(df==='365d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('365d')">Last Year</button>'
+    +'<button style="'+dfBase+(df==='all'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">All Time</button>'
+    +'<button style="'+dfBase+(df==='7d'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">Last 7 Days</button>'
+    +'<button style="'+dfBase+(df==='30d'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">Last 30 Days</button>'
+    +'<button style="'+dfBase+(df==='90d'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">Last Quarter</button>'
+    +'<button style="'+dfBase+(df==='180d'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">Last 6 Months</button>'
+    +'<button style="'+dfBase+(df==='365d'?dfOn:dfOff)+'" onclick="setIssueDateFilter(\'\1\')">Last Year</button>'
     +'<div style="margin-left:auto;display:flex;gap:6px;align-items:center">'
     +'<span style="font-size:11px;color:var(--text3)">Show:</span>'
-    +'<button style="'+dfBase+(_issueActionFilter==='all'?dfOn:dfOff)+'" onclick="setIssueActionFilter('all')">All</button>'
-    +'<button style="'+dfBase+(_issueActionFilter==='open'?'background:rgba(255,179,71,0.15);color:#FFB347;border-color:#FFB347;':dfOff)+'" onclick="setIssueActionFilter('open')">🔓 Open Only</button>'
-    +'<button style="'+dfBase+(_issueActionFilter==='actionable'?'background:rgba(255,59,92,0.15);color:#FF3B5C;border-color:#FF3B5C;':dfOff)+'" onclick="setIssueActionFilter('actionable')">🎯 Needs Action</button>'
+    +'<button style="'+dfBase+(_issueActionFilter==='all'?dfOn:dfOff)+'" onclick="setIssueActionFilter(\'\1\')">All</button>'
+    +'<button style="'+dfBase+(_issueActionFilter==='open'?'background:rgba(255,179,71,0.15);color:#FFB347;border-color:#FFB347;':dfOff)+'" onclick="setIssueActionFilter(\'\1\')">🔓 Open Only</button>'
+    +'<button style="'+dfBase+(_issueActionFilter==='actionable'?'background:rgba(255,59,92,0.15);color:#FF3B5C;border-color:#FF3B5C;':dfOff)+'" onclick="setIssueActionFilter(\'\1\')">🎯 Needs Action</button>'
     +'</div></div>';
 
   return dateBar
