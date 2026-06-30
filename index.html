@@ -307,6 +307,8 @@ input[type=range]{accent-color:var(--blue)}
       <div class="ni" data-view="askchirag" onclick="go('askchirag')" id="askchiragNi"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M7 5v1.5M6.3 3.8c0-.4.3-.8.7-.8s.7.35.7.8c0 .3-.15.55-.38.68L7 4.7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Ask Chirag</div>
       <div class="nl">Intel</div>
       <div class="ni" data-view="pulse" onclick="go('pulse')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="3" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><line x1="7" y1="1.5" x2="10" y2="4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Market Pulse</div>
+      <div class="nl">Data Analysis</div>
+      <div class="ni" data-view="cobkyc" onclick="go('cobkyc')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 6.5h2M4 9h6M8 6.5h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M5 1v3M9 1v3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>COB / KYC Issues</div>
     </div>
 
   </div>
@@ -827,7 +829,7 @@ function go(v){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   var target=document.querySelector('.ni[data-view="'+v+'"]');
   if(target) target.classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse',cobkyc:'COB / KYC Issues'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -849,7 +851,8 @@ function render(){
   else if(view==='pmform'){c.innerHTML=vPMForm();setTimeout(pmFormInit,50);}
   else if(view==='askchirag'){c.innerHTML=vAskChirag();setTimeout(initAskChirag,50);}
   else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
-  else if(view==='pulse'){c.innerHTML=vPulse();if(_pulseFilter==='issues'){loadIssuesFromDB().then(function(){if(view==='pulse'&&_pulseFilter==='issues'){c.innerHTML=vPulse();setTimeout(renderIssueTable,100);}});}else{setTimeout(loadPulse,100);}}
+  else if(view==='pulse'){c.innerHTML=vPulse();setTimeout(loadPulse,100);}
+  else if(view==='cobkyc'){c.innerHTML=vCobKyc();loadIssuesFromDB().then(function(){if(view==='cobkyc'){c.innerHTML=vCobKyc();setTimeout(renderIssueTable,100);}});}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -3068,12 +3071,12 @@ function _getActionFilteredIssues(data){
 function setIssueDateFilter(f){
   _issueDateFilter=f;
   var c=document.getElementById('content');
-  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+  if(c){c.innerHTML=view==='cobkyc'?vCobKyc():vPulse();setTimeout(renderIssueTable,60);}
 }
 function setIssueActionFilter(f){
   _issueActionFilter=f;
   var c=document.getElementById('content');
-  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+  if(c){c.innerHTML=view==='cobkyc'?vCobKyc():vPulse();setTimeout(renderIssueTable,60);}
 }
 
 function _rowToIssue(r){return{id:r.id,date:r.date,time:r.time||'',sender:r.sender,text:r.text,type:r.type,sentiment:r.sentiment,status:r.status,resolvedAt:r.resolved_at||null};}
@@ -3651,7 +3654,7 @@ function handleWAUpload(input){
     insertIssuesToDB(issues);
     toast('Imported '+issues.length+' issues from '+msgs.length+' messages');
     var c=document.getElementById('content');
-    if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+    if(c){c.innerHTML=view==='cobkyc'?vCobKyc():vPulse();setTimeout(renderIssueTable,60);}
   };
   reader.readAsText(file);
 }
@@ -3671,7 +3674,7 @@ function saveManualIssue(){
   });
   insertIssuesToDB([_issueData[_issueData.length-1]]);closeModal('moAddIssue');toast('Issue logged');
   var c=document.getElementById('content');
-  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+  if(c){c.innerHTML=view==='cobkyc'?vCobKyc():vPulse();setTimeout(renderIssueTable,60);}
 }
 
 function isPulseRelevant(item){
@@ -3697,6 +3700,17 @@ function getItemCompetitorTopics(item){
   return found;
 }
 
+function vCobKyc(){
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div><div style="font-size:15px;font-weight:500;letter-spacing:-.01em">📱 COB / KYC Issues</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">Market+ support issue tracker — WhatsApp community</div></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<label class="btn" style="cursor:pointer;font-size:11px;padding:4px 10px">📤 Upload WhatsApp<input type="file" accept=".txt" style="display:none" onchange="handleWAUpload(this)"></label>'
+    +'<button class="btn accent" onclick="openAddIssue()">+ Add Issue</button>'
+    +'</div></div>'
+    +vPulseIssues();
+}
+
 function vPulse(){
   var s=_pulseSentiment;
   var cf=_competitorFilter;
@@ -3704,14 +3718,11 @@ function vPulse(){
   var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
   var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
   var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
-  var isIssues=_pulseFilter==='issues';
   var tabBar='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
-    +'<button onclick="setPF(\'competitor\')" style="'+(isComp&&!isIssues?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
-    +'<button onclick="setPF(\'community\')" style="'+(!isComp&&!isIssues?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
-    +'<button onclick="setPF(\'issues\')" style="'+(isIssues?tabOn:tabOff)+'">📱 COB / KYC Issues</button>'
-    +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="'+(isIssues?'openAddIssue()':'loadPulse(true)')+'">'+( isIssues?'+ Add Issue':'↻ Refresh')+'</button>'
+    +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
+    +'<button onclick="setPF(\'community\')" style="'+(!isComp?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
+    +'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>'
     +'</div>';
-  if(isIssues) return tabBar+vPulseIssues();
   var filterRow='';
   if(isComp){
     // Competitor tab: topic filters
@@ -3741,14 +3752,7 @@ function setPF(f){
   _pulseFilter=f;
   var c=document.getElementById('content');
   if(!c) return;
-  if(f==='issues'){
-    c.innerHTML=vPulse();
-    loadIssuesFromDB().then(function(){
-      if(_pulseFilter==='issues'){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
-    });
-  } else {
-    c.innerHTML=vPulse();loadPulse();
-  }
+  c.innerHTML=vPulse();loadPulse();
 }
 
 function setCF(f){
