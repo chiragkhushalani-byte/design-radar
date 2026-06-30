@@ -3038,6 +3038,43 @@ var _issueData=_lsLoad();
 var _issuesLoaded=false;
 var _issueViewFilter='all';
 var _issueTypeFilter='all';
+var _issueDateFilter='all';  // 'all'|'7d'|'30d'|'90d'|'180d'|'365d'
+var _issueActionFilter='all'; // 'all'|'open'|'actionable'
+var _activeIssueData=[];    // computed view – date-filtered slice of _issueData
+
+function _getDateFilteredIssues(){
+  if(_issueDateFilter==='all') return _issueData.slice();
+  var dayMap={'7d':7,'30d':30,'90d':90,'180d':180,'365d':365};
+  var days=dayMap[_issueDateFilter]||Infinity;
+  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);
+  var cutStr=cutoff.toISOString().split('T')[0];
+  return _issueData.filter(function(i){return i.date>=cutStr;});
+}
+
+function _getActionFilteredIssues(data){
+  var ACTIONABLE_TYPES=['Login / Logout','Account Blocked','OTP Not Received','OTP Invalid',
+    'OTP Issue','Document Rejected','Document Issue','Bank / Fund Issue','Refund Issue',
+    'Trading: Order Failed','Trading: Square Off','Trading: F&O / Options',
+    'Trading: Margin','Trading: CNC / MIS','Trading Issue','KYC Rejected','KYC Pending',
+    'KYC Re-do','KYC Issue','COB Failed','COB Delayed','COB Holdings','COB Issue',
+    'App Issue','Data Display Issue'];
+  if(_issueActionFilter==='open') return data.filter(function(i){return i.status==='open';});
+  if(_issueActionFilter==='actionable') return data.filter(function(i){
+    return i.status==='open'&&ACTIONABLE_TYPES.indexOf(i.type)>=0;
+  });
+  return data;
+}
+
+function setIssueDateFilter(f){
+  _issueDateFilter=f;
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+}
+function setIssueActionFilter(f){
+  _issueActionFilter=f;
+  var c=document.getElementById('content');
+  if(c){c.innerHTML=vPulse();setTimeout(renderIssueTable,60);}
+}
 
 function _rowToIssue(r){return{id:r.id,date:r.date,time:r.time||'',sender:r.sender,text:r.text,type:r.type,sentiment:r.sentiment,status:r.status,resolvedAt:r.resolved_at||null};}
 function _issueToRow(i){return{id:i.id,date:i.date,time:i.time,sender:i.sender,text:i.text,type:i.type,sentiment:i.sentiment,status:i.status,resolved_at:i.resolvedAt||null};}
@@ -3103,7 +3140,12 @@ const ISSUE_TYPES_META={
   'Bank / Fund Issue': {color:'#34C759',bg:'rgba(52,199,89,0.15)'},
   'Refund Issue':      {color:'#30D158',bg:'rgba(48,209,88,0.15)'},
   // ── Trading ──
-  'Trading Issue':     {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
+  'Trading: Order Failed': {color:'#FF3B5C',bg:'rgba(255,59,92,0.15)'},
+  'Trading: Square Off':   {color:'#FF6B35',bg:'rgba(255,107,53,0.15)'},
+  'Trading: F&O / Options':{color:'#BF5AF2',bg:'rgba(191,90,242,0.15)'},
+  'Trading: Margin':       {color:'#FFB347',bg:'rgba(255,179,71,0.15)'},
+  'Trading: CNC / MIS':    {color:'#5E5CE6',bg:'rgba(94,92,230,0.15)'},
+  'Trading Issue':         {color:'#FF9500',bg:'rgba(255,149,0,0.15)'},
   // ── App / Platform ──
   'App Issue':         {color:'#636366',bg:'rgba(99,99,102,0.15)'},
   'Data Display Issue':{color:'#AF52DE',bg:'rgba(175,82,222,0.15)'},
@@ -3199,9 +3241,25 @@ function classifyIssue(text){
      t.includes('neft')||t.includes('imps')||(t.includes('fund')&&t.includes('show'))){
     return 'Bank / Fund Issue';
   }
-  // ── Trading ──
-  if(t.includes('order')||t.includes('trade')||t.includes('trading')||t.includes('fno')||
-     t.includes('f&o')||t.includes('cnc')||t.includes('square off')||t.includes('margin')){
+  // ── Trading (sub-typed) ──
+  if(t.includes('square off')||t.includes('sod limit')||t.includes('negative sod')||t.includes('squared off')){
+    return 'Trading: Square Off';
+  }
+  if(t.includes('fno')||t.includes('f&o')||t.includes('options not')||t.includes('sensex option')||
+     t.includes('nifty option')||t.includes('bse sensex')||t.includes('nse option')||(t.includes('option')&&t.includes('not'))){
+    return 'Trading: F&O / Options';
+  }
+  if(t.includes('margin')&&(t.includes('insufficient')||t.includes('call')||t.includes('5 day')||t.includes('margin option')||t.includes('add margin'))){
+    return 'Trading: Margin';
+  }
+  if(t.includes('cnc')||t.includes('mis')||(t.includes('convert')&&t.includes('order'))){
+    return 'Trading: CNC / MIS';
+  }
+  if((t.includes('order')&&(t.includes('not able')||t.includes('unable')||t.includes('failed')||t.includes('error')||t.includes('cannot')||t.includes('placing')))||
+     t.includes('place order')||(t.includes('trade')&&t.includes('error'))){
+    return 'Trading: Order Failed';
+  }
+  if(t.includes('order')||t.includes('trade')||t.includes('trading')||t.includes('margin')){
     return 'Trading Issue';
   }
   // ── Data display ──
@@ -3295,7 +3353,8 @@ function toggleIssueStatus(id){
 function renderIssueTable(){
   var tbody=document.getElementById('issueTableBody');
   if(!tbody) return;
-  var filtered=_issueData.filter(function(i){
+  var base=(_activeIssueData&&_activeIssueData.length)?_activeIssueData:_issueData;
+  var filtered=base.filter(function(i){
     if(_issueViewFilter!=='all'&&i.status!==_issueViewFilter) return false;
     if(_issueTypeFilter!=='all'&&i.type!==_issueTypeFilter) return false;
     return true;
@@ -3324,9 +3383,10 @@ function renderIssueTable(){
   }).join('');
 }
 
-function vIssueVolumeChart(){
-  if(!_issueData.length) return '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No data yet</div>';
-  var dates=_issueData.map(function(i){return i.date;}).filter(Boolean).sort();
+function vIssueVolumeChart(data){
+  data=data||_issueData;
+  if(!data.length) return '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No data in this period</div>';
+  var dates=data.map(function(i){return i.date;}).filter(Boolean).sort();
   var minD=new Date(dates[0]),maxD=new Date(dates[dates.length-1]);
   var daySpan=Math.round((maxD-minD)/86400000);
   // Monthly view for data spanning > 45 days, daily otherwise
@@ -3336,7 +3396,7 @@ function vIssueVolumeChart(){
     while(cur<=maxD){
       var key=cur.toISOString().substr(0,7);
       var label=cur.toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
-      var cnt=_issueData.filter(function(x){return x.date&&x.date.substr(0,7)===key;}).length;
+      var cnt=data.filter(function(x){return x.date&&x.date.substr(0,7)===key;}).length;
       months.push({label:label,count:cnt});
       cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
     }
@@ -3357,7 +3417,7 @@ function vIssueVolumeChart(){
   for(var i=29;i>=0;i--){
     var d=new Date(maxD);d.setDate(d.getDate()-i);
     var ds=d.toISOString().split('T')[0];
-    days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:_issueData.filter(function(x){return x.date===ds;}).length,ds:ds});
+    days.push({label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:data.filter(function(x){return x.date===ds;}).length,ds:ds});
   }
   var maxC=Math.max.apply(null,days.map(function(d){return d.count;}))||1;
   return '<div style="display:flex;align-items:flex-end;gap:2px;height:90px">'
@@ -3377,10 +3437,10 @@ function _daysAgo(dateStr){
   return isNaN(d.getTime())?999:Math.floor((now-d)/(1000*60*60*24));
 }
 
-function vWeekTrend(){
-  var today=new Date();
+function vWeekTrend(data){
+  data=data||_issueData;
   var thisW=0,lastW=0;
-  _issueData.forEach(function(i){
+  data.forEach(function(i){
     var days=_daysAgo(i.date);
     if(days<7) thisW++;
     else if(days<14) lastW++;
@@ -3396,9 +3456,10 @@ function vWeekTrend(){
     +'</div>';
 }
 
-function vUrgencyBreakdown(){
+function vUrgencyBreakdown(data){
+  data=data||_issueData;
   var high=0,med=0,norm=0;
-  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){
+  data.filter(function(i){return i.status==='open';}).forEach(function(i){
     var u=getUrgency(i.text);
     if(u==='high')high++;else if(u==='medium')med++;else norm++;
   });
@@ -3415,16 +3476,17 @@ function vUrgencyBreakdown(){
     +'</div>';
 }
 
-function vEscalationRadar(){
+function vEscalationRadar(data){
+  data=data||_issueData;
   var uOrder={high:0,medium:1,normal:2};
-  var open=_issueData.filter(function(i){return i.status==='open';})
+  var open=data.filter(function(i){return i.status==='open';})
     .sort(function(a,b){
       var ud=(uOrder[getUrgency(a.text)]||2)-(uOrder[getUrgency(b.text)]||2);
       if(ud!==0) return ud;
       return a.date<b.date?-1:1;
     });
   if(!open.length) return '<div style="font-size:11px;color:#39FF14;padding:12px 0;text-align:center">✅ All issues resolved!</div>';
-  return open.slice(0,5).map(function(i){
+  return open.slice(0,6).map(function(i){
     var urg=getUrgency(i.text);
     var ucol=urg==='high'?'#FF3B5C':urg==='medium'?'#FFB347':'#8E8E93';
     var urgBadge=urg==='high'?'<span style="font-size:8px;background:rgba(255,59,92,0.2);color:#FF3B5C;padding:1px 5px;border-radius:8px;font-weight:600">🔥 HIGH</span>':urg==='medium'?'<span style="font-size:8px;background:rgba(255,179,71,0.2);color:#FFB347;padding:1px 5px;border-radius:8px">⚡ MED</span>':'<span style="font-size:8px;color:var(--text3)">—</span>';
@@ -3433,12 +3495,13 @@ function vEscalationRadar(){
       +'<span style="font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)" title="'+i.text.replace(/"/g,"'")+'">'+i.text+'</span>'
       +'<span style="font-size:9px;color:'+ucol+';white-space:nowrap;opacity:0.8">'+i.sender.split(' ')[0]+'</span>'
       +'</div>';
-  }).join('')+(open.length>5?'<div style="font-size:10px;color:#FFB347;margin-top:5px;text-align:right">+'+(open.length-5)+' more unresolved</div>':'');
+  }).join('')+(open.length>6?'<div style="font-size:10px;color:#FFB347;margin-top:5px;text-align:right">+'+(open.length-6)+' more unresolved</div>':'');
 }
 
-function vTopReporters(){
+function vTopReporters(data){
+  data=data||_issueData;
   var counts={};
-  _issueData.filter(function(i){return i.status==='open';}).forEach(function(i){counts[i.sender]=(counts[i.sender]||0)+1;});
+  data.filter(function(i){return i.status==='open';}).forEach(function(i){counts[i.sender]=(counts[i.sender]||0)+1;});
   var sorted=Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
   if(!sorted.length) return '<div style="font-size:11px;color:var(--text3);padding:12px 0;text-align:center">No open issues — all resolved ✅</div>';
   var max=sorted[0][1];
@@ -3455,10 +3518,11 @@ function vTopReporters(){
   }).join('');
 }
 
-function vIssueTypeBreakdown(){
+function vIssueTypeBreakdown(data){
+  data=data||_issueData;
   var counts={};
-  _issueData.forEach(function(i){counts[i.type]=(counts[i.type]||0)+1;});
-  var total=_issueData.length||1;
+  data.forEach(function(i){counts[i.type]=(counts[i.type]||0)+1;});
+  var total=data.length||1;
   return Object.entries(counts).sort(function(a,b){return b[1]-a[1];}).map(function(e){
     var meta=ISSUE_TYPES_META[e[0]]||ISSUE_TYPES_META['Other'];
     var pct=Math.round((e[1]/total)*100);
@@ -3479,6 +3543,7 @@ function vPulseIssues(){
   var rate=total>0?Math.round((resolved/total)*100):0;
   var sc={complaint:0,feedback:0,appreciation:0,neutral:0};
   _issueData.forEach(function(i){if(sc[i.sentiment]!==undefined)sc[i.sentiment]++;});
+  // (stats above only used for empty-state check; analytics use _activeIssueData)
 
   if(!total){
     return '<div style="text-align:center;padding:60px 20px">'
@@ -3491,35 +3556,65 @@ function vPulseIssues(){
       +'</div></div>';
   }
 
-  var highUrgency=_issueData.filter(function(i){return i.status==='open'&&getUrgency(i.text)==='high';}).length;
-  return ''
+  // ── Build active (date + action filtered) dataset for all analytics ──
+  _activeIssueData=_getActionFilteredIssues(_getDateFilteredIssues());
+  var ad=_activeIssueData;
+  var atotal=ad.length;
+  var aopen=ad.filter(function(i){return i.status==='open';}).length;
+  var aresolved=ad.filter(function(i){return i.status==='resolved';}).length;
+  var arate=atotal>0?Math.round((aresolved/atotal)*100):0;
+  var asc={complaint:0,feedback:0,appreciation:0,neutral:0};
+  ad.forEach(function(i){if(asc[i.sentiment]!==undefined)asc[i.sentiment]++;});
+  var highUrgency=ad.filter(function(i){return i.status==='open'&&getUrgency(i.text)==='high';}).length;
+
+  // ── Date range filter bar ──
+  var dfBase='padding:5px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:none;font-family:var(--font);transition:all .15s;';
+  var dfOn='background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF;';
+  var dfOff='color:var(--text3);';
+  var df=_issueDateFilter;
+  var dateBar='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">'
+    +'<span style="font-size:11px;color:var(--text3);margin-right:4px">📅 Range:</span>'
+    +'<button style="'+dfBase+(df==='all'?dfOn:dfOff)+'" onclick="setIssueDateFilter('all')">All Time</button>'
+    +'<button style="'+dfBase+(df==='7d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('7d')">Last 7 Days</button>'
+    +'<button style="'+dfBase+(df==='30d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('30d')">Last 30 Days</button>'
+    +'<button style="'+dfBase+(df==='90d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('90d')">Last Quarter</button>'
+    +'<button style="'+dfBase+(df==='180d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('180d')">Last 6 Months</button>'
+    +'<button style="'+dfBase+(df==='365d'?dfOn:dfOff)+'" onclick="setIssueDateFilter('365d')">Last Year</button>'
+    +'<div style="margin-left:auto;display:flex;gap:6px;align-items:center">'
+    +'<span style="font-size:11px;color:var(--text3)">Show:</span>'
+    +'<button style="'+dfBase+(_issueActionFilter==='all'?dfOn:dfOff)+'" onclick="setIssueActionFilter('all')">All</button>'
+    +'<button style="'+dfBase+(_issueActionFilter==='open'?'background:rgba(255,179,71,0.15);color:#FFB347;border-color:#FFB347;':dfOff)+'" onclick="setIssueActionFilter('open')">🔓 Open Only</button>'
+    +'<button style="'+dfBase+(_issueActionFilter==='actionable'?'background:rgba(255,59,92,0.15);color:#FF3B5C;border-color:#FF3B5C;':dfOff)+'" onclick="setIssueActionFilter('actionable')">🎯 Needs Action</button>'
+    +'</div></div>';
+
+  return dateBar
     // ── Row 1: KPI cards ──
     +'<div class="metrics" style="margin-bottom:10px">'
-    +'<div class="mc blue"><div class="mc-l">Total Logged</div><div class="mc-v">'+total+'</div><div class="mc-s">relevant issues</div></div>'
-    +'<div class="mc amber"><div class="mc-l">Open</div><div class="mc-v">'+open+'</div><div class="mc-s">awaiting resolution</div></div>'
-    +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+resolved+'</div><div class="mc-s">'+rate+'% resolution rate</div></div>'
+    +'<div class="mc blue"><div class="mc-l">Total Logged</div><div class="mc-v">'+atotal+'</div><div class="mc-s">in selected period</div></div>'
+    +'<div class="mc amber"><div class="mc-l">Open</div><div class="mc-v">'+aopen+'</div><div class="mc-s">awaiting resolution</div></div>'
+    +'<div class="mc green"><div class="mc-l">Resolved</div><div class="mc-v">'+aresolved+'</div><div class="mc-s">'+arate+'% resolution rate</div></div>'
     +'<div class="mc '+(highUrgency>0?'red':'green')+'"><div class="mc-l">🔥 High Urgency</div><div class="mc-v">'+highUrgency+'</div><div class="mc-s">needs immediate action</div></div>'
-    +'<div class="mc '+(open>0?'amber':'green')+'"><div class="mc-l">📋 Unresolved</div><div class="mc-v">'+open+'</div><div class="mc-s">still needs action</div></div>'
+    +'<div class="mc '+(aopen>0?'amber':'green')+'"><div class="mc-l">📋 Unresolved</div><div class="mc-v">'+aopen+'</div><div class="mc-s">still needs action</div></div>'
     +'</div>'
     // ── Row 2: Volume chart + Week-over-Week + Open Urgency ──
     +'<div style="display:grid;grid-template-columns:1fr 185px 210px;gap:10px;margin-bottom:10px">'
-    +'<div class="panel"><div class="ph"><span class="pt">📊 30-Day Volume</span><span style="font-size:10px;color:var(--text3);font-weight:400">All-time in table below</span></div><div style="padding:10px 14px">'+vIssueVolumeChart()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">📅 Week vs Week</span></div><div style="padding:12px 14px">'+vWeekTrend()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">🔥 Open Urgency</span></div><div style="padding:10px 14px">'+vUrgencyBreakdown()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">📊 Issue Volume</span><span style="font-size:10px;color:var(--text3);font-weight:400">'+(_issueDateFilter==='all'?'Monthly':'Daily')+'</span></div><div style="padding:10px 14px">'+vIssueVolumeChart(ad)+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">📅 Week vs Week</span></div><div style="padding:12px 14px">'+vWeekTrend(ad)+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">🔥 Open Urgency</span></div><div style="padding:10px 14px">'+vUrgencyBreakdown(ad)+'</div></div>'
     +'</div>'
-    // ── Row 3: Type Breakdown + Escalation Radar + Top Reporters ──
+    // ── Row 3: Type Breakdown + Unresolved + Top Reporters ──
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'
-    +'<div class="panel"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">📋 Unresolved Issues</span><span style="font-size:9px;color:#FFB347;font-weight:400">sorted by urgency</span></div><div style="padding:10px 14px">'+vEscalationRadar()+'</div></div>'
-    +'<div class="panel"><div class="ph"><span class="pt">👤 Top Reporters</span><span style="font-size:9px;color:var(--text3);font-weight:400">by open count</span></div><div style="padding:12px 14px">'+vTopReporters()+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">🏷 Issue Type Breakdown</span></div><div style="padding:12px 14px">'+vIssueTypeBreakdown(ad)+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">📋 Unresolved Issues</span><span style="font-size:9px;color:#FFB347;font-weight:400">sorted by urgency</span></div><div style="padding:10px 14px">'+vEscalationRadar(ad)+'</div></div>'
+    +'<div class="panel"><div class="ph"><span class="pt">👤 Top Reporters</span><span style="font-size:9px;color:var(--text3);font-weight:400">by open count</span></div><div style="padding:12px 14px">'+vTopReporters(ad)+'</div></div>'
     +'</div>'
     // ── Row 4: Sentiment split ──
     +'<div class="panel" style="margin-bottom:10px"><div class="ph"><span class="pt">💬 Sentiment Split</span></div>'
     +'<div style="padding:10px 14px;display:flex;gap:10px">'
-    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FF3B5C">'+sc.complaint+'</div><div style="font-size:9px;color:var(--text3)">🚨 Complaints</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FFB347">'+sc.feedback+'</div><div style="font-size:9px;color:var(--text3)">💬 Feedback</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#39FF14">'+sc.appreciation+'</div><div style="font-size:9px;color:var(--text3)">👏 Positive</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:var(--text3)">'+sc.neutral+'</div><div style="font-size:9px;color:var(--text3)">— Neutral</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FF3B5C">'+asc.complaint+'</div><div style="font-size:9px;color:var(--text3)">🚨 Complaints</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#FFB347">'+asc.feedback+'</div><div style="font-size:9px;color:var(--text3)">💬 Feedback</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:#39FF14">'+asc.appreciation+'</div><div style="font-size:9px;color:var(--text3)">👏 Positive</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:600;color:var(--text3)">'+asc.neutral+'</div><div style="font-size:9px;color:var(--text3)">— Neutral</div></div>'
     +'</div></div>'
     // Issue log table
     +'<div class="panel">'
