@@ -309,6 +309,7 @@ input[type=range]{accent-color:var(--blue)}
       <div class="ni" data-view="pulse" onclick="go('pulse')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="3" stroke="currentColor" stroke-width="1.1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><line x1="7" y1="1.5" x2="10" y2="4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Market Pulse</div>
       <div class="nl">Data Analysis</div>
       <div class="ni" data-view="cobkyc" onclick="go('cobkyc')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 6.5h2M4 9h6M8 6.5h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M5 1v3M9 1v3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>COB / KYC Issues</div>
+      <div class="ni" data-view="martech" onclick="go('martech')"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10l2.5-3 2 2 2.5-3.5L11 8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.1"/><circle cx="11" cy="4" r="1" fill="currentColor"/></svg>Martech Analytics</div>
     </div>
 
   </div>
@@ -829,7 +830,7 @@ function go(v){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   var target=document.querySelector('.ni[data-view="'+v+'"]');
   if(target) target.classList.add('active');
-  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse',cobkyc:'COB / KYC Issues'};
+  const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse',cobkyc:'COB / KYC Issues',martech:'Martech Analytics'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
 }
@@ -853,6 +854,7 @@ function render(){
   else if(view==='growthplans'){c.innerHTML=vGrowthPlans();gpLoadTeamPlans();}
   else if(view==='pulse'){c.innerHTML=vPulse();setTimeout(loadPulse,100);}
   else if(view==='cobkyc'){c.innerHTML=vCobKyc();loadIssuesFromDB().then(function(){if(view==='cobkyc'){c.innerHTML=vCobKyc();setTimeout(renderIssueTable,100);}});}
+  else if(view==='martech'){c.innerHTML=vMartech();mtLoadFromDB().then(function(){if(view==='martech'){c.innerHTML=vMartech();}});}
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -4251,6 +4253,302 @@ async function initAskChirag(){
 
 // ── INIT ──────────────────────────────────────────────
 initLock();
+
+
+// ══════════════════════════════════════════════════════════
+//  MARTECH ANALYTICS — flexible Martech CSV tracker
+// ══════════════════════════════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────
+var _mtData=[];          // [{upload_id, period_label, period_start, period_end, entry_point, platform, sheet_name, rows:[{label,value_label,value_raw,value_num}]}]
+var _mtLoaded=false;
+var _mtSelectedSheet='all';
+var _mtSelectedPeriod='all';
+var _mtUploaderName=(function(){try{return localStorage.getItem('mtUploaderName')||'';}catch(e){return '';}}());
+
+// ── Supabase ───────────────────────────────────────────────
+async function mtLoadFromDB(){
+  if(_mtLoaded) return;
+  try{
+    var rows=await api('martech_uploads?select=*&order=created_at.desc');
+    if(rows&&rows.length){
+      // Group flat rows into upload objects by upload_id
+      var byUpload={};
+      rows.forEach(function(r){
+        var uid=r.upload_id||r.id;
+        if(!byUpload[uid]){
+          byUpload[uid]={upload_id:uid,period_label:r.period_label,period_start:r.period_start,
+            period_end:r.period_end,entry_point:r.entry_point,platform:r.platform,
+            sheet_name:r.sheet_name,rows:[],uploaded_at:r.created_at,uploaded_by:r.uploaded_by||''};
+        }
+        byUpload[uid].rows.push({label:r.row_label,value_label:r.value_label,
+          value_raw:r.value_raw,value_num:r.value_num});
+      });
+      _mtData=Object.values(byUpload);
+      _mtLoaded=true;
+    }
+  }catch(e){console.warn('martech load failed',e);}
+}
+
+async function mtSaveToDB(upload){
+  var uid=upload.upload_id;
+  try{
+    var payload=upload.rows.map(function(r){
+      return {upload_id:uid,period_label:upload.period_label,
+        period_start:upload.period_start||null,period_end:upload.period_end||null,
+        entry_point:upload.entry_point||'',platform:upload.platform||'',
+        sheet_name:upload.sheet_name||'Sheet',row_label:r.label,
+        value_label:r.value_label,value_raw:r.value_raw,value_num:r.value_num,
+        uploaded_by:upload.uploaded_by||''};
+    });
+    await fetch(SB+'/rest/v1/martech_uploads',{
+      method:'POST',headers:Object.assign({'Prefer':'return=minimal'},H),
+      body:JSON.stringify(payload)
+    });
+  }catch(e){console.warn('mtSaveToDB failed',e);}
+}
+
+// ── CSV Parser — handles Martech\'s metadata-header format ──
+function mtParseCSV(raw){
+  var lines=raw.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  var meta={period_label:'',period_start:'',period_end:'',entry_point:'',platform:''};
+  var dataStart=-1;
+  var headerRow=null;
+
+  // Scan top rows for metadata (key,value pairs) until we find the sheet header
+  for(var i=0;i<Math.min(lines.length,10);i++){
+    var cols=lines[i].split(',');
+    var k=(cols[0]||'').toLowerCase().trim();
+    var v=(cols[1]||'').trim();
+    if(k==='time period'||k==='time_period'){
+      meta.period_label=v;
+      // Try to parse dates like "16 - 29 June" or "16-29 June"
+      var dm=v.match(/(\d{1,2})\s*[-–]\s*(\d{1,2})\s+(\w+)/);
+      if(dm){
+        var months={january:1,february:2,march:3,april:4,may:5,june:6,
+          july:7,august:8,september:9,october:10,november:11,december:12};
+        var mo=months[(dm[3]||'').toLowerCase()];
+        if(mo){
+          var yr=new Date().getFullYear();
+          meta.period_start=yr+'-'+(mo<10?'0':'')+mo+'-'+(parseInt(dm[1])<10?'0':'')+parseInt(dm[1]);
+          meta.period_end=yr+'-'+(mo<10?'0':'')+mo+'-'+(parseInt(dm[2])<10?'0':'')+parseInt(dm[2]);
+        }
+      }
+    } else if(k==='entry point'||k==='entry_point'){meta.entry_point=v;}
+    else if(k==='platform'){meta.platform=v;}
+    else if(cols.length>=2&&cols[0].trim()&&cols[1].trim()&&dataStart===-1){
+      // This looks like the table header row (both cols have values, not metadata keys)
+      headerRow={label:cols[0].trim(),value_label:cols[1].trim()};
+      dataStart=i+1;
+      break;
+    }
+  }
+
+  if(dataStart===-1||!headerRow) return null;
+
+  var rows=[];
+  for(var j=dataStart;j<lines.length;j++){
+    var parts=lines[j].split(',');
+    var label=(parts[0]||'').trim();
+    var valueRaw=(parts[1]||'').trim();
+    if(!label) continue;
+    var valueNum=null;
+    if(valueRaw&&valueRaw.toLowerCase()!=='na'&&valueRaw!==''){
+      var n=parseFloat(valueRaw.replace(/,/g,''));
+      if(!isNaN(n)) valueNum=n;
+    }
+    rows.push({label:label,value_label:headerRow.value_label,value_raw:valueRaw,value_num:valueNum});
+  }
+
+  if(!rows.length) return null;
+
+  return {upload_id:Date.now(),period_label:meta.period_label,
+    period_start:meta.period_start,period_end:meta.period_end,
+    entry_point:meta.entry_point,platform:meta.platform,
+    sheet_name:headerRow.label,rows:rows,uploaded_at:new Date().toISOString(),
+    uploaded_by:_mtUploaderName||''};
+}
+
+// ── Upload handler ─────────────────────────────────────────
+function handleMTUpload(input){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  var done=0;
+  var imported=0;
+  files.forEach(function(file){
+    var fr=new FileReader();
+    fr.onload=function(e){
+      var parsed=mtParseCSV(e.target.result);
+      if(parsed){
+        _mtData.unshift(parsed);
+        _mtLoaded=true;
+        imported++;
+        mtSaveToDB(parsed);
+      }
+      done++;
+      if(done===files.length){
+        var c=document.getElementById('content');
+        if(c) c.innerHTML=vMartech();
+        if(imported>0) alert('✅ Imported '+imported+' sheet'+(imported>1?'s':'')+' successfully.');
+        else alert('⚠️ Could not parse the file. Make sure it follows the Martech CSV format.');
+      }
+    };
+    fr.readAsText(file);
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function _mtSheets(){
+  var s={};
+  _mtData.forEach(function(u){s[u.sheet_name]=true;});
+  return Object.keys(s);
+}
+function _mtPeriods(){
+  var p={};
+  _mtData.forEach(function(u){if(u.period_label)p[u.period_label]=u.upload_id;});
+  return Object.entries(p);
+}
+function _mtFiltered(){
+  return _mtData.filter(function(u){
+    if(_mtSelectedSheet!=='all'&&u.sheet_name!==_mtSelectedSheet) return false;
+    if(_mtSelectedPeriod!=='all'&&u.upload_id!=_mtSelectedPeriod) return false;
+    return true;
+  });
+}
+
+// ── Render helpers ─────────────────────────────────────────
+function _mtRenderBarChart(rows,valueLabel){
+  if(!rows.length) return '<div class="empty">No data</div>';
+  var maxV=Math.max.apply(null,rows.map(function(r){return r.value_num||0;}));
+  if(maxV===0) maxV=1;
+  return rows.map(function(r){
+    var pct=r.value_num!=null?Math.round((r.value_num/maxV)*100):0;
+    var displayVal=r.value_num!=null?(r.value_num>=1000?(r.value_num/1000).toFixed(1)+'K':r.value_num):r.value_raw||'NA';
+    var isNA=r.value_raw==='NA'||r.value_raw==='';
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<div style="width:130px;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+r.label+'">'+r.label+'</div>'
+      +'<div style="flex:1;height:22px;background:var(--surface2);border-radius:4px;overflow:hidden">'
+      +(isNA?'<div style="height:100%;background:var(--border);border-radius:4px;width:8px"></div>'
+        :'<div style="height:100%;background:linear-gradient(90deg,var(--blue),#00BFFF);border-radius:4px;width:'+pct+'%;min-width:4px;transition:width .3s"></div>')
+      +'</div>'
+      +'<div style="width:44px;font-size:11px;font-weight:600;color:'+(isNA?'var(--text3)':'var(--text)')+';text-align:right">'+displayVal+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function _mtRenderTable(rows){
+  if(!rows.length) return '<div class="empty">No data</div>';
+  var vLabel=rows[0].value_label||'Value';
+  return '<table><thead><tr><th>Item</th><th style="width:100px">'+vLabel+'</th></tr></thead><tbody>'
+    +rows.map(function(r,i){
+      return '<tr class="tr"><td style="font-size:12px">'
+        +'<span style="font-size:10px;color:var(--text3);margin-right:6px">#'+(i+1)+'</span>'
+        +r.label+'</td>'
+        +'<td style="font-size:12px;font-weight:600;color:'+(r.value_num!=null?'var(--blue)':'var(--text3)')+'">'+( r.value_num!=null?(r.value_num>=1000?(r.value_num/1000).toFixed(1)+'K':r.value_num):'NA')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ── Main view ──────────────────────────────────────────────
+function vMartech(){
+  var sheets=_mtSheets();
+  var periods=_mtPeriods();
+  var filtered=_mtFiltered();
+  var isEmpty=_mtData.length===0;
+
+  var sheetTabs='';
+  if(sheets.length>1){
+    var tabBase='padding:8px 16px;font-size:12px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);transition:all .15s;';
+    var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
+    var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
+    sheetTabs='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
+      +'<button onclick="mtSetSheet(\'all\')" style="'+(_mtSelectedSheet==='all'?tabOn:tabOff)+'">All Sheets</button>'
+      +sheets.map(function(s){return '<button onclick="mtSetSheet(\''+s.replace(/'/g,"\\'")+'\')" style="'+(_mtSelectedSheet===s?tabOn:tabOff)+'">'+s+'</button>';}).join('')
+      +'</div>';
+  }
+
+  var periodBar='';
+  if(periods.length>1){
+    var pb='padding:4px 10px;font-size:11px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:none;font-family:var(--font);';
+    var pbOn=pb+'background:rgba(0,229,255,0.15);color:#00E5FF;border-color:#00E5FF;';
+    var pbOff=pb+'color:var(--text3);';
+    periodBar='<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">'
+      +'<span style="font-size:11px;color:var(--text3)">📅 Period:</span>'
+      +'<button style="'+(_mtSelectedPeriod==='all'?pbOn:pbOff)+'" onclick="mtSetPeriod(\'all\')">All</button>'
+      +periods.map(function(p){return '<button style="'+(_mtSelectedPeriod==p[1]?pbOn:pbOff)+'" onclick="mtSetPeriod('+p[1]+')">'+p[0]+'</button>';}).join('')
+      +'</div>';
+  }
+
+  // Build content panels
+  var panels='';
+  if(isEmpty){
+    panels='<div class="panel"><div style="text-align:center;padding:48px 20px">'
+      +'<div style="font-size:32px;margin-bottom:12px">📊</div>'
+      +'<div style="font-size:14px;font-weight:500;margin-bottom:6px">No Martech data yet</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:16px">Upload a CSV export from Martech to get started</div>'      +'<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">'      +'<span style="font-size:11px;color:var(--text3)">👤 Your name:</span>'      +'<input id="mtNameInput" type="text" value="'+(_mtUploaderName||'')+'" placeholder="e.g. Chirag" '      +'style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;outline:none;font-size:11px;color:var(--text);font-family:var(--font);padding:4px 10px;width:120px" '      +'onchange="mtSetName(this.value)" onblur="mtSetName(this.value)">'      +'</div>'      +'<label class="btn accent" style="cursor:pointer;padding:8px 16px">📤 Upload CSV<input type="file" accept=".csv,.txt" multiple style="display:none" onchange="handleMTUpload(this)"></label>'
+      +'</div></div>';
+  } else {
+    // Group filtered data by sheet name
+    var bySheet={};
+    filtered.forEach(function(u){
+      if(!bySheet[u.sheet_name]) bySheet[u.sheet_name]=[];
+      bySheet[u.sheet_name].push(u);
+    });
+
+    panels=Object.entries(bySheet).map(function(entry){
+      var sheetName=entry[0];
+      var uploads=entry[1];
+      // Use most recent upload for bar chart, show comparison if multiple
+      var latest=uploads[0];
+      var rows=latest.rows;
+      var totalUsers=rows.reduce(function(s,r){return s+(r.value_num||0);},0);
+      var topItem=rows.filter(function(r){return r.value_num!=null;}).sort(function(a,b){return b.value_num-a.value_num;})[0];
+
+      var kpis='<div class="metrics" style="margin-bottom:12px">'
+        +'<div class="mc blue"><div class="mc-l">'+sheetName+'</div><div class="mc-v">'+(totalUsers>=1000?(totalUsers/1000).toFixed(1)+'K':totalUsers)+'</div><div class="mc-s">total '+(rows[0].value_label||'users')+' in period</div></div>'
+        +(topItem?'<div class="mc green"><div class="mc-l">Top feature</div><div class="mc-v" style="font-size:13px;line-height:1.3">'+topItem.label+'</div><div class="mc-s">'+(topItem.value_num>=1000?(topItem.value_num/1000).toFixed(1)+'K':topItem.value_num)+' '+(rows[0].value_label||'users')+'</div></div>':'')
+        +(latest.entry_point?'<div class="mc"><div class="mc-l">Entry point</div><div class="mc-v" style="font-size:13px">'+latest.entry_point+'</div><div class="mc-s">'+( latest.platform||'')+'</div></div>':'')
+        +(latest.period_label?'<div class="mc"><div class="mc-l">Period</div><div class="mc-v" style="font-size:11px;line-height:1.4">'+latest.period_label+'</div><div class="mc-s">'+(latest.uploaded_by?'by '+latest.uploaded_by:'latest upload')+'</div></div>':'')
+        +'</div>';
+
+      return kpis
+        +'<div style="display:flex;gap:12px;margin-bottom:14px">'
+        +'<div class="panel" style="flex:2"><div class="ph"><span class="pt">'+sheetName+' — Usage ranking</span>'        +'<div style="display:flex;gap:8px;align-items:center">'        +(uploads.length>1?'<span style="font-size:10px;color:var(--text3)">'+uploads.length+' periods</span>':'')        +(latest.uploaded_by?'<span style="font-size:10px;background:rgba(0,229,255,0.12);color:#00E5FF;border-radius:4px;padding:1px 6px">👤 '+latest.uploaded_by+'</span>':'')        +'</div>'
+        +'</div><div style="padding:12px 14px">'+_mtRenderBarChart(rows,rows[0].value_label||'Users')+'</div></div>'
+        +'<div class="panel" style="flex:1"><div class="ph"><span class="pt">Full table</span></div><div style="padding:8px 0">'+_mtRenderTable(rows)+'</div></div>'
+        +'</div>';
+    }).join('');
+  }
+
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div><div style="font-size:15px;font-weight:500;letter-spacing:-.01em">📊 Martech Analytics</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">Feature adoption & usage data from Martech</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'    +'<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px">'    +'<span style="font-size:10px;color:var(--text3)">👤</span>'    +'<input id="mtNameInput" type="text" value="'+(_mtUploaderName||'')+'" placeholder="Your name" '    +'style="background:transparent;border:none;outline:none;font-size:11px;color:var(--text);font-family:var(--font);width:90px" '    +'onchange="mtSetName(this.value)" onblur="mtSetName(this.value)">'    +'</div>'    +(!isEmpty?'<label class="btn" style="cursor:pointer;font-size:11px;padding:4px 10px">📤 Upload more<input type="file" accept=".csv,.txt" multiple style="display:none" onchange="handleMTUpload(this)"></label>':'')    +'</div></div>'
+    +sheetTabs+periodBar+panels
+    +(!isEmpty?'<div style="margin-top:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3)">'
+    +'<strong style="color:var(--text2)">📋 Supabase setup:</strong> Create table <code>martech_uploads</code> with columns: '
+    +'<code>id</code> (int8 PK), <code>upload_id</code> (int8), <code>period_label</code> (text), <code>period_start</code> (date), '
+    +'<code>period_end</code> (date), <code>entry_point</code> (text), <code>platform</code> (text), <code>sheet_name</code> (text), '
+    +'<code>row_label</code> (text), <code>value_label</code> (text), <code>value_raw</code> (text), <code>value_num</code> (float8), <code>uploaded_by</code> (text). '
+    +'Enable RLS with anon select/insert.</div>':'');
+}
+
+function mtSetName(v){
+  _mtUploaderName=v.trim();
+  try{localStorage.setItem('mtUploaderName',_mtUploaderName);}catch(e){}
+  var inp=document.getElementById('mtNameInput');
+  if(inp&&inp.value!==_mtUploaderName) inp.value=_mtUploaderName;
+}
+function mtSetSheet(s){
+  _mtSelectedSheet=s;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vMartech();
+}
+function mtSetPeriod(p){
+  _mtSelectedPeriod=p;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vMartech();
+}
+
 </script>
 </body>
 </html>
