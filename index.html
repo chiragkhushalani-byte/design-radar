@@ -2970,7 +2970,8 @@ var _pulseCache = {};
 var _pulseFilter = 'competitor';
 var _reviewsApp = 'all';
 var _reviewsStarFilter = 'all';
-var _reviewsData = {};   // {appId: [{rating,title,body,author,date,version}]}
+var _reviewsSourceFilter = 'all'; // 'all' | 'appstore' | 'playstore'
+var _reviewsData = {};   // {appId: [{rating,title,body,author,date,version,source}]}
 var _reviewsLoading = false;
 var _reviewsTier = 'all';
 var _pulseSentiment = 'all';
@@ -3740,9 +3741,17 @@ var REVIEW_APPS=[
 function vReviews(){
   var app=_reviewsApp;
   var sf=_reviewsStarFilter;
+  var src=_reviewsSourceFilter;
   // Tier / competition filter
   var tier=_reviewsTier;
   var tb='padding:4px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid;cursor:pointer;background:none;font-family:var(--font);transition:all .15s;';
+  // Source filter row
+  var sourceBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span style="font-size:11px;color:var(--text3)">Source:</span>'
+    +'<button style="'+tb+(src==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewSource(\'all\')">All</button>'
+    +'<button style="'+tb+(src==='appstore'?'background:rgba(168,168,179,0.15);color:#A8A8B3;border-color:#A8A8B3':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewSource(\'appstore\')">🍎 App Store</button>'
+    +'<button style="'+tb+(src==='playstore'?'background:rgba(52,199,89,0.15);color:#34C759;border-color:#34C759':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewSource(\'playstore\')">▶ Play Store</button>'
+    +'</div>';
   var tierBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
     +'<span style="font-size:11px;color:var(--text3)">Tier:</span>'
     +'<button style="'+tb+(tier==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewTier(\'all\')">All</button>'
@@ -3757,7 +3766,7 @@ function vReviews(){
     +'<button style="'+ab+(app==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewApp(\'all\')">All</button>'
     +REVIEW_APPS.map(function(a){
       var active=app===a.id;
-      return '<button style="'+ab+(active?('background:'+a.color+'22;color:'+a.color+';border-color:'+a.color):'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewApp(\"'+a.id+'\")">' +a.name+'</button>';
+      return '<button style="'+ab+(active?('background:'+a.color+'22;color:'+a.color+';border-color:'+a.color):'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewApp(\''+a.id+'\')">'+a.name+'</button>';
     }).join('')
     +'</div>';
   var starBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
@@ -3781,6 +3790,10 @@ function vReviews(){
   if(sf==='low') allReviews=allReviews.filter(function(r){return r.rating<=2;});
   else if(sf==='mid') allReviews=allReviews.filter(function(r){return r.rating===3;});
   else if(sf==='high') allReviews=allReviews.filter(function(r){return r.rating>=4;});
+
+  // Source filter
+  if(src==='appstore') allReviews=allReviews.filter(function(r){return r.source==='appstore';});
+  else if(src==='playstore') allReviews=allReviews.filter(function(r){return r.source==='playstore';});
 
   // Sort by date desc
   allReviews.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
@@ -3821,7 +3834,7 @@ function vReviews(){
   }
 
   var total=allReviews.length;
-  return tierBtns+appBtns+starBtns
+  return sourceBtns+tierBtns+appBtns+starBtns
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
     +'<span style="font-size:11px;color:var(--text3)">'+(hasData?total+' reviews':'')+'</span>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadReviews(true)">↻ Refresh</button>'
@@ -3833,49 +3846,70 @@ function _esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 
 async function loadReviews(force){
   if(_reviewsLoading&&!force) return;
-  var appsToLoad=REVIEW_APPS;
   _reviewsLoading=true;
-  var promises=appsToLoad.map(function(a){
+  _reviewsData={};
+
+  // --- App Store (iTunes RSS) — one promise per app ---
+  var appStorePromises=REVIEW_APPS.map(function(a){
     return fetch('https://itunes.apple.com/in/rss/customerreviews/id='+a.id+'/sortBy=mostRecent/json')
       .then(function(r){return r.json();})
       .then(function(d){
         var entries=(d.feed&&d.feed.entry)||[];
-        _reviewsData[a.id]=entries
-          .filter(function(e){return e['im:rating'];})
-          .map(function(e){
-            return {
-              rating:parseInt(e['im:rating'].label)||0,
-              title:(e.title&&e.title.label)||'',
-              body:(e.content&&e.content.label)||(e.summary&&e.summary.label)||'',
-              author:(e.author&&e.author.name&&e.author.name.label)||'',
-              date:(e.updated&&e.updated.label)||'',
-              version:(e['im:version']&&e['im:version'].label)||'',
-              source:'appstore'
-            };
-          });
+        return {
+          appId:a.id,
+          reviews:entries
+            .filter(function(e){return e['im:rating'];})
+            .map(function(e){
+              return {
+                rating:parseInt(e['im:rating'].label)||0,
+                title:(e.title&&e.title.label)||'',
+                body:(e.content&&e.content.label)||(e.summary&&e.summary.label)||'',
+                author:(e.author&&e.author.name&&e.author.name.label)||'',
+                date:(e.updated&&e.updated.label)||'',
+                version:(e['im:version']&&e['im:version'].label)||'',
+                source:'appstore'
+              };
+            })
+        };
       })
-      .catch(function(){_reviewsData[a.id]=_reviewsData[a.id]||[];});
+      .catch(function(){return {appId:a.id,reviews:[]};});
   });
-  // Also fetch Play Store reviews via Supabase Edge Function
-  try{
-    var pkgs=REVIEW_APPS.map(function(a){return a.pkg;}).filter(Boolean);
-    var psRes=await fetch(SB+'/functions/v1/play-reviews',{
-      method:'POST',
-      headers:Object.assign({'Content-Type':'application/json'},H),
-      body:JSON.stringify({packageNames:pkgs})
-    });
-    if(psRes.ok){
-      var psData=await psRes.json();
-      REVIEW_APPS.forEach(function(a){
-        if(psData[a.pkg]&&psData[a.pkg].length){
-          var existing=_reviewsData[a.id]||[];
-          _reviewsData[a.id]=existing.concat(psData[a.pkg]);
-        }
-      });
-    }
-  }catch(e){console.warn('Play Store edge fn not deployed yet — App Store only',e);}
 
-  await Promise.all(promises);
+  // --- Play Store (Supabase Edge Function) — single batch call ---
+  var playStorePromise=(async function(){
+    try{
+      var pkgs=REVIEW_APPS.map(function(a){return a.pkg;}).filter(Boolean);
+      var psRes=await fetch(SB+'/functions/v1/play-reviews',{
+        method:'POST',
+        headers:Object.assign({'Content-Type':'application/json'},H),
+        body:JSON.stringify({packageNames:pkgs})
+      });
+      if(psRes.ok) return await psRes.json();
+      return {};
+    }catch(e){
+      console.warn('Play Store edge fn failed:',e);
+      return {};
+    }
+  }());
+
+  // Run App Store + Play Store fully in parallel
+  var results=await Promise.all([Promise.all(appStorePromises),playStorePromise]);
+  var appStoreResults=results[0];
+  var psData=results[1];
+
+  // Merge App Store results
+  appStoreResults.forEach(function(r){
+    _reviewsData[r.appId]=r.reviews;
+  });
+
+  // Merge Play Store results (appended after App Store)
+  REVIEW_APPS.forEach(function(a){
+    if(psData[a.pkg]&&psData[a.pkg].length){
+      var existing=_reviewsData[a.id]||[];
+      _reviewsData[a.id]=existing.concat(psData[a.pkg]);
+    }
+  });
+
   _reviewsLoading=false;
   if(document.getElementById('reviewGrid')){
     var c=document.getElementById('content');
@@ -3896,6 +3930,11 @@ function setReviewApp(a){
 }
 function setReviewStar(s){
   _reviewsStarFilter=s;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vPulse();
+}
+function setReviewSource(s){
+  _reviewsSourceFilter=s;
   var c=document.getElementById('content');
   if(c) c.innerHTML=vPulse();
 }
