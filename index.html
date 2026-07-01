@@ -2972,6 +2972,7 @@ var _reviewsApp = 'all';
 var _reviewsStarFilter = 'all';
 var _reviewsData = {};   // {appId: [{rating,title,body,author,date,version}]}
 var _reviewsLoading = false;
+var _reviewsTier = 'all';
 var _pulseSentiment = 'all';
 var _competitorFilter = 'all';
 var _pulseSmartFilter = false;
@@ -3719,16 +3720,36 @@ function vCobKyc(){
 }
 
 var REVIEW_APPS=[
-  {id:'1449453802',name:'Zerodha Kite',color:'#FF6B00',pkg:'com.zerodha.kite3'},
-  {id:'1404871703',name:'Groww',       color:'#00B386',pkg:'com.nextbillion.groww'},
-  {id:'1584953620',name:'Upstox',      color:'#7B2FBE',pkg:'com.upstox.upstoxandroid'},
-  {id:'1060530981',name:'Angel One',   color:'#D71920',pkg:'com.msf.angelmobile'},
-  {id:'6474591146',name:'Sahi',        color:'#00C2CC',pkg:'com.aaritya.sahi_trade_app'}
+  // Large caps
+  {id:'1449453802',name:'Zerodha Kite',color:'#FF6B00',pkg:'com.zerodha.kite3',          tier:'large'},
+  {id:'1404871703',name:'Groww',       color:'#00B386',pkg:'com.nextbillion.groww',        tier:'large'},
+  {id:'1584953620',name:'Upstox',      color:'#7B2FBE',pkg:'com.upstox.upstoxandroid',    tier:'large'},
+  {id:'1060530981',name:'Angel One',   color:'#D71920',pkg:'com.msf.angelmobile',          tier:'large'},
+  // Mid-size
+  {id:'1526652184',name:'Fyers',       color:'#F5A623',pkg:'com.fyers.fyers',              tier:'mid'},
+  {id:'1577155974',name:'mStock',      color:'#00838F',pkg:'com.miraeasset.mstock',        tier:'mid'},
+  {id:'6443753518',name:'Univest',     color:'#6C5CE7',pkg:'com.univest.capp',             tier:'mid'},
+  {id:'1575318726',name:'Dhan',        color:'#1DA462',pkg:'in.dhan.app',                  tier:'mid'},
+  {id:'1156366609',name:'5paisa',      color:'#E84393',pkg:'com.fivepaisa.market',         tier:'mid'},
+  // Niche / New
+  {id:'6474591146',name:'Sahi',        color:'#00C2CC',pkg:'com.aaritya.sahi_trade_app',  tier:'niche'},
+  // Dream Street — not live yet, placeholder
+  // {id:'',name:'Dream Street',color:'#4A90E2',pkg:'',tier:'niche'}
 ];
 
 function vReviews(){
   var app=_reviewsApp;
   var sf=_reviewsStarFilter;
+  // Tier / competition filter
+  var tier=_reviewsTier;
+  var tb='padding:4px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid;cursor:pointer;background:none;font-family:var(--font);transition:all .15s;';
+  var tierBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span style="font-size:11px;color:var(--text3)">Tier:</span>'
+    +'<button style="'+tb+(tier==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewTier(\'all\')">All</button>'
+    +'<button style="'+tb+(tier==='large'?'background:rgba(255,107,53,0.15);color:#FF6B35;border-color:#FF6B35':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewTier(\'large\')">🏆 Large Cap</button>'
+    +'<button style="'+tb+(tier==='mid'?'background:rgba(108,92,231,0.15);color:#6C5CE7;border-color:#6C5CE7':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewTier(\'mid\')">📈 Mid-size</button>'
+    +'<button style="'+tb+(tier==='niche'?'background:rgba(0,194,204,0.15);color:#00C2CC;border-color:#00C2CC':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewTier(\'niche\')">🌱 Niche</button>'
+    +'</div>';
   // Filter pills
   var ab='padding:4px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid;cursor:pointer;background:none;font-family:var(--font);transition:all .15s;';
   var appBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
@@ -3748,7 +3769,8 @@ function vReviews(){
     +'</div>';
 
   // Gather reviews to show
-  var appsToShow=app==='all'?REVIEW_APPS:REVIEW_APPS.filter(function(a){return a.id===app;});
+  var tieredApps=tier==='all'?REVIEW_APPS:REVIEW_APPS.filter(function(a){return a.tier===tier;});
+  var appsToShow=app==='all'?tieredApps:tieredApps.filter(function(a){return a.id===app;});
   var allReviews=[];
   appsToShow.forEach(function(a){
     var rows=_reviewsData[a.id]||[];
@@ -3794,7 +3816,7 @@ function vReviews(){
   }
 
   var total=allReviews.length;
-  return appBtns+starBtns
+  return tierBtns+appBtns+starBtns
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
     +'<span style="font-size:11px;color:var(--text3)">'+(hasData?total+' reviews':'')+'</span>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadReviews(true)">↻ Refresh</button>'
@@ -3836,6 +3858,12 @@ async function loadReviews(force){
   }
 }
 
+function setReviewTier(t){
+  _reviewsTier=t;
+  _reviewsApp='all'; // reset app filter when tier changes
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vPulse();
+}
 function setReviewApp(a){
   _reviewsApp=a;
   var c=document.getElementById('content');
