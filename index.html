@@ -3812,7 +3812,9 @@ function vReviews(){
         +'<div style="font-size:11px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">'+_esc(r.body)+'</div>'
         +'<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">'
         +'<span style="font-size:10px;color:var(--text3)">'+_esc(r.author)+(r.version?' · v'+_esc(r.version):'')+'</span>'
-        +'<span style="font-size:9px;font-weight:600;background:rgba(0,0,0,0.25);color:#A8A8B3;border-radius:3px;padding:1px 5px;letter-spacing:.03em">🍎 App Store</span>'
+        +(r.source==='playstore'
+          ?'<span style="font-size:9px;font-weight:600;background:rgba(52,199,89,0.15);color:#34C759;border-radius:3px;padding:1px 5px;letter-spacing:.03em">▶ Play Store</span>'
+          :'<span style="font-size:9px;font-weight:600;background:rgba(0,0,0,0.25);color:#A8A8B3;border-radius:3px;padding:1px 5px;letter-spacing:.03em">🍎 App Store</span>')
         +'</div>'
         +'</div>';
     }).join('');
@@ -3847,12 +3849,32 @@ async function loadReviews(force){
               body:(e.content&&e.content.label)||(e.summary&&e.summary.label)||'',
               author:(e.author&&e.author.name&&e.author.name.label)||'',
               date:(e.updated&&e.updated.label)||'',
-              version:(e['im:version']&&e['im:version'].label)||''
+              version:(e['im:version']&&e['im:version'].label)||'',
+              source:'appstore'
             };
           });
       })
       .catch(function(){_reviewsData[a.id]=_reviewsData[a.id]||[];});
   });
+  // Also fetch Play Store reviews via Supabase Edge Function
+  try{
+    var pkgs=REVIEW_APPS.map(function(a){return a.pkg;}).filter(Boolean);
+    var psRes=await fetch(SB+'/functions/v1/play-reviews',{
+      method:'POST',
+      headers:Object.assign({'Content-Type':'application/json'},H),
+      body:JSON.stringify({packageNames:pkgs})
+    });
+    if(psRes.ok){
+      var psData=await psRes.json();
+      REVIEW_APPS.forEach(function(a){
+        if(psData[a.pkg]&&psData[a.pkg].length){
+          var existing=_reviewsData[a.id]||[];
+          _reviewsData[a.id]=existing.concat(psData[a.pkg]);
+        }
+      });
+    }
+  }catch(e){console.warn('Play Store edge fn not deployed yet — App Store only',e);}
+
   await Promise.all(promises);
   _reviewsLoading=false;
   if(document.getElementById('reviewGrid')){
