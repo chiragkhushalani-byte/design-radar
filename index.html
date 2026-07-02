@@ -2968,6 +2968,8 @@ const PULSE_FEEDS = [
 const PULSE_PROXY = SB + '/functions/v1/rss-proxy';
 var _pulseCache = {};
 var _pulseFilter = 'competitor';
+var _feedbackData = [];        // customer_feedback rows from Supabase
+var _feedbackLoading = false;
 var _reviewsApp = 'all';
 var _reviewsStarFilter = 'all';
 var _reviewsSourceFilter = 'all'; // 'all' | 'appstore' | 'playstore'
@@ -3939,21 +3941,197 @@ function setReviewSource(s){
   if(c) c.innerHTML=vPulse();
 }
 
+// ── Keyword extractor (client-side, no AI needed) ────────────────────────────
+function extractKeywords(texts,topN){
+  var stop=new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','is','are','was','were','be','been','it','its','this','that','i','my','me','we','our','you','your','have','has','had','do','did','not','no','so','if','as','from','by','their','they','he','she','his','her','can','will','would','could','should','what','how','when','where','which','all','just','very','also','more','than','then','about','get','got','like','use','using','used','new','one','two','some','any','up','app','apps','really','good','great','bad','please','need','want','make']);
+  var freq={};
+  texts.forEach(function(text){
+    if(!text) return;
+    text.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(w){
+      if(w.length>3&&!stop.has(w)){freq[w]=(freq[w]||0)+1;}
+    });
+  });
+  return Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0,topN||20).map(function(e){return {word:e[0],count:e[1]};});
+}
+
+// ── Load customer feedback from Supabase ─────────────────────────────────────
+async function loadFeedback(force){
+  if(_feedbackLoading&&!force) return;
+  _feedbackLoading=true;
+  try{
+    var res=await fetch(SB+'/rest/v1/customer_feedback?order=submitted_at.desc&limit=500',{
+      headers:Object.assign({'Content-Type':'application/json'},H)
+    });
+    if(res.ok){_feedbackData=await res.json();}
+    else{console.warn('Feedback load error:',res.status);}
+  }catch(e){console.warn('Failed to load customer feedback:',e);}
+  _feedbackLoading=false;
+  var c=document.getElementById('content');
+  if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+}
+
+// ── Customer Feedback tab renderer ──────────────────────────────────────────
+function vFeedback(){
+  var data=_feedbackData;
+
+  // Loading / empty state
+  if(_feedbackLoading&&!data.length){
+    return '<div class="empty">Loading customer feedback…</div>';
+  }
+  if(!data.length){
+    return '<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
+      +'<div style="font-size:32px;margin-bottom:12px">📭</div>'
+      +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No customer feedback yet</div>'
+      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto">Set up the Tally webhook to start collecting responses. '
+      +'New submissions will appear here automatically.</div>'
+      +'<button class="btn" style="margin-top:16px;font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
+      +'</div>';
+  }
+
+  // ── Summary stats ─────────────────────────────────────────────────────────
+  var total=data.length;
+  var rated=data.filter(function(r){return r.rating;});
+  var avgRating=rated.length?rated.reduce(function(s,r){return s+r.rating;},0)/rated.length:0;
+  var pctPositive=rated.length?Math.round(rated.filter(function(r){return r.rating>=4;}).length/rated.length*100):0;
+  var pctNegative=rated.length?Math.round(rated.filter(function(r){return r.rating<=2;}).length/rated.length*100):0;
+  var withPain=data.filter(function(r){return r.pain_points;}).length;
+  var withFeature=data.filter(function(r){return r.feature_requests;}).length;
+
+  var statsBar='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
+    +[
+      {label:'Responses',value:total,color:'var(--blue)'},
+      {label:'Avg Rating',value:avgRating.toFixed(1)+' ★',color:avgRating>=4?'#34C759':avgRating>=3?'#FFB347':'#FF3B5C'},
+      {label:'😊 Positive',value:pctPositive+'%',color:'#34C759'},
+      {label:'😞 Negative',value:pctNegative+'%',color:'#FF3B5C'},
+      {label:'⚠️ Pain Points',value:withPain,color:'#FF9F0A'},
+      {label:'💡 Feature Req.',value:withFeature,color:'#BF5AF2'},
+    ].map(function(s){
+      return '<div class="panel" style="padding:10px 14px;text-align:center">'
+        +'<div style="font-size:20px;font-weight:700;color:'+s.color+'">'+s.value+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+s.label+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  // ── Rating distribution bar chart ─────────────────────────────────────────
+  var ratingCounts=[0,0,0,0,0];
+  rated.forEach(function(r){if(r.rating>=1&&r.rating<=5)ratingCounts[r.rating-1]++;});
+  var ratingMax=Math.max.apply(null,ratingCounts)||1;
+  var ratingChart='<div class="panel" style="padding:14px;margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">⭐ Rating Distribution</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:8px;height:60px">'
+    +[5,4,3,2,1].map(function(star){
+      var cnt=ratingCounts[star-1];
+      var pct=Math.round(cnt/ratingMax*100);
+      var col=star>=4?'#34C759':star===3?'#FFB347':'#FF3B5C';
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+        +'<div style="font-size:9px;color:var(--text3)">'+cnt+'</div>'
+        +'<div style="width:100%;background:'+col+';border-radius:3px 3px 0 0;height:'+Math.max(pct*0.6,2)+'px;min-height:2px;transition:height .3s"></div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+star+'★</div>'
+        +'</div>';
+    }).join('')
+    +'</div></div>';
+
+  // ── Extract keywords from each feedback type ──────────────────────────────
+  var fbTexts=data.map(function(r){return r.feedback_text;});
+  var painTexts=data.map(function(r){return r.pain_points;});
+  var featTexts=data.map(function(r){return r.feature_requests;});
+  // Also extract from competitor reviews for comparison
+  var compTexts=[];
+  REVIEW_APPS.forEach(function(a){
+    (_reviewsData[a.id]||[]).forEach(function(r){compTexts.push(r.body);});
+  });
+
+  var fbKw=extractKeywords(fbTexts,12);
+  var painKw=extractKeywords(painTexts,12);
+  var featKw=extractKeywords(featTexts,12);
+  var compKw=extractKeywords(compTexts,12);
+
+  function kwPills(kws,col){
+    if(!kws.length) return '<span style="font-size:11px;color:var(--text3)">No data yet</span>';
+    return kws.map(function(k){
+      return '<span style="display:inline-block;margin:3px;padding:3px 9px;border-radius:12px;font-size:11px;background:'+col+'22;color:'+col+';border:1px solid '+col+'55">'
+        +k.word+' <strong>'+k.count+'</strong></span>';
+    }).join('');
+  }
+
+  // ── Side-by-side comparison panel ────────────────────────────────────────
+  var comparison='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+    // Left: Competitor reviews themes
+    +'<div class="panel" style="padding:14px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.05em;margin-bottom:4px">COMPETITOR APP REVIEWS</div>'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">What users say about competitors</div>'
+    +(compKw.length?kwPills(compKw,'#FF6B35'):'<div style="font-size:11px;color:var(--text3)">Load App Reviews first (⭐ tab)</div>')
+    +'</div>'
+    // Right: Our customer feedback themes
+    +'<div class="panel" style="padding:14px;border-color:var(--blue)">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.05em;margin-bottom:4px">OUR CUSTOMER FEEDBACK</div>'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">What our users are saying</div>'
+    +kwPills(fbKw,'#00B4FF')
+    +'</div>'
+    +'</div>';
+
+  // ── Pain points & Feature requests panels ─────────────────────────────────
+  var themeRow='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+    +'<div class="panel" style="padding:14px">'
+    +'<div style="font-size:12px;font-weight:600;color:#FF9F0A;margin-bottom:8px">⚠️ Top Pain Point Keywords</div>'
+    +kwPills(painKw,'#FF9F0A')
+    +'</div>'
+    +'<div class="panel" style="padding:14px">'
+    +'<div style="font-size:12px;font-weight:600;color:#BF5AF2;margin-bottom:8px">💡 Top Feature Request Keywords</div>'
+    +kwPills(featKw,'#BF5AF2')
+    +'</div>'
+    +'</div>';
+
+  // ── Raw feedback feed ──────────────────────────────────────────────────────
+  var feedHeader='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--text)">Recent Responses</span>'
+    +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)">↻ Refresh</button>'
+    +'</div>';
+
+  var feed=data.slice(0,40).map(function(r){
+    var stars='';
+    for(var i=1;i<=5;i++) stars+='<span style="color:'+(i<=(r.rating||0)?'#FFD60A':'var(--border)')+'">★</span>';
+    var ago=(function(){
+      if(!r.submitted_at) return '';
+      var d=new Date(r.submitted_at);var now=new Date();var diff=Math.floor((now-d)/86400000);
+      return diff===0?'Today':diff===1?'Yesterday':diff+'d ago';
+    }());
+    return '<div class="panel" style="padding:14px;cursor:default">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<span style="font-size:10px;font-weight:600;background:rgba(0,180,255,0.12);color:#00B4FF;border-radius:4px;padding:2px 7px">🗣️ Customer</span>'
+      +'<span style="font-size:11px;color:var(--text3)">'+ago+'</span>'
+      +'</div>'
+      +(r.rating?'<div style="font-size:13px;margin-bottom:6px">'+stars+'</div>':'')
+      +(r.feedback_text?'<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+_esc(r.feedback_text)+'</div>':'')
+      +(r.pain_points?'<div style="font-size:10px;background:rgba(255,159,10,0.1);color:#FF9F0A;border-radius:4px;padding:4px 7px;margin-bottom:4px;line-height:1.4"><strong>⚠️ Pain:</strong> '+_esc(r.pain_points.slice(0,120))+'</div>':'')
+      +(r.feature_requests?'<div style="font-size:10px;background:rgba(191,90,242,0.1);color:#BF5AF2;border-radius:4px;padding:4px 7px;line-height:1.4"><strong>💡 Feature:</strong> '+_esc(r.feature_requests.slice(0,120))+'</div>':'')
+      +'</div>';
+  }).join('');
+
+  return statsBar+ratingChart+comparison+themeRow+feedHeader
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">'+feed+'</div>';
+}
+
 function vPulse(){
   var s=_pulseSentiment;
   var cf=_competitorFilter;
-  var isComp=_pulseFilter==='competitor'||_pulseFilter!=='community'&&_pulseFilter!=='reviews';
+  var isReviews=_pulseFilter==='reviews';
+  var isFeedback=_pulseFilter==='feedback';
+  var isComm=_pulseFilter==='community';
+  var isComp=!isReviews&&!isFeedback&&!isComm;
   var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
   var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
   var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
-  var isReviews=_pulseFilter==='reviews';
   var tabBar='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
-    +'<button onclick="setPF(\'competitor\')" style="'+(isComp&&!isReviews?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
-    +'<button onclick="setPF(\'community\')" style="'+((!isComp&&!isReviews)?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
+    +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
+    +'<button onclick="setPF(\'community\')" style="'+(isComm?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
     +'<button onclick="setPF(\'reviews\')" style="'+(isReviews?tabOn:tabOff)+'">⭐ App Reviews</button>'
-    +(isReviews?'':'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>')
+    +'<button onclick="setPF(\'feedback\')" style="'+(isFeedback?tabOn:tabOff)+'">🗣️ Customer Feedback</button>'
+    +(!isReviews&&!isFeedback?'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>':'')
     +'</div>';
   if(isReviews) return tabBar+vReviews();
+  if(isFeedback) return tabBar+vFeedback();
   var filterRow='';
   if(isComp){
     // Competitor tab: topic filters
@@ -3985,6 +4163,7 @@ function setPF(f){
   if(!c) return;
   c.innerHTML=vPulse();
   if(f==='reviews'){loadReviews();}
+  else if(f==='feedback'){loadFeedback();}
   else{loadPulse();}
 }
 
