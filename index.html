@@ -4177,14 +4177,29 @@ function _parseSubmittedAt(str){
   // Supabase may return "2026-06-30 15:30:00+00" or "2026-06-30T15:30:00+00:00"
   // Normalise space→T, fix "+00" → "+00:00", strip fractional seconds
   var s=String(str)
-    .replace(' ','T')           // space separator → T
-    .replace(/\.\d+/,'')        // strip fractional seconds
-    .replace(/\+00$/,'+00:00'); // fix short TZ offset
+    .replace(' ','T')            // space separator → T
+    .replace(/\.\d+/,'')         // strip fractional seconds
+    .replace(/\+00$/,'+00:00');  // fix short TZ offset "+00" → "+00:00"
   var d=new Date(s);
   if(!isNaN(d)) return d;
   // Fallback: strip timezone and parse as UTC
   var bare=s.replace(/[+-]\d{2}:?\d{2}$/,'').replace(/Z$/,'');
   return new Date(bare+'Z');
+}
+// Helper: get the best available date from a feedback row.
+// Tally webhook entries often have submitted_at=null and only created_at set.
+function _fbDate(r){
+  return _parseSubmittedAt(r.submitted_at||r.created_at||r.timestamp||r.date);
+}
+// Helper: get rating as a number 1-5, trying several possible column names.
+function _fbRating(r){
+  var v=r.rating!=null?r.rating
+       :r.overall_rating!=null?r.overall_rating
+       :r.score!=null?r.score
+       :r.nps!=null?r.nps
+       :null;
+  var n=Number(v);
+  return (n>=1&&n<=5)?n:null;
 }
 
 function _fbFilterData(data,period){
@@ -4194,7 +4209,7 @@ function _fbFilterData(data,period){
   var days=daysMap[period]||7;
   var cutoff=new Date(now.getTime()-days*86400000);
   return data.filter(function(r){
-    var d=_parseSubmittedAt(r.submitted_at);
+    var d=_fbDate(r);
     return d&&d>=cutoff;
   });
 }
@@ -4294,9 +4309,9 @@ function vFeedback(){
       +'</div>';
   }
 
-  // ── Core metrics — coerce rating to Number (Supabase may return strings) ──
-  var rated=data.filter(function(r){var n=Number(r.rating);return n>=1&&n<=5;});
-  var ratings=rated.map(function(r){return Number(r.rating);});
+  // ── Core metrics — coerce rating via _fbRating() which tries multiple field names ──
+  var rated=data.filter(function(r){return _fbRating(r)!==null;});
+  var ratings=rated.map(function(r){return _fbRating(r);});
   var avgRating=ratings.length?(ratings.reduce(function(a,b){return a+b;},0)/ratings.length):0;
   var promoters=ratings.filter(function(n){return n>=4;}).length;
   var detractors=ratings.filter(function(n){return n<=2;}).length;
@@ -4325,12 +4340,12 @@ function vFeedback(){
     var cur=new Date(now.getTime()-days*86400000);
     var prev=new Date(now.getTime()-2*days*86400000);
     return allData.filter(function(r){
-      var d=_parseSubmittedAt(r.submitted_at);
+      var d=_fbDate(r);
       return d&&d>=prev&&d<cur;
     });
   }());
-  var prevRated=prevData.filter(function(r){var n=Number(r.rating);return n>=1&&n<=5;});
-  var prevAvg=prevRated.length?(prevRated.reduce(function(s,r){return s+Number(r.rating);},0)/prevRated.length):0;
+  var prevRated=prevData.filter(function(r){return _fbRating(r)!==null;});
+  var prevAvg=prevRated.length?(prevRated.reduce(function(s,r){return s+_fbRating(r);},0)/prevRated.length):0;
   var ratingDelta=prevAvg?(avgRating-prevAvg).toFixed(2):null;
   var ratingDeltaStr=ratingDelta?(parseFloat(ratingDelta)>=0?'↑ +'+ratingDelta:'↓ '+ratingDelta):'';
   var ratingDeltaColor=ratingDelta?(parseFloat(ratingDelta)>=0?'#34C759':'#FF3B5C'):'var(--text3)';
@@ -4361,7 +4376,7 @@ function vFeedback(){
     data.forEach(function(r){
       var t=allText(r);
       if(!textHas(t,th.kws)) return;
-      var rating=Number(r.rating)||0;
+      var rating=_fbRating(r)||0;
       if(rating>=4) pos++;
       else if(rating>=1&&rating<=2) neg++;
       else if(rating===3) neu++;
@@ -4433,7 +4448,7 @@ function vFeedback(){
     data.forEach(function(r){
       var t=allText(r);
       if(!textHas(t,f.kws)) return;
-      var rn=Number(r.rating);
+      var rn=_fbRating(r)||0;
       if(rn>=4) pos.push(r);
       else if(rn>=1&&rn<=2) neg.push(r);
       if(r.feature_requests&&textHas(_cleanFbText(r.feature_requests),f.kws)) featReq.push(r);
@@ -4461,8 +4476,8 @@ function vFeedback(){
   var issueData=ISSUES.map(function(iss){
     var matches=data.filter(function(r){return textHas(allText(r),iss.kws);});
     var freq=matches.length;
-    var ratedM=matches.filter(function(r){var n=Number(r.rating);return n>=1&&n<=5;});
-    var avgPain=ratedM.length?(5-ratedM.reduce(function(s,r){return s+Number(r.rating);},0)/ratedM.length):2;
+    var ratedM=matches.filter(function(r){return _fbRating(r)!==null;});
+    var avgPain=ratedM.length?(5-ratedM.reduce(function(s,r){return s+_fbRating(r);},0)/ratedM.length):2;
     var priority=Math.round((freq*iss.impact*avgPain)/(iss.effort));
     var sev=priority>=20?'🔴 Critical':priority>=10?'🟠 High':priority>=5?'🟡 Medium':'🟢 Low';
     return Object.assign({},iss,{freq:freq,priority:priority,sev:sev,avgPain:Math.round(avgPain*10)/10});
@@ -4471,7 +4486,7 @@ function vFeedback(){
   // ── WEEKLY TREND ─────────────────────────────────────────────────────────
   var weeklyBuckets={};
   data.forEach(function(r){
-    var d=_parseSubmittedAt(r.submitted_at);
+    var d=_fbDate(r);
     if(!d||isNaN(d)) return;
     // bucket by week (Monday)
     var day=d.getDay();var diff=d.getDate()-(day||7)+1;
@@ -4479,7 +4494,7 @@ function vFeedback(){
     var key=mon.toISOString().substring(0,10);
     if(!weeklyBuckets[key]) weeklyBuckets[key]={count:0,sum:0,n:0};
     weeklyBuckets[key].count++;
-    var rn=Number(r.rating);if(rn>=1&&rn<=5){weeklyBuckets[key].sum+=rn;weeklyBuckets[key].n++;}
+    var rn=_fbRating(r);if(rn!==null){weeklyBuckets[key].sum+=rn;weeklyBuckets[key].n++;}
   });
   var weekKeys=Object.keys(weeklyBuckets).sort();
   var weekMax=Math.max.apply(null,weekKeys.map(function(k){return weeklyBuckets[k].count;}))||1;
