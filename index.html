@@ -3970,21 +3970,169 @@ async function loadFeedback(force){
   if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
 }
 
+// ── Tally CSV importer ───────────────────────────────────────────────────────
+// Matches Tally's CSV column headers to DB fields using the same label logic as the webhook.
+var RATING_LABELS_CSV   =['rating','score','stars','nps','satisfaction','rate','how would you rate'];
+var FEEDBACK_LABELS_CSV =['feedback','comment','thoughts','tell us','anything else','overall','experience','review'];
+var PAIN_LABELS_CSV     =['pain','problem','issue','challenge','frustrat','complaint','dislike','difficult','went wrong','improve'];
+var FEATURE_LABELS_CSV  =['feature','request','wish','add','would like','want','suggest','missing'];
+
+function _csvMatchesAny(label,patterns){
+  var l=label.toLowerCase();
+  return patterns.some(function(p){return l.includes(p);});
+}
+
+function parseTallyCSV(csvText){
+  var lines=csvText.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  if(lines.length<2) return [];
+  // Parse header row (handle quoted fields)
+  function parseLine(line){
+    var fields=[];var cur='';var inQ=false;
+    for(var i=0;i<line.length;i++){
+      var ch=line[i];
+      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
+      else if(ch===','&&!inQ){fields.push(cur.trim());cur='';}
+      else{cur+=ch;}
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+  var headers=parseLine(lines[0]);
+  var rows=[];
+  for(var i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    var vals=parseLine(lines[i]);
+    var obj={};
+    headers.forEach(function(h,idx){obj[h]=vals[idx]||'';});
+    rows.push(obj);
+  }
+
+  // Map rows to our schema
+  return rows.map(function(row){
+    // Find Submission ID column (handles "Submission ID", "Response ID", etc.)
+    var responseId='';
+    var submittedAt='';
+    var rating=null;
+    var feedbackParts=[];
+    var painParts=[];
+    var featParts=[];
+
+    headers.forEach(function(h){
+      var val=row[h]||'';
+      var hl=h.toLowerCase();
+      if(!val) return;
+      if(hl.includes('submission id')||hl.includes('response id')||hl==='id'){
+        responseId=responseId||val;
+      } else if(hl.includes('submitted at')||hl.includes('created at')||hl.includes('timestamp')||hl.includes('date')){
+        submittedAt=submittedAt||val;
+      } else if(hl.includes('respondent id')||hl.includes('respondent')){
+        // skip internal Tally ID cols
+      } else if(_csvMatchesAny(h,RATING_LABELS_CSV)){
+        var n=Number(val.replace(/[^0-9.]/g,''));
+        if(!isNaN(n)&&n>0&&rating===null){rating=n>5?Math.round((n/10)*5):Math.round(n);}
+      } else if(_csvMatchesAny(h,FEATURE_LABELS_CSV)){
+        featParts.push('['+h+'] '+val);
+      } else if(_csvMatchesAny(h,PAIN_LABELS_CSV)){
+        painParts.push('['+h+'] '+val);
+      } else if(_csvMatchesAny(h,FEEDBACK_LABELS_CSV)){
+        feedbackParts.push('['+h+'] '+val);
+      } else {
+        // Catch-all: any text answer goes to general feedback
+        if(val.length>3) feedbackParts.push('['+h+'] '+val);
+      }
+    });
+
+    if(!responseId) responseId='csv-'+Math.random().toString(36).slice(2);
+
+    return {
+      response_id:responseId,
+      submitted_at:submittedAt||null,
+      rating:rating,
+      feedback_text:feedbackParts.join('\n\n')||null,
+      pain_points:painParts.join('\n\n')||null,
+      feature_requests:featParts.join('\n\n')||null,
+      raw_fields:[]
+    };
+  });
+}
+
+var _fbImportStatus=''; // '', 'importing', 'done', 'error'
+var _fbImportMsg='';
+
+async function importTallyCSV(file){
+  _fbImportStatus='importing';
+  _fbImportMsg='Parsing CSV…';
+  var c=document.getElementById('content');
+  if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+
+  try{
+    var text=await file.text();
+    var rows=parseTallyCSV(text);
+    if(!rows.length){
+      _fbImportStatus='error';_fbImportMsg='No valid rows found in CSV.';
+      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+      return;
+    }
+
+    _fbImportMsg='Uploading '+rows.length+' responses to Supabase…';
+    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+
+    // Batch upsert in chunks of 50
+    var CHUNK=50;var errors=0;
+    for(var i=0;i<rows.length;i+=CHUNK){
+      var chunk=rows.slice(i,i+CHUNK);
+      var res=await fetch(SB+'/rest/v1/customer_feedback',{
+        method:'POST',
+        headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
+        body:JSON.stringify(chunk)
+      });
+      if(!res.ok){errors++;console.warn('Chunk error',res.status,await res.text());}
+    }
+
+    _fbImportStatus='done';
+    _fbImportMsg='✅ Imported '+rows.length+' responses'+(errors?' ('+errors+' chunk errors)':'')+'!';
+    await loadFeedback(true);
+  }catch(e){
+    _fbImportStatus='error';_fbImportMsg='❌ Error: '+String(e);
+    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+  }
+}
+
+function triggerTallyImport(){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='.csv';
+  inp.onchange=function(e){if(e.target.files[0])importTallyCSV(e.target.files[0]);};
+  inp.click();
+}
+
 // ── Customer Feedback tab renderer ──────────────────────────────────────────
 function vFeedback(){
   var data=_feedbackData;
 
+  // Import status banner
+  var importBanner='';
+  if(_fbImportStatus==='importing'){
+    importBanner='<div style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#00B4FF">⏳ '+_esc(_fbImportMsg)+'</div>';
+  } else if(_fbImportStatus==='done'){
+    importBanner='<div style="background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#34C759">'+_esc(_fbImportMsg)+'</div>';
+  } else if(_fbImportStatus==='error'){
+    importBanner='<div style="background:rgba(255,59,92,0.1);border:1px solid rgba(255,59,92,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#FF3B5C">'+_esc(_fbImportMsg)+'</div>';
+  }
+
   // Loading / empty state
   if(_feedbackLoading&&!data.length){
-    return '<div class="empty">Loading customer feedback…</div>';
+    return importBanner+'<div class="empty">Loading customer feedback…</div>';
   }
   if(!data.length){
-    return '<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
+    return importBanner+'<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
       +'<div style="font-size:32px;margin-bottom:12px">📭</div>'
       +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No customer feedback yet</div>'
-      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto">Set up the Tally webhook to start collecting responses. '
-      +'New submissions will appear here automatically.</div>'
-      +'<button class="btn" style="margin-top:16px;font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
+      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">'
+      +'Import existing Tally responses via CSV, or set up the webhook to auto-capture new ones.</div>'
+      +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
+      +'<button class="btn" style="font-size:11px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import Tally CSV</button>'
+      +'<button class="btn" style="font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
+      +'</div>'
       +'</div>';
   }
 
@@ -4084,9 +4232,13 @@ function vFeedback(){
     +'</div>';
 
   // ── Raw feedback feed ──────────────────────────────────────────────────────
-  var feedHeader='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-    +'<span style="font-size:12px;font-weight:600;color:var(--text)">Recent Responses</span>'
+  var feedHeader=importBanner
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--text)">Recent Responses <span style="font-weight:400;color:var(--text3)">('+data.length+')</span></span>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(0,180,255,0.12);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import CSV</button>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)">↻ Refresh</button>'
+    +'</div>'
     +'</div>';
 
   var feed=data.slice(0,40).map(function(r){
