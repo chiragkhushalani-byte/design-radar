@@ -4172,14 +4172,30 @@ function _cleanFbText(s){
 // ── Customer Feedback tab renderer ──────────────────────────────────────────
 function setFbPeriod(p){_feedbackPeriod=p;render();}
 
+function _parseSubmittedAt(str){
+  if(!str) return null;
+  // Supabase may return "2026-06-30 15:30:00+00" or "2026-06-30T15:30:00+00:00"
+  // Normalise space→T, fix "+00" → "+00:00", strip fractional seconds
+  var s=String(str)
+    .replace(' ','T')           // space separator → T
+    .replace(/\.\d+/,'')        // strip fractional seconds
+    .replace(/\+00$/,'+00:00'); // fix short TZ offset
+  var d=new Date(s);
+  if(!isNaN(d)) return d;
+  // Fallback: strip timezone and parse as UTC
+  var bare=s.replace(/[+-]\d{2}:?\d{2}$/,'').replace(/Z$/,'');
+  return new Date(bare+'Z');
+}
+
 function _fbFilterData(data,period){
   if(period==='all') return data;
   var now=new Date();
-  var days={['7d']:7,['30d']:30,['90d']:90,['1y']:365}[period]||7;
+  var daysMap={'7d':7,'30d':30,'90d':90,'1y':365};
+  var days=daysMap[period]||7;
   var cutoff=new Date(now.getTime()-days*86400000);
   return data.filter(function(r){
-    if(!r.submitted_at) return false;
-    return new Date(r.submitted_at)>=cutoff;
+    var d=_parseSubmittedAt(r.submitted_at);
+    return d&&d>=cutoff;
   });
 }
 
@@ -4303,14 +4319,14 @@ function vFeedback(){
   // ── Compare with previous period (for trend) ───────────────────────────────
   var prevData=(function(){
     if(per==='all') return [];
-    var days={['7d']:7,['30d']:30,['90d']:90,['1y']:365}[per]||7;
+    var daysMap={'7d':7,'30d':30,'90d':90,'1y':365};
+    var days=daysMap[per]||7;
     var now=new Date();
     var cur=new Date(now.getTime()-days*86400000);
     var prev=new Date(now.getTime()-2*days*86400000);
     return allData.filter(function(r){
-      if(!r.submitted_at) return false;
-      var d=new Date(r.submitted_at);
-      return d>=prev&&d<cur;
+      var d=_parseSubmittedAt(r.submitted_at);
+      return d&&d>=prev&&d<cur;
     });
   }());
   var prevRated=prevData.filter(function(r){var n=Number(r.rating);return n>=1&&n<=5;});
@@ -4455,8 +4471,8 @@ function vFeedback(){
   // ── WEEKLY TREND ─────────────────────────────────────────────────────────
   var weeklyBuckets={};
   data.forEach(function(r){
-    if(!r.submitted_at) return;
-    var d=new Date(r.submitted_at);
+    var d=_parseSubmittedAt(r.submitted_at);
+    if(!d||isNaN(d)) return;
     // bucket by week (Monday)
     var day=d.getDay();var diff=d.getDate()-(day||7)+1;
     var mon=new Date(d);mon.setDate(diff);mon.setHours(0,0,0,0);
@@ -4470,27 +4486,40 @@ function vFeedback(){
 
   // ── COMPETITOR COMPARISON ─────────────────────────────────────────────────
   var compTexts=[];
+  var compApps=[];
   (typeof REVIEW_APPS!=='undefined'?REVIEW_APPS:[]).forEach(function(a){
-    ((_reviewsData||{})[a.id]||[]).forEach(function(r){compTexts.push(r.body||'');});
+    var reviews=(_reviewsData||{})[a.id]||[];
+    if(reviews.length>0){
+      var ratedR=reviews.filter(function(r){return Number(r.rating)>=1&&Number(r.rating)<=5;});
+      var avgR=ratedR.length?(ratedR.reduce(function(s,r){return s+Number(r.rating);},0)/ratedR.length):0;
+      var texts=reviews.map(function(r){return (r.body||'').toLowerCase();});
+      compTexts=compTexts.concat(texts);
+      compApps.push({id:a.id,name:a.name,color:a.color,total:reviews.length,avgRating:avgR,texts:texts});
+    }
   });
   var hasCompData=compTexts.length>0;
+  var venturaAvgRating=rated.length?avgRating:0;
   var COMP_THEMES=[
-    {label:'Dark Mode',       kws:['dark mode','dark theme','night mode']},
-    {label:'Performance',     kws:['slow','lag','crash','performance']},
-    {label:'Portfolio',       kws:['portfolio','holdings']},
-    {label:'Charts',          kws:['chart','candle','tradingview']},
-    {label:'Login',           kws:['login','otp','sign in']},
-    {label:'Watchlist',       kws:['watchlist']},
-    {label:'Orders',          kws:['order','execution','bracket']},
-    {label:'Navigation',      kws:['confus','navigate','find','difficult']},
+    {label:'Dark Mode',    kws:['dark mode','dark theme','night mode']},
+    {label:'Performance',  kws:['slow','lag','crash','performance']},
+    {label:'Charts',       kws:['chart','candle','tradingview']},
+    {label:'Login / Auth', kws:['login','otp','sign in']},
+    {label:'Portfolio',    kws:['portfolio','holdings']},
+    {label:'Watchlist',    kws:['watchlist']},
+    {label:'Orders',       kws:['order','execution','bracket']},
+    {label:'Navigation',   kws:['confus','navigate','find','difficult']},
   ];
   var compRows=COMP_THEMES.map(function(ct){
     var venturaCount=countMatches(data,ct.kws);
     var compCount=compTexts.filter(function(t){return textHas(t,ct.kws);}).length;
     var compPct=compTexts.length?Math.round(compCount/compTexts.length*100):0;
     var venturaPct=total?Math.round(venturaCount/total*100):0;
-    var winner=venturaPct>compPct+5?'🔴 Ventura Issue':venturaPct<compPct-5?'✅ Industry-wide':'⚪ Similar';
-    return {label:ct.label,venturaCount:venturaCount,venturaPct:venturaPct,compPct:compPct,winner:winner};
+    var perApp=compApps.map(function(a){
+      var cnt=a.texts.filter(function(t){return textHas(t,ct.kws);}).length;
+      return {name:a.name,color:a.color,pct:a.texts.length?Math.round(cnt/a.texts.length*100):0};
+    });
+    var winner=venturaPct>compPct+5?'🔴 Ventura Issue':venturaPct<compPct-5?'✅ Shared / Industry':'⚪ Similar';
+    return {label:ct.label,venturaCount:venturaCount,venturaPct:venturaPct,compPct:compPct,winner:winner,perApp:perApp};
   }).filter(function(r){return r.venturaCount>0||r.compPct>0;});
 
   // ── JTBD ─────────────────────────────────────────────────────────────────
@@ -4590,7 +4619,111 @@ function vFeedback(){
     +'</div></div></div>';
   out+=healthDash;
 
-  // ── B. VOLUME METRICS ─────────────────────────────────────────────────────
+  // ── B. COMPETITIVE SNAPSHOT ──────────────────────────────────────────────
+  var compSnapshotHtml;
+  if(!hasCompData){
+    compSnapshotHtml='<div class="panel" style="padding:16px 20px;text-align:center;border:1px dashed rgba(255,159,10,0.35);background:rgba(255,159,10,0.04)">'
+      +'<div style="font-size:28px;margin-bottom:6px">📊</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">App Reviews not loaded — Competitive Comparison unavailable</div>'
+      +'<div style="font-size:11px;color:var(--text3)">Switch to the <strong style="color:#FF9F0A">⭐ App Reviews</strong> tab, load reviews for any competitors, then come back here to see the comparison.</div>'
+      +'</div>';
+  } else {
+    // ── Rating scorecards ──
+    var venturaRatingCol=venturaAvgRating>=4?'#34C759':venturaAvgRating>=3?'#FFB347':'#FF3B5C';
+    var ratingCards='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">'
+      +'<div style="flex:0 0 auto;min-width:108px;background:rgba(0,180,255,0.08);border:1.5px solid rgba(0,180,255,0.3);border-radius:10px;padding:10px 14px;text-align:center">'
+      +'<div style="font-size:10px;font-weight:700;color:#00B4FF;letter-spacing:.5px;margin-bottom:3px">📍 VENTURA</div>'
+      +'<div style="font-size:26px;font-weight:900;color:'+venturaRatingCol+';line-height:1.1">'+venturaAvgRating.toFixed(1)+'</div>'
+      +'<div style="font-size:9px;color:var(--text3);margin-top:2px">★ avg · '+total+' responses</div>'
+      +'</div>'
+      +compApps.map(function(a){
+        var col=a.avgRating>=4?'#34C759':a.avgRating>=3?'#FFB347':'#FF3B5C';
+        var delta=venturaAvgRating>0?(a.avgRating-venturaAvgRating):0;
+        var deltaStr=(delta>=0?'+':'')+delta.toFixed(1);
+        var deltaCol=delta>0.1?'#FF3B5C':delta<-0.1?'#34C759':'var(--text3)';
+        return '<div style="flex:0 0 auto;min-width:108px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;text-align:center">'
+          +'<div style="font-size:10px;font-weight:700;color:'+a.color+';letter-spacing:.4px;margin-bottom:3px">'+a.name+'</div>'
+          +'<div style="font-size:26px;font-weight:900;color:'+col+';line-height:1.1">'+a.avgRating.toFixed(1)+'</div>'
+          +'<div style="font-size:9px;color:var(--text3);margin-top:2px">★ · '+a.total+' reviews</div>'
+          +(venturaAvgRating>0?'<div style="font-size:10px;font-weight:700;color:'+deltaCol+';margin-top:3px">'+deltaStr+' vs us</div>':'')
+          +'</div>';
+      }).join('')
+      +'</div>';
+    // ── Topic-by-topic bars ──
+    var topicBars='<div style="margin-bottom:12px">'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px">% of feedback/reviews mentioning each topic — Red = Ventura has a bigger problem than competitors</div>'
+      +'<div style="display:flex;flex-direction:column;gap:5px">'
+      +compRows.map(function(r){
+        var venturaWorse=r.venturaPct>r.compPct+5;
+        var venturaWins=r.venturaPct<r.compPct-5;
+        var barMax=Math.max(r.venturaPct,r.compPct,1);
+        var ventBarW=Math.round(r.venturaPct/barMax*100);
+        var compBarW=Math.round(r.compPct/barMax*100);
+        var signal=venturaWorse?'🔴':venturaWins?'✅':'⚪';
+        var signalColor=venturaWorse?'#FF3B5C':venturaWins?'#34C759':'var(--text3)';
+        return '<div class="panel" style="padding:8px 12px">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+          +'<span style="font-size:12px">'+signal+'</span>'
+          +'<span style="font-size:12px;font-weight:600;color:var(--text);flex:1">'+r.label+'</span>'
+          +'<span style="font-size:10px;font-weight:700;color:'+signalColor+'">'+r.winner+'</span>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;gap:3px">'
+          +'<div style="display:flex;align-items:center;gap:6px">'
+          +'<span style="font-size:9px;color:#00B4FF;width:68px;flex-shrink:0;text-align:right;font-weight:600">📍 Ventura</span>'
+          +'<div style="flex:1;height:14px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'
+          +'<div style="width:'+ventBarW+'%;height:100%;background:'+(venturaWorse?'#FF3B5C':'#00B4FF')+';border-radius:3px;min-width:2px;transition:width .4s"></div>'
+          +'</div>'
+          +'<span style="font-size:10px;font-weight:700;color:'+(venturaWorse?'#FF3B5C':'var(--text2)')+';width:30px;text-align:right">'+r.venturaPct+'%</span>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:6px">'
+          +'<span style="font-size:9px;color:var(--text3);width:68px;flex-shrink:0;text-align:right">Competitors</span>'
+          +'<div style="flex:1;height:14px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'
+          +'<div style="width:'+compBarW+'%;height:100%;background:rgba(160,160,180,0.3);border-radius:3px;min-width:2px"></div>'
+          +'</div>'
+          +'<span style="font-size:10px;color:var(--text3);width:30px;text-align:right">'+r.compPct+'%</span>'
+          +'</div>'
+          +(r.perApp&&r.perApp.filter(function(a){return a.pct>0;}).length?
+            '<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap;padding-left:74px">'
+            +r.perApp.filter(function(a){return a.pct>0;}).map(function(a){
+              return '<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:'+a.color+'22;color:'+a.color+';border:1px solid '+a.color+'44">'+a.name.split(' ')[0]+' '+a.pct+'%</span>';
+            }).join('')
+            +'</div>':'')
+          +'</div></div>';
+      }).join('')
+      +'</div></div>';
+    // ── Insight panels: gaps vs wins ──
+    var gapRows=compRows.filter(function(r){return r.venturaPct>r.compPct+5;});
+    var winRows=compRows.filter(function(r){return r.venturaPct<r.compPct-5;});
+    var insightPanel='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +'<div class="panel" style="padding:10px 14px;border-left:3px solid #FF3B5C">'
+      +'<div style="font-size:10px;font-weight:700;color:#FF3B5C;margin-bottom:8px">🔴 VENTURA GAPS — Worse than Competitors</div>'
+      +(gapRows.length
+        ?gapRows.map(function(r){
+            return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px">'
+              +'<span style="color:var(--text2)">'+r.label+'</span>'
+              +'<span style="color:#FF3B5C;font-weight:700">'+r.venturaPct+'% <span style="color:var(--text3);font-weight:400">vs '+r.compPct+'% comp</span></span>'
+              +'</div>';
+          }).join('')
+        :'<div style="font-size:10px;color:#34C759;padding:4px 0">No critical gaps — looking good! ✅</div>'
+      )
+      +'</div>'
+      +'<div class="panel" style="padding:10px 14px;border-left:3px solid #34C759">'
+      +'<div style="font-size:10px;font-weight:700;color:#34C759;margin-bottom:8px">✅ VENTURA ADVANTAGES — Better than Competitors</div>'
+      +(winRows.length
+        ?winRows.map(function(r){
+            return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px">'
+              +'<span style="color:var(--text2)">'+r.label+'</span>'
+              +'<span style="color:#34C759;font-weight:700">'+r.venturaPct+'% <span style="color:var(--text3);font-weight:400">vs '+r.compPct+'% comp</span></span>'
+              +'</div>';
+          }).join('')
+        :'<div style="font-size:10px;color:var(--text3);padding:4px 0">No clear advantages detected yet.</div>'
+      )
+      +'</div></div>';
+    compSnapshotHtml=ratingCards+topicBars+insightPanel;
+  }
+  out+=section('📊 COMPETITIVE SNAPSHOT'+(hasCompData?' — Ventura vs '+compApps.length+' Competitors ('+compTexts.length+' reviews)':' — Load App Reviews to enable'),compSnapshotHtml);
+
+  // ── C. VOLUME METRICS ─────────────────────────────────────────────────────
   var volGrid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">'
     +[
       {label:'Total Responses',v:total+(volDeltaStr?' <span style="font-size:10px;color:'+(parseInt(volDeltaStr)>=0?'#34C759':'#FF3B5C')+'">'+volDeltaStr+'</span>':''),c:'var(--blue)'},
@@ -4781,30 +4914,7 @@ function vFeedback(){
     +'</div>';
   out+=section('JOBS TO BE DONE',jtbdHtml);
 
-  // ── J. COMPETITIVE BENCHMARK ─────────────────────────────────────────────
-  var compHtml=hasCompData
-    ?('<div class="panel" style="padding:0;overflow:hidden">'
-      +'<div style="padding:8px 12px;background:rgba(255,255,255,0.03);font-size:10px;color:var(--text3)">Comparing complaint frequency: % of Ventura feedback vs competitor reviews ('+compTexts.length+' competitor reviews loaded)</div>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:11px">'
-      +'<thead><tr style="background:rgba(255,255,255,0.04)">'
-      +'<th style="padding:8px 10px;text-align:left;color:var(--text3);border-bottom:1px solid var(--border)">Topic</th>'
-      +'<th style="padding:8px 10px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">Ventura</th>'
-      +'<th style="padding:8px 10px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">Competitors</th>'
-      +'<th style="padding:8px 10px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">Signal</th>'
-      +'</tr></thead><tbody>'
-      +compRows.map(function(r,i){
-        return '<tr style="border-bottom:1px solid var(--border);background:'+(i%2?'rgba(255,255,255,0.02)':'transparent')+'">'
-          +'<td style="padding:8px 10px;color:var(--text2)">'+r.label+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;font-weight:600;color:'+(r.venturaPct>r.compPct+5?'#FF3B5C':r.venturaPct<r.compPct-5?'#34C759':'var(--text2)')+'">'+r.venturaPct+'%</td>'
-          +'<td style="padding:8px 10px;text-align:center;color:var(--text3)">'+r.compPct+'%</td>'
-          +'<td style="padding:8px 10px;text-align:center">'+r.winner+'</td>'
-          +'</tr>';
-      }).join('')
-      +'</tbody></table></div>')
-    :'<div class="panel" style="padding:20px;text-align:center;color:var(--text3);font-size:11px">Load App Reviews first (⭐ App Reviews tab) to enable competitive comparison.</div>';
-  out+=section('COMPETITIVE BENCHMARK',compHtml);
-
-  // ── K. OPPORTUNITY MATRIX ─────────────────────────────────────────────────
+  // ── OPPORTUNITY MATRIX ────────────────────────────────────────────────────
   var oppHtml='<div style="display:flex;flex-direction:column;gap:6px">'
     +OPP.map(function(o){
       var cat=OPP_CATS[o.cat]||{col:'#00B4FF',bg:'rgba(0,180,255,0.1)'};
