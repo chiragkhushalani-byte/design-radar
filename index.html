@@ -4215,7 +4215,49 @@ function _fbFilterData(data,period){
 }
 
 function vFeedback(){
-  var allData=_feedbackData;
+  // Preprocess: extract rating + text from raw_fields JSON when direct columns are null/empty.
+  // Tally webhook stores all field data in raw_fields; the individual columns may be unpopulated.
+  var allData=(_feedbackData||[]).map(function(r){
+    var hasRating=r.rating!=null&&r.rating!=='';
+    var hasFb=r.feedback_text!=null&&r.feedback_text!=='';
+    if(hasRating&&hasFb) return r; // already complete
+    var rf=r.raw_fields;
+    if(!rf) return r;
+    try{
+      var parsed=typeof rf==='string'?JSON.parse(rf):rf;
+      // Support both {fields:[...]} and flat array
+      var fields=Array.isArray(parsed)?parsed:(parsed.fields||parsed.data||[]);
+      var out=Object.assign({},r);
+      fields.forEach(function(f){
+        var label=((f.label||f.title||f.question||f.key)||'').toLowerCase();
+        var val=f.value!=null?f.value:(f.answer!=null?f.answer:(f.response!=null?f.response:''));
+        var s=val!=null?String(val).trim():'';
+        // Rating field
+        if(!out.rating&&(label.includes('rate')||label.includes('rating')||label.includes('experience')||label.includes('score'))){
+          var n=Number(s);if(n>=1&&n<=5)out.rating=n;
+        }
+        // Feedback / general text
+        if((!out.feedback_text||out.feedback_text==='')&&(label.includes('describe')||label.includes('mind')||label.includes('tell us')||label.includes('feedback')||label.includes('comment')||label.includes('brief'))){
+          if(s)out.feedback_text=s;
+        }
+        // Pain points / issues
+        if((!out.pain_points||out.pain_points==='')&&(label.includes('pain')||label.includes('issue')||label.includes('problem')||label.includes('bug')||label.includes('complaint'))){
+          if(s)out.pain_points=s;
+        }
+        // Feature requests
+        if((!out.feature_requests||out.feature_requests==='')&&(label.includes('feature')||label.includes('request')||label.includes('suggest')||label.includes('would like')||label.includes('improve'))){
+          if(s)out.feature_requests=s;
+        }
+        // Also try: if there is a "would you like to" field with value, use it to fill category
+        if(label.includes('would you like')&&s){
+          var sl=s.toLowerCase();
+          if(sl.includes('feature')&&(!out.feature_requests||out.feature_requests===''))out.feature_requests=out.feedback_text||s;
+          if((sl.includes('issue')||sl.includes('bug')||sl.includes('report'))&&(!out.pain_points||out.pain_points===''))out.pain_points=out.feedback_text||s;
+        }
+      });
+      return out;
+    }catch(e){return r;}
+  });
 
   // Import status banner
   var importBanner='';
@@ -4258,25 +4300,6 @@ function vFeedback(){
     +'</div>'
     +'</div>';
 
-  // ── Debug: show raw field names + date/rating coverage ───────────────────
-  var _dbgRow0=allData[0]||{};
-  var _dbgKeys=Object.keys(_dbgRow0);
-  var _dbgParseable=allData.filter(function(r){return _fbDate(r)!==null;}).length;
-  var _dbgDates=allData.map(function(r){var d=_fbDate(r);return d?d.getTime():null;}).filter(Boolean);
-  var _dbgMin=_dbgDates.length?new Date(Math.min.apply(null,_dbgDates)):null;
-  var _dbgMax=_dbgDates.length?new Date(Math.max.apply(null,_dbgDates)):null;
-  var _dbgRatingVal=_dbgRow0.rating!==undefined?'rating='+JSON.stringify(_dbgRow0.rating)
-    :_dbgRow0.overall_rating!==undefined?'overall_rating='+JSON.stringify(_dbgRow0.overall_rating)
-    :'(no rating field)';
-  var _dbgFbVal=_dbgRow0.feedback_text!==undefined
-    ?'feedback_text='+JSON.stringify((_dbgRow0.feedback_text||'').substring(0,30))
-    :'(no feedback_text field)';
-  var debugBar='<div style="font-size:10px;color:#FFD60A;background:rgba(255,214,10,0.07);border:1px solid rgba(255,214,10,0.3);border-radius:6px;padding:8px 12px;margin-bottom:10px;line-height:1.8">'
-    +'<strong style="color:#FFD60A">🔍 DEBUG</strong>  '+allData.length+' total rows · '+_dbgParseable+' with parseable dates'
-    +(_dbgMin?' · Range <strong>'+_dbgMin.toISOString().slice(0,10)+'</strong> → <strong>'+_dbgMax.toISOString().slice(0,10)+'</strong>':'  <span style="color:#FF3B5C">⚠ no parseable dates</span>')
-    +'<br><span style="opacity:.7">DB columns: </span>'+_dbgKeys.join(', ')
-    +'<br><span style="opacity:.7">First row: </span>'+_dbgRatingVal+'  |  '+_dbgFbVal
-    +'</div>';
 
   // ── Data for selected period ───────────────────────────────────────────────
   var data=_fbFilterData(allData,per);
@@ -4284,7 +4307,7 @@ function vFeedback(){
   if(!total){
     // Auto-find the closest period with data
     var bestPeriod=['7d','30d','90d','1y','all'].find(function(p){return _fbFilterData(allData,p).length>0;});
-    return importBanner+periodBar+debugBar
+    return importBanner+periodBar
       +'<div class="panel" style="padding:28px;text-align:center">'
       +'<div style="font-size:28px;margin-bottom:10px">📭</div>'
       +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No responses in this window</div>'
@@ -4621,7 +4644,7 @@ function vFeedback(){
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  var out=importBanner+periodBar+debugBar;
+  var out=importBanner+periodBar;
 
   // ── A. HEALTH DASHBOARD ───────────────────────────────────────────────────
   var healthDash='<div class="panel" style="padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,rgba(30,32,48,0.8),rgba(20,22,36,0.9));border:1px solid rgba(255,255,255,0.08)">'
@@ -5039,9 +5062,22 @@ function setPF(f){
   var c=document.getElementById('content');
   if(!c) return;
   c.innerHTML=vPulse();
-  if(f==='reviews'){loadReviews();}
-  else if(f==='feedback'){loadFeedback();}
-  else{loadPulse();}
+  if(f==='reviews'){
+    loadReviews();
+  } else if(f==='feedback'){
+    loadFeedback();
+    // Auto-load App Reviews in background for Competitive Snapshot
+    // Only if not already loaded or loading
+    if(!_reviewsLoading&&Object.keys(_reviewsData).length===0){
+      loadReviews().then(function(){
+        // Re-render feedback tab once reviews arrive so snapshot populates
+        var cc=document.getElementById('content');
+        if(cc&&_pulseFilter==='feedback') cc.innerHTML=vPulse();
+      });
+    }
+  } else {
+    loadPulse();
+  }
 }
 
 function setCF(f){
