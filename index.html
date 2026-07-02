@@ -3943,7 +3943,25 @@ function setReviewSource(s){
 
 // ── Keyword extractor (client-side, no AI needed) ────────────────────────────
 function extractKeywords(texts,topN){
-  var stop=new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','is','are','was','were','be','been','it','its','this','that','i','my','me','we','our','you','your','have','has','had','do','did','not','no','so','if','as','from','by','their','they','he','she','his','her','can','will','would','could','should','what','how','when','where','which','all','just','very','also','more','than','then','about','get','got','like','use','using','used','new','one','two','some','any','up','app','apps','really','good','great','bad','please','need','want','make']);
+  // General English stop words + common Tally question label fragments + brand-neutral filler words
+  var stop=new Set([
+    'the','a','an','and','or','but','in','on','at','to','for','of','with','is','are','was','were','be','been','it',
+    'its','this','that','i','my','me','we','our','you','your','have','has','had','do','did','not','no','so','if',
+    'as','from','by','their','they','he','she','his','her','can','will','would','could','should','what','how',
+    'when','where','which','all','just','very','also','more','than','then','about','get','got','like','use',
+    'using','used','new','one','two','some','any','up','app','apps','really','good','great','bad','please',
+    'need','want','make',
+    // Tally question label fragments
+    'mind','briefly','describe','share','tell','give','please','provide','enter','write','type','fill',
+    'select','choose','pick','answer','respond','mention','specify','explain','note','add','list',
+    'overall','general','other','feedback','comment','opinion','view','thought','suggestion',
+    'experience','feel','feeling','think','would','like','rate','rating','scale','score',
+    // Common form filler words
+    'form','question','survey','response','submission','field','option','section','part',
+    'thank','thanks','much','really','quite','rather','well','also','still','even','already',
+    'always','never','often','sometimes','usually','again','back','each','every','many','few',
+    'because','since','while','though','although','however','therefore','hence','thus'
+  ]);
   var freq={};
   texts.forEach(function(text){
     if(!text) return;
@@ -3959,11 +3977,20 @@ async function loadFeedback(force){
   if(_feedbackLoading&&!force) return;
   _feedbackLoading=true;
   try{
-    var res=await fetch(SB+'/rest/v1/customer_feedback?order=submitted_at.desc&limit=500',{
-      headers:Object.assign({'Content-Type':'application/json'},H)
-    });
-    if(res.ok){_feedbackData=await res.json();}
-    else{console.warn('Feedback load error:',res.status);}
+    // Paginate in chunks of 1000 to bypass Supabase default page size
+    var all=[];var pageSize=1000;var from=0;
+    while(true){
+      var res=await fetch(SB+'/rest/v1/customer_feedback?order=submitted_at.desc&limit='+pageSize+'&offset='+from,{
+        headers:Object.assign({'Range-Unit':'items','Range':from+'-'+(from+pageSize-1)},H)
+      });
+      if(!res.ok){console.warn('Feedback load error:',res.status);break;}
+      var page=await res.json();
+      all=all.concat(page);
+      if(page.length<pageSize) break; // last page
+      from+=pageSize;
+      if(from>5000) break; // safety cap
+    }
+    _feedbackData=all;
   }catch(e){console.warn('Failed to load customer feedback:',e);}
   _feedbackLoading=false;
   var c=document.getElementById('content');
@@ -3971,93 +3998,123 @@ async function loadFeedback(force){
 }
 
 // ── Tally CSV importer ───────────────────────────────────────────────────────
-// Matches Tally's CSV column headers to DB fields using the same label logic as the webhook.
-var RATING_LABELS_CSV   =['rating','score','stars','nps','satisfaction','rate','how would you rate'];
-var FEEDBACK_LABELS_CSV =['feedback','comment','thoughts','tell us','anything else','overall','experience','review'];
-var PAIN_LABELS_CSV     =['pain','problem','issue','challenge','frustrat','complaint','dislike','difficult','went wrong','improve'];
-var FEATURE_LABELS_CSV  =['feature','request','wish','add','would like','want','suggest','missing'];
-
-function _csvMatchesAny(label,patterns){
-  var l=label.toLowerCase();
-  return patterns.some(function(p){return l.includes(p);});
-}
+// Hardcoded to match "We'd Love Your Feedback!" Tally form columns exactly.
+// Columns: Submission ID | Respondent ID | Submitted at | Would you like to |
+//          Briefly describe what's on your mind | Help us understand better (Optional) |
+//          How would you rate your overall experience? | client_id | app_web |
+//          Please tell us more (Short or long answer) | Client ID | App/web
 
 function parseTallyCSV(csvText){
-  var lines=csvText.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  if(lines.length<2) return [];
-  // Parse header row (handle quoted fields)
+  // Parse CSV respecting quoted fields
   function parseLine(line){
     var fields=[];var cur='';var inQ=false;
     for(var i=0;i<line.length;i++){
       var ch=line[i];
       if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
-      else if(ch===','&&!inQ){fields.push(cur.trim());cur='';}
+      else if(ch===','&&!inQ){fields.push(cur);cur='';}
       else{cur+=ch;}
     }
-    fields.push(cur.trim());
+    fields.push(cur);
     return fields;
   }
-  var headers=parseLine(lines[0]);
-  var rows=[];
-  for(var i=1;i<lines.length;i++){
-    if(!lines[i].trim()) continue;
-    var vals=parseLine(lines[i]);
-    var obj={};
-    headers.forEach(function(h,idx){obj[h]=vals[idx]||'';});
-    rows.push(obj);
+
+  var lines=csvText.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  if(lines.length<2) return [];
+
+  // Normalise header names: trim whitespace/newlines, collapse curly quotes to straight
+  var rawHeaders=parseLine(lines[0]);
+  var headers=rawHeaders.map(function(h){
+    return h.trim().replace(/\n/g,'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
+  });
+
+  // Build lookup: normalised header → column index
+  var idx={};
+  headers.forEach(function(h,i){idx[h]=i;});
+
+  // Helper: get value by normalised header (case-insensitive fallback)
+  function col(row,name){
+    if(idx[name]!==undefined) return (row[idx[name]]||'').trim();
+    // fallback: partial match
+    var lname=name.toLowerCase();
+    for(var k in idx){if(k.toLowerCase().includes(lname)) return (row[idx[k]]||'').trim();}
+    return '';
   }
 
-  // Map rows to our schema
-  return rows.map(function(row){
-    // Find Submission ID column (handles "Submission ID", "Response ID", etc.)
-    var responseId='';
-    var submittedAt='';
-    var rating=null;
-    var feedbackParts=[];
-    var painParts=[];
-    var featParts=[];
+  var result=[];
+  for(var i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    var row=parseLine(lines[i]);
 
-    headers.forEach(function(h){
-      var val=row[h]||'';
-      var hl=h.toLowerCase();
-      if(!val) return;
-      if(hl.includes('submission id')||hl.includes('response id')||hl==='id'){
-        responseId=responseId||val;
-      } else if(hl.includes('submitted at')||hl.includes('created at')||hl.includes('timestamp')||hl.includes('date')){
-        submittedAt=submittedAt||val;
-      } else if(hl.includes('respondent id')||hl.includes('respondent')){
-        // skip internal Tally ID cols
-      } else if(_csvMatchesAny(h,RATING_LABELS_CSV)){
-        var n=Number(val.replace(/[^0-9.]/g,''));
-        if(!isNaN(n)&&n>0&&rating===null){rating=n>5?Math.round((n/10)*5):Math.round(n);}
-      } else if(_csvMatchesAny(h,FEATURE_LABELS_CSV)){
-        featParts.push('['+h+'] '+val);
-      } else if(_csvMatchesAny(h,PAIN_LABELS_CSV)){
-        painParts.push('['+h+'] '+val);
-      } else if(_csvMatchesAny(h,FEEDBACK_LABELS_CSV)){
-        feedbackParts.push('['+h+'] '+val);
-      } else {
-        // Catch-all: any text answer goes to general feedback
-        if(val.length>3) feedbackParts.push('['+h+'] '+val);
-      }
-    });
+    var responseId = col(row,'Submission ID') || ('csv-'+Math.random().toString(36).slice(2));
+    var submittedAt = col(row,'Submitted at') || null;
 
-    if(!responseId) responseId='csv-'+Math.random().toString(36).slice(2);
+    // Rating: numeric 1-5
+    var ratingRaw = col(row,'How would you rate your overall experience?');
+    var rating = ratingRaw ? parseInt(ratingRaw,10) : null;
+    if(isNaN(rating)) rating=null;
 
-    return {
+    // Intent type drives which DB column the text goes into
+    var intent = col(row,'Would you like to'); // "Give Feedback" | "Report an Issue" | "Request a Feature"
+
+    // Collect all text fields
+    var mainText   = col(row,"Briefly describe what's on your mind");
+    var moreText   = col(row,'Help us understand better (Optional)');
+    var extraText  = col(row,'Please tell us more (Short or long answer)');
+    var platform   = col(row,'app_web') || col(row,'App/web');
+    var clientId   = col(row,'client_id') || col(row,'Client ID');
+
+    // Combine text fields
+    var parts=[mainText,moreText,extraText].filter(function(s){return s&&s.length>0;});
+    var fullText=parts.join('\n').trim()||null;
+
+    // Add platform/client metadata as context if available
+    var meta=[];
+    if(platform) meta.push('Platform: '+platform);
+    if(clientId) meta.push('Client: '+clientId);
+    var metaStr=meta.length?'\n['+meta.join(' | ')+']':'';
+    if(fullText&&metaStr) fullText+=metaStr;
+
+    var feedbackText=null, painPoints=null, featureRequests=null;
+    if(intent==='Report an Issue'){
+      painPoints=fullText;
+    } else if(intent==='Request a Feature'){
+      featureRequests=fullText;
+    } else {
+      // "Give Feedback" or unknown
+      feedbackText=fullText;
+    }
+
+    result.push({
       response_id:responseId,
-      submitted_at:submittedAt||null,
+      submitted_at:submittedAt,
       rating:rating,
-      feedback_text:feedbackParts.join('\n\n')||null,
-      pain_points:painParts.join('\n\n')||null,
-      feature_requests:featParts.join('\n\n')||null,
+      feedback_text:feedbackText,
+      pain_points:painPoints,
+      feature_requests:featureRequests,
       raw_fields:[]
-    };
-  });
+    });
+  }
+  return result;
 }
 
 var _fbImportStatus=''; // '', 'importing', 'done', 'error'
 var _fbImportMsg='';
+
+async function clearAndImportTallyCSV(){
+  // First delete all existing rows, then re-import fresh
+  if(!confirm('This will DELETE all existing feedback rows and re-import from CSV. Continue?')) return;
+  _fbImportStatus='importing';_fbImportMsg='Clearing old data…';
+  var c=document.getElementById('content');
+  if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+  try{
+    // DELETE all rows (needs service role — will fail with anon key; if so, skip and just upsert)
+    var delRes=await fetch(SB+'/rest/v1/customer_feedback?id=neq.00000000-0000-0000-0000-000000000000',{
+      method:'DELETE',headers:Object.assign({'Prefer':'return=minimal'},HR)
+    });
+    if(!delRes.ok) console.warn('Clear failed (anon key may lack DELETE), proceeding with upsert…');
+  }catch(e){console.warn('Clear error:',e);}
+  triggerTallyImport();
+}
 
 async function importTallyCSV(file){
   _fbImportStatus='importing';
@@ -4133,6 +4190,7 @@ function vFeedback(){
       +'<button class="btn" style="font-size:11px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import Tally CSV</button>'
       +'<button class="btn" style="font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
       +'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:10px">Already imported bad data? Use <strong style="color:var(--text2)">📥 Import Tally CSV</strong> again — it will overwrite existing rows with correct mapping.</div>'
       +'</div>';
   }
 
@@ -4142,16 +4200,18 @@ function vFeedback(){
   var avgRating=rated.length?rated.reduce(function(s,r){return s+r.rating;},0)/rated.length:0;
   var pctPositive=rated.length?Math.round(rated.filter(function(r){return r.rating>=4;}).length/rated.length*100):0;
   var pctNegative=rated.length?Math.round(rated.filter(function(r){return r.rating<=2;}).length/rated.length*100):0;
+  var withFeedback=data.filter(function(r){return r.feedback_text;}).length;
   var withPain=data.filter(function(r){return r.pain_points;}).length;
   var withFeature=data.filter(function(r){return r.feature_requests;}).length;
 
-  var statsBar='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
+  var statsBar='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">'
     +[
-      {label:'Responses',value:total,color:'var(--blue)'},
-      {label:'Avg Rating',value:avgRating.toFixed(1)+' ★',color:avgRating>=4?'#34C759':avgRating>=3?'#FFB347':'#FF3B5C'},
+      {label:'Total Responses',value:total,color:'var(--blue)'},
+      {label:'Avg Rating',value:rated.length?(avgRating.toFixed(1)+' ★'):'N/A',color:avgRating>=4?'#34C759':avgRating>=3?'#FFB347':'#FF3B5C'},
       {label:'😊 Positive',value:pctPositive+'%',color:'#34C759'},
       {label:'😞 Negative',value:pctNegative+'%',color:'#FF3B5C'},
-      {label:'⚠️ Pain Points',value:withPain,color:'#FF9F0A'},
+      {label:'💬 Feedback',value:withFeedback,color:'#00B4FF'},
+      {label:'⚠️ Issues',value:withPain,color:'#FF9F0A'},
       {label:'💡 Feature Req.',value:withFeature,color:'#BF5AF2'},
     ].map(function(s){
       return '<div class="panel" style="padding:10px 14px;text-align:center">'
