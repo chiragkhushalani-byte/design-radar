@@ -3977,18 +3977,18 @@ async function loadFeedback(force){
   if(_feedbackLoading&&!force) return;
   _feedbackLoading=true;
   try{
-    // Paginate in chunks of 1000 to bypass Supabase default page size
+    // Paginate in chunks of 1000 using URL params (PostgREST limit/offset)
     var all=[];var pageSize=1000;var from=0;
     while(true){
-      var res=await fetch(SB+'/rest/v1/customer_feedback?order=submitted_at.desc&limit='+pageSize+'&offset='+from,{
-        headers:Object.assign({'Range-Unit':'items','Range':from+'-'+(from+pageSize-1)},H)
+      var res=await fetch(SB+'/rest/v1/customer_feedback?select=*&order=submitted_at.desc&limit='+pageSize+'&offset='+from,{
+        headers:H
       });
       if(!res.ok){console.warn('Feedback load error:',res.status);break;}
       var page=await res.json();
       all=all.concat(page);
-      if(page.length<pageSize) break; // last page
+      if(page.length<pageSize) break;
       from+=pageSize;
-      if(from>5000) break; // safety cap
+      if(from>10000) break;
     }
     _feedbackData=all;
   }catch(e){console.warn('Failed to load customer feedback:',e);}
@@ -4162,6 +4162,12 @@ function triggerTallyImport(){
   inp.click();
 }
 
+// Strip [Column Header] labels left by old CSV import format
+function _cleanFbText(s){
+  if(!s) return '';
+  return s.replace(/\[[^\]]{3,100}\]\s*/g,'').replace(/\s+/g,' ').trim();
+}
+
 // ── Customer Feedback tab renderer ──────────────────────────────────────────
 function vFeedback(){
   var data=_feedbackData;
@@ -4240,10 +4246,10 @@ function vFeedback(){
     }).join('')
     +'</div></div>';
 
-  // ── Extract keywords from each feedback type ──────────────────────────────
-  var fbTexts=data.map(function(r){return r.feedback_text;});
-  var painTexts=data.map(function(r){return r.pain_points;});
-  var featTexts=data.map(function(r){return r.feature_requests;});
+  // ── Extract keywords from each feedback type (clean old format labels first) ──
+  var fbTexts=data.map(function(r){return _cleanFbText(r.feedback_text);});
+  var painTexts=data.map(function(r){return _cleanFbText(r.pain_points);});
+  var featTexts=data.map(function(r){return _cleanFbText(r.feature_requests);});
   // Also extract from competitor reviews for comparison
   var compTexts=[];
   REVIEW_APPS.forEach(function(a){
@@ -4301,23 +4307,30 @@ function vFeedback(){
     +'</div>'
     +'</div>';
 
-  var feed=data.slice(0,40).map(function(r){
+  var feed=data.slice(0,60).map(function(r){
+    // Determine intent
+    var isPain=!!r.pain_points;
+    var isFeat=!!r.feature_requests;
+    var intentLabel=isPain?'⚠️ Issue':isFeat?'💡 Feature Request':'💬 Feedback';
+    var intentColor=isPain?'#FF9F0A':isFeat?'#BF5AF2':'#00B4FF';
+    var intentBg=isPain?'rgba(255,159,10,0.12)':isFeat?'rgba(191,90,242,0.12)':'rgba(0,180,255,0.12)';
+    // Clean body text (strips old [Column Label] prefixes)
+    var bodyText=_cleanFbText(r.pain_points||r.feature_requests||r.feedback_text||'');
+    if(!bodyText) return '';
     var stars='';
-    for(var i=1;i<=5;i++) stars+='<span style="color:'+(i<=(r.rating||0)?'#FFD60A':'var(--border)')+'">★</span>';
+    if(r.rating){for(var i=1;i<=5;i++) stars+='<span style="color:'+(i<=r.rating?'#FFD60A':'var(--border)')+'">★</span>';}
     var ago=(function(){
       if(!r.submitted_at) return '';
       var d=new Date(r.submitted_at);var now=new Date();var diff=Math.floor((now-d)/86400000);
       return diff===0?'Today':diff===1?'Yesterday':diff+'d ago';
     }());
-    return '<div class="panel" style="padding:14px;cursor:default">'
+    return '<div class="panel" style="padding:14px;cursor:default;border-left:3px solid '+intentColor+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-      +'<span style="font-size:10px;font-weight:600;background:rgba(0,180,255,0.12);color:#00B4FF;border-radius:4px;padding:2px 7px">🗣️ Customer</span>'
-      +'<span style="font-size:11px;color:var(--text3)">'+ago+'</span>'
+      +'<span style="font-size:10px;font-weight:700;background:'+intentBg+';color:'+intentColor+';border-radius:4px;padding:2px 8px">'+intentLabel+'</span>'
+      +'<span style="font-size:10px;color:var(--text3)">'+ago+'</span>'
       +'</div>'
-      +(r.rating?'<div style="font-size:13px;margin-bottom:6px">'+stars+'</div>':'')
-      +(r.feedback_text?'<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+_esc(r.feedback_text)+'</div>':'')
-      +(r.pain_points?'<div style="font-size:10px;background:rgba(255,159,10,0.1);color:#FF9F0A;border-radius:4px;padding:4px 7px;margin-bottom:4px;line-height:1.4"><strong>⚠️ Pain:</strong> '+_esc(r.pain_points.slice(0,120))+'</div>':'')
-      +(r.feature_requests?'<div style="font-size:10px;background:rgba(191,90,242,0.1);color:#BF5AF2;border-radius:4px;padding:4px 7px;line-height:1.4"><strong>💡 Feature:</strong> '+_esc(r.feature_requests.slice(0,120))+'</div>':'')
+      +(stars?'<div style="font-size:12px;margin-bottom:6px">'+stars+'</div>':'')
+      +'<div style="font-size:12px;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">'+_esc(bodyText)+'</div>'
       +'</div>';
   }).join('');
 
