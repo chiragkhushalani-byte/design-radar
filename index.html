@@ -4258,13 +4258,33 @@ function vFeedback(){
     +'</div>'
     +'</div>';
 
+  // ── Debug: show raw field names + date/rating coverage ───────────────────
+  var _dbgRow0=allData[0]||{};
+  var _dbgKeys=Object.keys(_dbgRow0);
+  var _dbgParseable=allData.filter(function(r){return _fbDate(r)!==null;}).length;
+  var _dbgDates=allData.map(function(r){var d=_fbDate(r);return d?d.getTime():null;}).filter(Boolean);
+  var _dbgMin=_dbgDates.length?new Date(Math.min.apply(null,_dbgDates)):null;
+  var _dbgMax=_dbgDates.length?new Date(Math.max.apply(null,_dbgDates)):null;
+  var _dbgRatingVal=_dbgRow0.rating!==undefined?'rating='+JSON.stringify(_dbgRow0.rating)
+    :_dbgRow0.overall_rating!==undefined?'overall_rating='+JSON.stringify(_dbgRow0.overall_rating)
+    :'(no rating field)';
+  var _dbgFbVal=_dbgRow0.feedback_text!==undefined
+    ?'feedback_text='+JSON.stringify((_dbgRow0.feedback_text||'').substring(0,30))
+    :'(no feedback_text field)';
+  var debugBar='<div style="font-size:10px;color:#FFD60A;background:rgba(255,214,10,0.07);border:1px solid rgba(255,214,10,0.3);border-radius:6px;padding:8px 12px;margin-bottom:10px;line-height:1.8">'
+    +'<strong style="color:#FFD60A">🔍 DEBUG</strong>  '+allData.length+' total rows · '+_dbgParseable+' with parseable dates'
+    +(_dbgMin?' · Range <strong>'+_dbgMin.toISOString().slice(0,10)+'</strong> → <strong>'+_dbgMax.toISOString().slice(0,10)+'</strong>':'  <span style="color:#FF3B5C">⚠ no parseable dates</span>')
+    +'<br><span style="opacity:.7">DB columns: </span>'+_dbgKeys.join(', ')
+    +'<br><span style="opacity:.7">First row: </span>'+_dbgRatingVal+'  |  '+_dbgFbVal
+    +'</div>';
+
   // ── Data for selected period ───────────────────────────────────────────────
   var data=_fbFilterData(allData,per);
   var total=data.length;
   if(!total){
     // Auto-find the closest period with data
     var bestPeriod=['7d','30d','90d','1y','all'].find(function(p){return _fbFilterData(allData,p).length>0;});
-    return importBanner+periodBar
+    return importBanner+periodBar+debugBar
       +'<div class="panel" style="padding:28px;text-align:center">'
       +'<div style="font-size:28px;margin-bottom:10px">📭</div>'
       +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No responses in this window</div>'
@@ -4601,7 +4621,7 @@ function vFeedback(){
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  var out=importBanner+periodBar;
+  var out=importBanner+periodBar+debugBar;
 
   // ── A. HEALTH DASHBOARD ───────────────────────────────────────────────────
   var healthDash='<div class="panel" style="padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,rgba(30,32,48,0.8),rgba(20,22,36,0.9));border:1px solid rgba(255,255,255,0.08)">'
