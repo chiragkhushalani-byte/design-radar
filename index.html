@@ -4434,25 +4434,57 @@ function _parseSubmittedAt(str){
 function _fbDate(r){
   return _parseSubmittedAt(r.submitted_at||r.created_at||r.timestamp||r.date);
 }
-/// Helper: get rating as a number 1-5, trying many possible column names + scanning all fields.
+// Helper: get rating as a number 1-5, trying many possible column names + raw_fields.
 function _fbRating(r){
-  // 1. Try known column names first (direct and string-coerced)
+  // 1. Direct known columns
   var RATING_KEYS=['rating','overall_rating','score','nps','stars','satisfaction',
     'overall_experience','experience_rating','nps_score','experience_score',
     'overall_score','user_rating','customer_rating','feedback_rating'];
   for(var ki=0;ki<RATING_KEYS.length;ki++){
     var v=r[RATING_KEYS[ki]];
-    if(v!=null){var n=Number(v);if(n>=1&&n<=5)return n;}
+    if(v!=null&&v!==''){var n=Number(v);if(n>=1&&n<=5)return n;}
   }
-  // 2. Scan ALL keys — if any value is a number strictly 1-5, treat it as rating
-  // (skip created_at, id, uuid-like fields)
-  var skipPat=/id$|_id$|_at$|time|date|uuid|text|points|request|client|platform|app_web|source/i;
+
+  // 2. Dig into raw_fields — Tally webhook stores all answers here
+  // raw_fields can be: array of {label,value}, plain object, or JSON string
+  var rf=r.raw_fields;
+  if(rf){
+    if(typeof rf==='string'){try{rf=JSON.parse(rf);}catch(e){rf=null;}}
+    if(rf){
+      var arr=Array.isArray(rf)?rf:Object.values(rf);
+      // First pass: label-aware (prefer fields labelled as rating/score/experience)
+      for(var ai=0;ai<arr.length;ai++){
+        var item=arr[ai];if(!item) continue;
+        var lbl=String(item.label||item.question||item.key||item.name||item.field||'').toLowerCase();
+        var val=item.value!=null?item.value:(item.answer!=null?item.answer:item.val!=null?item.val:null);
+        if(val==null) continue;
+        var n=Number(val);
+        if(n>=1&&n<=5&&/rat|score|star|experi|satisf|nps|overall|how would/.test(lbl)) return n;
+      }
+      // Second pass: any integer 1-5 anywhere in raw_fields
+      for(var ai2=0;ai2<arr.length;ai2++){
+        var item2=arr[ai2];if(!item2) continue;
+        var val2=item2.value!=null?item2.value:(item2.answer!=null?item2.answer:item2.val!=null?item2.val:null);
+        if(val2!=null){var n2=Number(val2);if(Number.isInteger(n2)&&n2>=1&&n2<=5)return n2;}
+      }
+      // If raw_fields is a plain object {key:value}
+      if(!Array.isArray(r.raw_fields)){
+        for(var rk in r.raw_fields){
+          var rv=r.raw_fields[rk];
+          if(rv!=null){var rn=Number(rv);if(Number.isInteger(rn)&&rn>=1&&rn<=5)return rn;}
+        }
+      }
+    }
+  }
+
+  // 3. Scan all top-level fields last resort
+  var skipPat=/^id$|_id$|_at$|time|date|uuid|text|points|request|client|platform|app_web|source|fields/i;
   for(var k in r){
     if(skipPat.test(k)) continue;
-    var val=r[k];
-    if(val!=null&&val!==''&&val!==false&&val!==true){
-      var nm=Number(val);
-      if(Number.isInteger(nm)&&nm>=1&&nm<=5) return nm;
+    var val3=r[k];
+    if(val3!=null&&val3!==''&&typeof val3!=='object'){
+      var n3=Number(val3);
+      if(Number.isInteger(n3)&&n3>=1&&n3<=5) return n3;
     }
   }
   return null;
@@ -4617,12 +4649,21 @@ function vFeedback(){
   if(data.length>0&&!rated.length){
     var sampleRow=data[0];
     var allKeys=Object.keys(sampleRow);
-    var numKeys=allKeys.filter(function(k){var v=Number(sampleRow[k]);return !isNaN(v)&&v>0;});
+    var numKeys=allKeys.filter(function(k){var v=Number(sampleRow[k]);return !isNaN(v)&&v>0&&v<=10;});
+    // Show raw_fields content if present
+    var rfVal=sampleRow.raw_fields;
+    var rfPreview='';
+    if(rfVal){
+      try{
+        var rfParsed=typeof rfVal==='string'?JSON.parse(rfVal):rfVal;
+        rfPreview=JSON.stringify(rfParsed).slice(0,300);
+      }catch(e){rfPreview=String(rfVal).slice(0,300);}
+    }
     schemaBanner='<div style="margin-bottom:12px;padding:10px 14px;background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.35);border-radius:8px">'
-      +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:6px">⚠️ Rating field not detected in Supabase data</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Columns returned: <code style="color:var(--text2)">'+allKeys.join(', ')+'</code></div>'
-      +(numKeys.length?'<div style="font-size:10px;color:var(--text3)">Numeric fields: <code style="color:#FFB347">'+numKeys.map(function(k){return k+'='+sampleRow[k];}).join(', ')+'</code></div>':'<div style="font-size:10px;color:var(--text3)">No numeric fields found — rating may be stored as text or in a nested field</div>')
-      +'<div style="font-size:10px;color:var(--text3);margin-top:4px">Open F12 → Console for full row dump. Share the column names to fix the mapping.</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:6px">⚠️ Rating field not found in Supabase data — showing raw_fields to diagnose</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Columns: <code style="color:var(--text2)">'+allKeys.join(', ')+'</code></div>'
+      +(numKeys.length?'<div style="font-size:10px;color:#FFB347;margin-bottom:4px">Numeric 1–10 fields: <code>'+numKeys.map(function(k){return k+'='+sampleRow[k];}).join(', ')+'</code></div>':'')
+      +(rfPreview?'<div style="font-size:10px;color:var(--text3);margin-bottom:2px"><b style="color:var(--text2)">raw_fields:</b> <code style="color:#00B4FF;word-break:break-all">'+_esc(rfPreview)+'</code></div>':'<div style="font-size:10px;color:var(--text3)">raw_fields is empty or null</div>')
       +'</div>';
   }
   var avgRating=ratings.length?(ratings.reduce(function(a,b){return a+b;},0)/ratings.length):0;
