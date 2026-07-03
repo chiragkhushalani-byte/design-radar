@@ -4219,6 +4219,22 @@ async function loadFeedback(force){
       if(from>10000) break;
     }
     _feedbackData=all;
+    // Diagnostic: log actual column names + first row to help debug rating issues
+    if(all.length){
+      var firstRow=all[0];
+      console.log('[Feedback] Columns in Supabase row:',Object.keys(firstRow));
+      console.log('[Feedback] First row sample:',JSON.stringify(firstRow).slice(0,400));
+      var withRating=all.filter(function(r){return _fbRating(r)!==null;});
+      console.log('[Feedback] '+all.length+' rows loaded, '+withRating.length+' have a parseable rating (1-5)');
+      if(!withRating.length){
+        // Show which fields have numeric-looking values to help identify the rating field
+        var numericFields=Object.keys(firstRow).filter(function(k){
+          var v=Number(firstRow[k]);return v>=1&&v<=10&&!isNaN(v);
+        });
+        console.warn('[Feedback] No rating found. Numeric fields in first row:',numericFields,
+          '— values:',numericFields.map(function(k){return k+'='+firstRow[k];}));
+      }
+    }
   }catch(e){console.warn('Failed to load customer feedback:',e);}
   _feedbackLoading=false;
   var c=document.getElementById('content');
@@ -4418,15 +4434,28 @@ function _parseSubmittedAt(str){
 function _fbDate(r){
   return _parseSubmittedAt(r.submitted_at||r.created_at||r.timestamp||r.date);
 }
-// Helper: get rating as a number 1-5, trying several possible column names.
+/// Helper: get rating as a number 1-5, trying many possible column names + scanning all fields.
 function _fbRating(r){
-  var v=r.rating!=null?r.rating
-       :r.overall_rating!=null?r.overall_rating
-       :r.score!=null?r.score
-       :r.nps!=null?r.nps
-       :null;
-  var n=Number(v);
-  return (n>=1&&n<=5)?n:null;
+  // 1. Try known column names first (direct and string-coerced)
+  var RATING_KEYS=['rating','overall_rating','score','nps','stars','satisfaction',
+    'overall_experience','experience_rating','nps_score','experience_score',
+    'overall_score','user_rating','customer_rating','feedback_rating'];
+  for(var ki=0;ki<RATING_KEYS.length;ki++){
+    var v=r[RATING_KEYS[ki]];
+    if(v!=null){var n=Number(v);if(n>=1&&n<=5)return n;}
+  }
+  // 2. Scan ALL keys — if any value is a number strictly 1-5, treat it as rating
+  // (skip created_at, id, uuid-like fields)
+  var skipPat=/id$|_id$|_at$|time|date|uuid|text|points|request|client|platform|app_web|source/i;
+  for(var k in r){
+    if(skipPat.test(k)) continue;
+    var val=r[k];
+    if(val!=null&&val!==''&&val!==false&&val!==true){
+      var nm=Number(val);
+      if(Number.isInteger(nm)&&nm>=1&&nm<=5) return nm;
+    }
+  }
+  return null;
 }
 
 function _fbFilterData(data,period){
@@ -4582,6 +4611,20 @@ function vFeedback(){
   // ── Core metrics — coerce rating via _fbRating() which tries multiple field names ──
   var rated=data.filter(function(r){return _fbRating(r)!==null;});
   var ratings=rated.map(function(r){return _fbRating(r);});
+
+  // ── Schema diagnostic banner (shown when rows load but no ratings found) ──
+  var schemaBanner='';
+  if(data.length>0&&!rated.length){
+    var sampleRow=data[0];
+    var allKeys=Object.keys(sampleRow);
+    var numKeys=allKeys.filter(function(k){var v=Number(sampleRow[k]);return !isNaN(v)&&v>0;});
+    schemaBanner='<div style="margin-bottom:12px;padding:10px 14px;background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.35);border-radius:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:6px">⚠️ Rating field not detected in Supabase data</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Columns returned: <code style="color:var(--text2)">'+allKeys.join(', ')+'</code></div>'
+      +(numKeys.length?'<div style="font-size:10px;color:var(--text3)">Numeric fields: <code style="color:#FFB347">'+numKeys.map(function(k){return k+'='+sampleRow[k];}).join(', ')+'</code></div>':'<div style="font-size:10px;color:var(--text3)">No numeric fields found — rating may be stored as text or in a nested field</div>')
+      +'<div style="font-size:10px;color:var(--text3);margin-top:4px">Open F12 → Console for full row dump. Share the column names to fix the mapping.</div>'
+      +'</div>';
+  }
   var avgRating=ratings.length?(ratings.reduce(function(a,b){return a+b;},0)/ratings.length):0;
   var promoters=ratings.filter(function(n){return n>=4;}).length;
   var detractors=ratings.filter(function(n){return n<=2;}).length;
@@ -4893,7 +4936,7 @@ function vFeedback(){
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  var out=importBanner+periodBar;
+  var out=importBanner+periodBar+schemaBanner;
 
   // ── A. HEALTH DASHBOARD ───────────────────────────────────────────────────
   var healthDash='<div class="panel" style="padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,rgba(30,32,48,0.8),rgba(20,22,36,0.9));border:1px solid rgba(255,255,255,0.08)">'
