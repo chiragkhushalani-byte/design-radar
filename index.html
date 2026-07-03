@@ -3989,30 +3989,45 @@ async function loadReviews(force){
   _reviewsLoading=true;
   _reviewsData={};
 
-  // --- App Store (iTunes RSS) — one promise per app ---
+  // --- App Store (iTunes RSS) — fetch pages 1–10 per app, merge ---
+  function parseItunesPage(d){
+    // Apple quirk: single entry comes as object, multiple as array
+    var raw=(d.feed&&d.feed.entry)||[];
+    if(raw && !Array.isArray(raw)) raw=[raw];
+    return raw.filter(function(e){return e['im:rating'];}).map(function(e){
+      return {
+        rating:parseInt(e['im:rating'].label)||0,
+        title:(e.title&&e.title.label)||'',
+        body:(e.content&&e.content.label)||(e.summary&&e.summary.label)||'',
+        author:(e.author&&e.author.name&&e.author.name.label)||'',
+        date:(e.updated&&e.updated.label)||'',
+        version:(e['im:version']&&e['im:version'].label)||'',
+        source:'appstore'
+      };
+    });
+  }
   var appStorePromises=REVIEW_APPS.map(function(a){
-    return fetch('https://itunes.apple.com/in/rss/customerreviews/id='+a.id+'/sortBy=mostRecent/json')
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var entries=(d.feed&&d.feed.entry)||[];
-        return {
-          appId:a.id,
-          reviews:entries
-            .filter(function(e){return e['im:rating'];})
-            .map(function(e){
-              return {
-                rating:parseInt(e['im:rating'].label)||0,
-                title:(e.title&&e.title.label)||'',
-                body:(e.content&&e.content.label)||(e.summary&&e.summary.label)||'',
-                author:(e.author&&e.author.name&&e.author.name.label)||'',
-                date:(e.updated&&e.updated.label)||'',
-                version:(e['im:version']&&e['im:version'].label)||'',
-                source:'appstore'
-              };
-            })
-        };
-      })
-      .catch(function(){return {appId:a.id,reviews:[]};});
+    // Fetch pages 1–10 in parallel (Apple RSS: up to 50 per page, max 500 total)
+    var pages=[1,2,3,4,5,6,7,8,9,10];
+    var pagePromises=pages.map(function(pg){
+      var url='https://itunes.apple.com/in/rss/customerreviews/page='+pg+'/id='+a.id+'/sortBy=mostRecent/json';
+      return fetch(url)
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(d){return d?parseItunesPage(d):[];})
+        .catch(function(){return [];});
+    });
+    return Promise.all(pagePromises).then(function(pages){
+      var allRevs=[].concat.apply([],pages);
+      // Deduplicate by author+date
+      var seen={};
+      allRevs=allRevs.filter(function(r){
+        var key=r.author+'|'+r.date;
+        if(seen[key]) return false;
+        seen[key]=true; return true;
+      });
+      console.log('[AppStore] '+a.name+': '+allRevs.length+' reviews');
+      return {appId:a.id, reviews:allRevs};
+    });
   });
 
   // --- Play Store (Supabase Edge Function) — single batch call ---
