@@ -341,8 +341,8 @@ input[type=range]{accent-color:var(--blue)}
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
       <button onclick="toggleTheme()" id="themeToggle" style="display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;transition:all .2s;outline:none;margin-right:6px">
-        <span id="themeIcon" style="font-size:13px">☀️</span>
-        <span id="themeLabel">Light mode</span>
+        <span id="themeIcon" style="font-size:13px">🌙</span>
+        <span id="themeLabel">Dark mode</span>
         <div id="themeTrack" style="width:28px;height:16px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0">
           <div id="themeThumb" style="width:12px;height:12px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>
         </div>
@@ -3012,8 +3012,10 @@ function toggleTheme(){
   var label = document.getElementById('themeLabel');
   var track = document.getElementById('themeTrack');
   var thumb = document.getElementById('themeThumb');
-  if(icon)  icon.textContent  = _isLightTheme ? '🌙' : '☀️';
-  if(label) label.textContent = _isLightTheme ? 'Dark mode' : 'Light mode';
+  // Light mode ON  → pill ON  (blue, thumb right, ☀️ "Light mode")
+  // Dark mode  ON  → pill OFF (gray, thumb left,  🌙 "Dark mode")
+  if(icon)  icon.textContent  = _isLightTheme ? '☀️' : '🌙';
+  if(label) label.textContent = _isLightTheme ? 'Light mode' : 'Dark mode';
   if(track) track.style.background = _isLightTheme ? 'var(--blue)' : 'var(--border2)';
   if(thumb) thumb.style.transform  = _isLightTheme ? 'translateX(12px)' : 'translateX(0)';
 }
