@@ -2974,6 +2974,8 @@ var _feedbackPeriod = '7d';    // '7d'|'30d'|'90d'|'1y'|'all'
 var _reviewsApp = 'all';
 var _reviewsStarFilter = 'all';
 var _reviewsSourceFilter = 'all'; // 'all' | 'appstore' | 'playstore'
+var _reviewsDateFilter = 'all';   // 'all' | '7d' | '30d' | '3m' | '6m' | '1y'
+var _reviewsQualityFilter = 'substantive'; // 'all' | 'substantive'
 var _reviewsData = {};   // {appId: [{rating,title,body,author,date,version,source}]}
 var _reviewsLoading = false;
 var _reviewsTier = 'all';
@@ -3724,27 +3726,130 @@ function vCobKyc(){
 }
 
 var REVIEW_APPS=[
+  // ── Ventura (us) — fetched for self-rating; excluded from competitor pool ──
+  {id:'6689520233',name:'Ventura',     color:'#00B4FF',pkg:'com.ventura.mvp',             tier:'self', isVentura:true},
   // Large caps
   {id:'1449453802',name:'Zerodha Kite',color:'#FF6B00',pkg:'com.zerodha.kite3',          tier:'large'},
   {id:'1404871703',name:'Groww',       color:'#00B386',pkg:'com.nextbillion.groww',        tier:'large'},
   {id:'1584953620',name:'Upstox',      color:'#7B2FBE',pkg:'com.upstox.upstoxandroid',    tier:'large'},
   {id:'1060530981',name:'Angel One',   color:'#D71920',pkg:'com.msf.angelmobile',          tier:'large'},
   // Mid-size
-  {id:'1526652184',name:'Fyers',       color:'#F5A623',pkg:'com.fyers.fyers',              tier:'mid'},
+  {id:'1526652184',name:'Fyers',       color:'#F5A623',pkg:'com.fyers.fyers',             tier:'mid'},
   {id:'1577155974',name:'mStock',      color:'#00838F',pkg:'com.miraeasset.mstock',        tier:'mid'},
   {id:'6443753518',name:'Univest',     color:'#6C5CE7',pkg:'com.univest.capp',             tier:'mid'},
   {id:'1575318726',name:'Dhan',        color:'#1DA462',pkg:'in.dhan.app',                  tier:'mid'},
   {id:'1156366609',name:'5paisa',      color:'#E84393',pkg:'com.fivepaisa.market',         tier:'mid'},
   // Niche / New
   {id:'6474591146',name:'Sahi',        color:'#00C2CC',pkg:'com.aaritya.sahi_trade_app',  tier:'niche'},
-  // Dream Street — not live yet, placeholder
-  // {id:'',name:'Dream Street',color:'#4A90E2',pkg:'',tier:'niche'}
 ];
+
+// ── CSV Analytics constant (pre-processed from Tally export) ─────────────────
+var _CSV_ANALYTICS={
+  "total":362,"avg_rating":3.21,
+  "date_range":{"from":"2025-07-10","to":"2026-07-01"},
+  "intent_counts":{"Give Feedback":148,"Request a Feature":120,"Report an Issue":94},
+  "avg_by_intent":{"Give Feedback":3.8,"Request a Feature":3.3,"Report an Issue":2.2},
+  "rating_dist":{"1":97,"2":24,"3":62,"4":65,"5":114},
+  "platform_dist":{"app":118,"web":73,"push":41,"unknown":130},
+  "monthly":[
+    {"month":"2025-07","count":13},{"month":"2025-08","count":8},{"month":"2025-09","count":26},
+    {"month":"2025-10","count":44},{"month":"2025-11","count":26},{"month":"2025-12","count":65},
+    {"month":"2026-01","count":58},{"month":"2026-02","count":25},{"month":"2026-03","count":25},
+    {"month":"2026-04","count":26},{"month":"2026-05","count":25},{"month":"2026-06","count":20},
+    {"month":"2026-07","count":1}
+  ],
+  "themes":[
+    {"label":"PnL / Reports","slug":"pnl","count":21,"by_intent":{"Give Feedback":7,"Request a Feature":11,"Report an Issue":3},"avg_rating":2.6,"samples":["Add 24x7 reports — give greeks and max pain — add trading journal","Require PNL report","Except chart, other seems ok. Add trading calendar and P/L display per date/month/year.","PnL tracking can be enhanced with monthly, quarterly and yearly profits view"]},
+    {"label":"UI / Interface","slug":"ui","count":16,"by_intent":{"Report an Issue":4,"Request a Feature":7,"Give Feedback":5},"avg_rating":2.2,"samples":["Please provide clean and easy interface","VERY SORRY — ALMOST TOTAL REDESIGN NEEDED. Old platform was very user friendly, this new one is exactly opposite.","You should be user friendly. Made more complicated now. Can't see Holdings.","lot of issues, totally disappointed — look into your EARLIER MODEL which was very excellent"]},
+    {"label":"Charts / Charting","slug":"chart","count":15,"by_intent":{"Request a Feature":5,"Give Feedback":4,"Report an Issue":6},"avg_rating":2.0,"samples":["Mobile trading chart is very bad — no full end-to-end viewpoint. Very poor interface.","Need Trade on Chart with drag & drop features, multi-window layout, pre-day/week/month OHLC","somewhat lag but need trailing SL and target on chart","Add screener. Buy and sell on chart, see profit and loss on chart"]},
+    {"label":"Order Placement","slug":"order","count":15,"by_intent":{"Request a Feature":9,"Report an Issue":3,"Give Feedback":3},"avg_rating":2.7,"samples":["Buy and sell on chart with plus button, price alert on chart, also show SL","Intraday to delivery, intraday to MTF conversion not available","Need basket order feature","Add trade-on-chart functionality"]},
+    {"label":"Performance / Speed","slug":"perf","count":11,"by_intent":{"Request a Feature":5,"Give Feedback":2,"Report an Issue":4},"avg_rating":2.8,"samples":["Downloading report is a task — very slow","UI to be revamped — synchronization is lag with recommendations","somewhat lag but great effort","Service not up to mark. App issue reported multiple times, no improvement"]},
+    {"label":"Holdings / Portfolio","slug":"hold","count":10,"by_intent":{"Report an Issue":3,"Give Feedback":4,"Request a Feature":3},"avg_rating":2.1,"samples":["MANY PROBLEMS: FUNDAMENTALS DISPLAY, MY HOLDINGS — NEED IMMEDIATE ATTENTION","Can't see Holdings, not able to see financial obligation","Holdings falling under LTCG and STCG not shown","revert to previous site — not able to look ledger and holdings"]},
+    {"label":"Pricing / Charges","slug":"price","count":9,"by_intent":{"Give Feedback":7,"Report an Issue":1,"Request a Feature":1},"avg_rating":2.4,"samples":["If trade on previous app was ₹2, why ₹20 for new app users?","Pledge charges should be reduced","Rs 2200 added but can't withdraw — why?","Charge is too high compared to previous platform"]},
+    {"label":"Customer Support","slug":"support","count":7,"by_intent":{"Report an Issue":3,"Give Feedback":3,"Request a Feature":1},"avg_rating":1.6,"samples":["Respond to suggestions and solve issues by looking at user friendly platforms","Bad service Ventura 😭","Account closure requested 2 months ago — no response","Service is not up to the mark"]},
+    {"label":"Option Chain / Greeks","slug":"options","count":6,"by_intent":{"Give Feedback":3,"Request a Feature":3},"avg_rating":3.3,"samples":["Add greeks and max pain","Need option chain improvements","Please add Algorithm trading for options traders"]},
+    {"label":"Market Data / Screener","slug":"mktdata","count":6,"by_intent":{"Request a Feature":4,"Report an Issue":1,"Give Feedback":1},"avg_rating":2.2,"samples":["NSE Cash Best Movers not in Ventura — please add","Need market depth visibility below the half page","Add screener in app with buy/sell on chart"]},
+    {"label":"Dark Mode","slug":"dark","count":5,"by_intent":{"Request a Feature":3,"Report an Issue":1,"Give Feedback":1},"avg_rating":3.6,"samples":["First of all, dark mode is required.","Need option for dark mode","App is excellent! Dark theme / night mode not available","Bring Dark Mode on mobile and web"]},
+    {"label":"Algo / Strategy","slug":"algo","count":3,"by_intent":{"Request a Feature":3},"avg_rating":4.3,"samples":["Please add Algorithm trading for options trader — huge demand","Good but need algo trading, Tradetron and Quantman support not available"]},
+    {"label":"Login / Session","slug":"login","count":3,"by_intent":{"Report an Issue":1,"Give Feedback":2},"avg_rating":3.3,"samples":["Please improve the login page problem","Unable to see any data after sign in — happening frequently","Have to login every day on mobile app"]},
+    {"label":"Commodity / Segment","slug":"commod","count":3,"by_intent":{"Report an Issue":1,"Request a Feature":2},"avg_rating":3.3,"samples":["Merge commodity segment without separate deposit account","Please provide facility to trade in MCX F&O"]},
+    {"label":"Watchlist","slug":"watch","count":4,"by_intent":{"Request a Feature":1,"Give Feedback":3},"avg_rating":3.0,"samples":["Creating a watchlist is taking extra time","Old app watchlist creation was better","Watchlist improvement needed"]}
+  ],
+  "verbatims":{
+    "issues":[
+      {"text":"MANY PROBLEMS: 1. FUNDAMENTALS DISPLAY  2. MY HOLDINGS — NEED IMMEDIATE ATTENTION","rating":1,"platform":"unknown","date":"2025-09-15"},
+      {"text":"lot of issues, totally disappointed. Just look into your EARLIER MODEL which was very excellent and user friendly.","rating":1,"platform":"web","date":"2025-12-09"},
+      {"text":"Service is not up to the mark. App issue reported multiple times however no improvement.","rating":1,"platform":"unknown","date":"2025-12-22"},
+      {"text":"The account closure was requested before 2 months but there is no response from your team.","rating":1,"platform":"app","date":"2025-12-11"},
+      {"text":"Unable to see any data after sign in. This issue happening frequently. Hardly on any given day can I do trading.","rating":1,"platform":"unknown","date":"2026-01-01"},
+      {"text":"You can also see anything else below this half page, such as market depth — it is cut off.","rating":4,"platform":"unknown","date":"2025-12-05"},
+      {"text":"Please provide clean and easy interface. All services should be available in online mode.","rating":3,"platform":"unknown","date":"2025-09-11"},
+      {"text":"Except chart, other seems ok. Add trading calendar and display profit/loss in calendar with date/month/year option.","rating":3,"platform":"web","date":"2025-12-10"}
+    ],
+    "features":[
+      {"text":"Mobile & web: 1) Dark Mode  2) Trade on Chart with drag & drop  3) Multi-window layout  4) Pre-day/week/month OHLC  5) Improve overall chart experience","rating":2,"platform":"unknown","date":"2025-09-12"},
+      {"text":"Please add Algorithm trading for options traders — this is the most important need. Will increase brokerage revenue significantly.","rating":5,"platform":"unknown","date":"2025-10-05"},
+      {"text":"PnL tracking should allow monthly, quarterly and yearly view. Also show Holdings under LTCG and STCG separately.","rating":4,"platform":"app","date":"2025-10-28"},
+      {"text":"Portfolio group view — I do not have an option to group stocks and understand profit/loss separately, only cumulative data.","rating":4,"platform":"unknown","date":"2025-11-03"},
+      {"text":"Add screener in app. Also add buy/sell on chart using plus button. Add price alert on chart by selecting price.","rating":1,"platform":"web","date":"2026-01"},
+      {"text":"NSE Cash Best Movers — please add to new Ventura. Top trending is not showing.","rating":4,"platform":"unknown","date":"2025-09-09"},
+      {"text":"Good but mutual fund direct fund not available and need algo trading — Tradetron and Quantman not supported.","rating":4,"platform":"app","date":"2026-02"},
+      {"text":"Need commodity segment merged without separate deposit account. Single account for all market segments.","rating":4,"platform":"web","date":"2025-11-04"}
+    ],
+    "low_rating":[
+      {"text":"VERY SORRY — ALMOST TOTAL REDESIGN NEEDED. Old platform was user friendly. This new platform is exactly opposite. Seems designed by persons not having knowledge of trading.","rating":1,"platform":"web","date":"2025-11-10"},
+      {"text":"You should be user friendly. It is made more complicated now. Can't see Holdings, not able to see financial obligations.","rating":1,"platform":"web","date":"2025-10-31"},
+      {"text":"revert to previous site — not able to look my ledger and holdings","rating":1,"platform":"web","date":"2025-10-31"},
+      {"text":"If trade on previous app was ₹2, why ₹20 is charged for new app users? Either do same charges or reduce on new app.","rating":1,"platform":"unknown","date":"2025-10-21"},
+      {"text":"Mobile trading chart is very bad — no full end-to-end viewpoint. Very poor interface.","rating":1,"platform":"web","date":"2025-10-10"},
+      {"text":"Mobile & web — Dark Mode, Trade on Chart drag & drop, Multi-window layout, OHLC indicator — all missing.","rating":2,"platform":"unknown","date":"2025-09-12"},
+      {"text":"UI to be revamped with more analytics. Synchronization is lagging with recommendations.","rating":2,"platform":"web","date":"2025-11-20"},
+      {"text":"Pledge charges should be reduced or a reducible plan should be offered.","rating":1,"platform":"app","date":"2025-11-16"}
+    ]
+  }
+};
+
+// ── Store-review theme keywords (maps to CSV themes for cross-check) ─────────
+var _STORE_THEMES=[
+  {label:'Charts / Charting',     slug:'chart',   kws:['chart','candle','trading view','tradingview','graph','technical']},
+  {label:'UI / Interface',        slug:'ui',       kws:['interface','ui ','ux ','layout','confusing','complicated','ugly','design','clean','navigation','difficult to']},
+  {label:'PnL / Reports',         slug:'pnl',      kws:['pnl','p&l','profit','loss','report','statement','journal','portfolio report']},
+  {label:'Dark Mode',             slug:'dark',     kws:['dark mode','dark theme','night mode','dark']},
+  {label:'Performance / Speed',   slug:'perf',     kws:['slow','lag','crash','hang','freeze','speed','loading']},
+  {label:'Holdings / Portfolio',  slug:'hold',     kws:['portfolio','holdings','holding','scrip']},
+  {label:'Order Placement',       slug:'order',    kws:['order','buy','sell','execution','basket','place order']},
+  {label:'Login / Session',       slug:'login',    kws:['login','sign in','otp','password','session','logout']},
+  {label:'Watchlist',             slug:'watch',    kws:['watchlist','watch list']},
+  {label:'Customer Support',      slug:'support',  kws:['support','service','respond','help','customer care','no response']},
+  {label:'Option Chain / Greeks', slug:'options',  kws:['option','greeks','max pain','iv ','open interest']},
+  {label:'Market Data / Screener',slug:'mktdata',  kws:['screener','market depth','movers','trending','live data']},
+  {label:'Pricing / Charges',     slug:'price',    kws:['charges','brokerage','fee','pricing','charge']},
+  {label:'Algo / Strategy',       slug:'algo',     kws:['algo','algorithm','automated','strategy','tradetron']},
+  {label:'Notifications / Alerts',slug:'notif',    kws:['notification','alert','push']},
+];
+
+// ── Quality filter: returns true if the review has meaningful content ─────────
+function _isSubstantiveReview(r){
+  var body=(r.body||'').trim();
+  var title=(r.title||'').trim();
+  var combined=(body+' '+title).trim().toLowerCase();
+  // Must have at least 25 chars of content
+  if(combined.length<25) return false;
+  // Strip out reviews that are purely generic praise/noise
+  var GENERIC=/^[\s!.,🙌👍👌💯🔥❤️]*((good|great|nice|best|ok|okay|wow|yay|super|fab|amazing|awesome|excellent|perfect|superb|fantastic|wonderful|brilliant|outstanding|love it|loved it|very good|too good|nice app|good app|great app|awesome app|best app|excellent app|nice one|good one|very nice|keep it up|keep up|well done|good work|great work|nice work|helpful|useful|handy|easy|simple|smooth|clean|fast|quick|reliable)[\s!.,]*)+(\.|\!|👍|👌|💯|🔥|❤️)*$/i;
+  if(GENERIC.test(combined)) return false;
+  // Must contain at least one word >5 chars (avoids "ok" "nice" "good" combos)
+  var words=combined.split(/\s+/);
+  if(!words.some(function(w){return w.replace(/[^a-z]/g,'').length>5;})) return false;
+  return true;
+}
 
 function vReviews(){
   var app=_reviewsApp;
   var sf=_reviewsStarFilter;
   var src=_reviewsSourceFilter;
+  var df=_reviewsDateFilter;
+  var qf=_reviewsQualityFilter;
   // Tier / competition filter
   var tier=_reviewsTier;
   var tb='padding:4px 12px;font-size:11px;font-weight:500;border-radius:20px;border:1px solid;cursor:pointer;background:none;font-family:var(--font);transition:all .15s;';
@@ -3772,12 +3877,26 @@ function vReviews(){
       return '<button style="'+ab+(active?('background:'+a.color+'22;color:'+a.color+';border-color:'+a.color):'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewApp(\''+a.id+'\')">'+a.name+'</button>';
     }).join('')
     +'</div>';
-  var starBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+  var starBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
     +'<span style="font-size:11px;color:var(--text3)">Rating:</span>'
     +'<button style="'+ab+(sf==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewStar(\'all\')">All ⭐</button>'
     +'<button style="'+ab+(sf==='low'?'background:rgba(255,59,92,0.15);color:#FF3B5C;border-color:#FF3B5C':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewStar(\'low\')">🔴 1–2 stars</button>'
     +'<button style="'+ab+(sf==='mid'?'background:rgba(255,179,71,0.15);color:#FFB347;border-color:#FFB347':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewStar(\'mid\')">🟡 3 stars</button>'
     +'<button style="'+ab+(sf==='high'?'background:rgba(52,199,89,0.15);color:#34C759;border-color:#34C759':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewStar(\'high\')">🟢 4–5 stars</button>'
+    +'</div>';
+  // ── Date range filter ──
+  var dateBtns='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span style="font-size:11px;color:var(--text3)">Period:</span>'
+    +[['all','All time'],['7d','7 days'],['30d','30 days'],['3m','3 months'],['6m','6 months'],['1y','1 year']].map(function(pair){
+      var active=df===pair[0];
+      return '<button style="'+ab+(active?'background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewDate(\''+pair[0]+'\')">'+pair[1]+'</button>';
+    }).join('')
+    +'</div>';
+  // ── Quality filter toggle ──
+  var qualBtn='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<span style="font-size:11px;color:var(--text3)">Quality:</span>'
+    +'<button style="'+ab+(qf==='all'?'background:rgba(255,255,255,0.1);color:var(--text);border-color:var(--border)':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewQuality(\'all\')">Show all</button>'
+    +'<button style="'+ab+(qf==='substantive'?'background:rgba(191,90,242,0.15);color:#BF5AF2;border-color:#BF5AF2':'color:var(--text3);border-color:var(--border)')+'" onclick="setReviewQuality(\'substantive\')">✦ Substantive only — hide "good", "awesome" etc.</button>'
     +'</div>';
 
   // Gather reviews to show
@@ -3800,6 +3919,22 @@ function vReviews(){
 
   // Sort by date desc
   allReviews.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+
+  // Date filter
+  if(df!=='all'){
+    var now=new Date();
+    var cutoffDays={'7d':7,'30d':30,'3m':90,'6m':180,'1y':365}[df]||0;
+    var cutoff=new Date(now.getTime()-cutoffDays*86400000);
+    allReviews=allReviews.filter(function(r){
+      if(!r.date) return false;
+      return new Date(r.date)>=cutoff;
+    });
+  }
+
+  // Quality filter — strip repetitive low-signal reviews
+  var totalBeforeQuality=allReviews.length;
+  if(qf==='substantive') allReviews=allReviews.filter(_isSubstantiveReview);
+  var filteredOut=totalBeforeQuality-allReviews.length;
 
   var hasData=Object.keys(_reviewsData).length>0;
   var grid='';
@@ -3837,9 +3972,11 @@ function vReviews(){
   }
 
   var total=allReviews.length;
-  return sourceBtns+tierBtns+appBtns+starBtns
+  return sourceBtns+tierBtns+appBtns+starBtns+dateBtns+qualBtn
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-    +'<span style="font-size:11px;color:var(--text3)">'+(hasData?total+' reviews':'')+'</span>'
+    +'<span style="font-size:11px;color:var(--text3)">'
+    +(hasData?total+' reviews shown'+(filteredOut>0?' <span style="color:#BF5AF2">('+filteredOut+' generic filtered out)</span>':''):'')
+    +'</span>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadReviews(true)">↻ Refresh</button>'
     +'</div>'
     +'<div id="reviewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">'+grid+'</div>';
@@ -3914,9 +4051,11 @@ async function loadReviews(force){
   });
 
   _reviewsLoading=false;
-  if(document.getElementById('reviewGrid')){
-    var c=document.getElementById('content');
-    if(c&&_pulseFilter==='reviews') c.innerHTML=vPulse();
+  var c=document.getElementById('content');
+  if(c){
+    if(_pulseFilter==='reviews') c.innerHTML=vPulse();
+    if(_pulseFilter==='analysis') c.innerHTML=vPulse();
+    if(_pulseFilter==='feedback') c.innerHTML=vPulse();
   }
 }
 
@@ -3938,6 +4077,16 @@ function setReviewStar(s){
 }
 function setReviewSource(s){
   _reviewsSourceFilter=s;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vPulse();
+}
+function setReviewDate(d){
+  _reviewsDateFilter=d;
+  var c=document.getElementById('content');
+  if(c) c.innerHTML=vPulse();
+}
+function setReviewQuality(q){
+  _reviewsQualityFilter=q;
   var c=document.getElementById('content');
   if(c) c.innerHTML=vPulse();
 }
@@ -4545,18 +4694,29 @@ function vFeedback(){
   // ── COMPETITOR COMPARISON ─────────────────────────────────────────────────
   var compTexts=[];
   var compApps=[];
+  var venturaStoreReviews=[];  // Ventura's own store reviews (kept separate)
+  var venturaStoreRating=0;
   (typeof REVIEW_APPS!=='undefined'?REVIEW_APPS:[]).forEach(function(a){
     var reviews=(_reviewsData||{})[a.id]||[];
     if(reviews.length>0){
       var ratedR=reviews.filter(function(r){return Number(r.rating)>=1&&Number(r.rating)<=5;});
       var avgR=ratedR.length?(ratedR.reduce(function(s,r){return s+Number(r.rating);},0)/ratedR.length):0;
       var texts=reviews.map(function(r){return (r.body||'').toLowerCase();});
-      compTexts=compTexts.concat(texts);
-      compApps.push({id:a.id,name:a.name,color:a.color,total:reviews.length,avgRating:avgR,texts:texts});
+      if(a.isVentura){
+        venturaStoreReviews=texts;
+        venturaStoreRating=avgR;
+      } else {
+        compTexts=compTexts.concat(texts);
+        compApps.push({id:a.id,name:a.name,color:a.color,total:reviews.length,avgRating:avgR,texts:texts});
+      }
     }
   });
   var hasCompData=compTexts.length>0;
-  var venturaAvgRating=rated.length?avgRating:0;
+  // Rating: prefer real store rating over Tally survey avg
+  var venturaAvgRating=venturaStoreRating||(rated.length?avgRating:0);
+  var venturaRatingSrc=venturaStoreRating?'Store rating':'Survey avg';
+  // Ventura sample size = store reviews (if loaded) else Tally responses
+  var venturaN=venturaStoreReviews.length||total;
   var COMP_THEMES=[
     {label:'Dark Mode',    kws:['dark mode','dark theme','night mode']},
     {label:'Performance',  kws:['slow','lag','crash','performance']},
@@ -4568,16 +4728,27 @@ function vFeedback(){
     {label:'Navigation',   kws:['confus','navigate','find','difficult']},
   ];
   var compRows=COMP_THEMES.map(function(ct){
-    var venturaCount=countMatches(data,ct.kws);
+    // Ventura %: use store reviews if loaded, else Tally feedback
+    var venturaCount, venturaPct, ventSrc;
+    if(venturaStoreReviews.length>0){
+      venturaCount=venturaStoreReviews.filter(function(t){return textHas(t,ct.kws);}).length;
+      venturaPct=Math.round(venturaCount/venturaStoreReviews.length*100);
+      ventSrc='store';
+    } else {
+      venturaCount=countMatches(data,ct.kws);
+      venturaPct=total?Math.round(venturaCount/total*100):0;
+      ventSrc='survey';
+    }
     var compCount=compTexts.filter(function(t){return textHas(t,ct.kws);}).length;
     var compPct=compTexts.length?Math.round(compCount/compTexts.length*100):0;
-    var venturaPct=total?Math.round(venturaCount/total*100):0;
     var perApp=compApps.map(function(a){
       var cnt=a.texts.filter(function(t){return textHas(t,ct.kws);}).length;
-      return {name:a.name,color:a.color,pct:a.texts.length?Math.round(cnt/a.texts.length*100):0};
+      return {name:a.name,color:a.color,pct:a.texts.length?Math.round(cnt/a.texts.length*100):0,n:a.total};
     });
     var winner=venturaPct>compPct+5?'🔴 Ventura Issue':venturaPct<compPct-5?'✅ Shared / Industry':'⚪ Similar';
-    return {label:ct.label,venturaCount:venturaCount,venturaPct:venturaPct,compPct:compPct,winner:winner,perApp:perApp};
+    // Confidence: low if Ventura n<100, high if >500
+    var conf=venturaN<50?'⚠️ Very low n':venturaN<100?'⚠️ Low n':venturaN<300?'~':'✓';
+    return {label:ct.label,venturaCount:venturaCount,venturaPct:venturaPct,compPct:compPct,winner:winner,perApp:perApp,conf:conf,ventSrc:ventSrc};
   }).filter(function(r){return r.venturaCount>0||r.compPct>0;});
 
   // ── JTBD ─────────────────────────────────────────────────────────────────
@@ -4692,7 +4863,8 @@ function vFeedback(){
       +'<div style="flex:0 0 auto;min-width:108px;background:rgba(0,180,255,0.08);border:1.5px solid rgba(0,180,255,0.3);border-radius:10px;padding:10px 14px;text-align:center">'
       +'<div style="font-size:10px;font-weight:700;color:#00B4FF;letter-spacing:.5px;margin-bottom:3px">📍 VENTURA</div>'
       +'<div style="font-size:26px;font-weight:900;color:'+venturaRatingCol+';line-height:1.1">'+venturaAvgRating.toFixed(1)+'</div>'
-      +'<div style="font-size:9px;color:var(--text3);margin-top:2px">★ avg · '+total+' responses</div>'
+      +'<div style="font-size:9px;color:var(--text3);margin-top:2px">'+venturaRatingSrc+' · '+venturaN+' '+(venturaStoreRating?'store reviews':'survey resp')+'</div>'
+      +(venturaN<100?'<div style="font-size:9px;color:#FFB347;margin-top:2px">'+(venturaN<50?'⚠️ Very low n':'⚠️ Low n')+'</div>':'')
       +'</div>'
       +compApps.map(function(a){
         var col=a.avgRating>=4?'#34C759':a.avgRating>=3?'#FFB347':'#FF3B5C';
@@ -4709,7 +4881,7 @@ function vFeedback(){
       +'</div>';
     // ── Topic-by-topic bars ──
     var topicBars='<div style="margin-bottom:12px">'
-      +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px">% of feedback/reviews mentioning each topic — Red = Ventura has a bigger problem than competitors</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px">% mentioning each topic — comparisons use % vs %, so sample-size differences are fair. Confidence: ✓ = 300+ · ~ = 100–299 · ⚠️ = under 100</div>'
       +'<div style="display:flex;flex-direction:column;gap:5px">'
       +compRows.map(function(r){
         var venturaWorse=r.venturaPct>r.compPct+5;
@@ -4724,10 +4896,11 @@ function vFeedback(){
           +'<span style="font-size:12px">'+signal+'</span>'
           +'<span style="font-size:12px;font-weight:600;color:var(--text);flex:1">'+r.label+'</span>'
           +'<span style="font-size:10px;font-weight:700;color:'+signalColor+'">'+r.winner+'</span>'
+          +'<span style="font-size:9px;color:'+(r.conf&&r.conf.includes('⚠️')?'#FFB347':'var(--text3)')+';margin-left:4px">'+r.conf+'</span>'
           +'</div>'
           +'<div style="display:flex;flex-direction:column;gap:3px">'
           +'<div style="display:flex;align-items:center;gap:6px">'
-          +'<span style="font-size:9px;color:#00B4FF;width:68px;flex-shrink:0;text-align:right;font-weight:600">📍 Ventura</span>'
+          +'<span style="font-size:9px;color:#00B4FF;width:68px;flex-shrink:0;text-align:right;font-weight:600">📍 Ventura'+(r.ventSrc==='store'?' 🏪':'')+'</span>'
           +'<div style="flex:1;height:14px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'
           +'<div style="width:'+ventBarW+'%;height:100%;background:'+(venturaWorse?'#FF3B5C':'#00B4FF')+';border-radius:3px;min-width:2px;transition:width .4s"></div>'
           +'</div>'
@@ -5013,25 +5186,285 @@ function vFeedback(){
 }
 
 
+// ── Ventura Analysis Tab renderer ────────────────────────────────────────────
+function vAnalysis(){
+  var d=_CSV_ANALYTICS;
+  if(!d) return '<div class="empty">No analysis data loaded.</div>';
+  var total=d.total, avgR=d.avg_rating;
+
+  // ── KPI strip ──
+  var intentColors={'Give Feedback':'#FFB347','Request a Feature':'#00B4FF','Report an Issue':'#FF3B5C'};
+  var kpis='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
+  // Overall
+  var rCol=avgR>=4?'#34C759':avgR>=3?'#FFB347':'#FF3B5C';
+  kpis+='<div class="panel" style="padding:12px 16px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">TOTAL RESPONSES</div>'
+    +'<div style="font-size:28px;font-weight:900;color:var(--text)">'+total+'</div>'
+    +'<div style="font-size:9px;color:var(--text3)">'+d.date_range.from+' → '+d.date_range.to+'</div></div>';
+  kpis+='<div class="panel" style="padding:12px 16px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">AVG RATING</div>'
+    +'<div style="font-size:28px;font-weight:900;color:'+rCol+'">'+avgR.toFixed(1)+'<span style="font-size:14px">★</span></div>'
+    +'<div style="font-size:9px;color:var(--text3)">Overall NPS signal</div></div>';
+  // Intent KPIs
+  ['Give Feedback','Request a Feature','Report an Issue'].forEach(function(intent){
+    var cnt=d.intent_counts[intent]||0;
+    var avg=d.avg_by_intent[intent]||0;
+    var col=intentColors[intent]||'#999';
+    var icon=intent==='Give Feedback'?'💬':intent==='Request a Feature'?'💡':'🚨';
+    kpis+='<div class="panel" style="padding:12px 16px;text-align:center;border-left:3px solid '+col+'">'
+      +'<div style="font-size:9px;font-weight:700;color:'+col+';letter-spacing:.5px;margin-bottom:4px">'+icon+' '+intent.toUpperCase().replace('REQUEST A ','').replace('GIVE ','').replace('REPORT AN ','')+'</div>'
+      +'<div style="font-size:28px;font-weight:900;color:var(--text)">'+cnt+'</div>'
+      +'<div style="font-size:9px;color:var(--text3)">avg '+avg.toFixed(1)+'★ · '+Math.round(cnt/total*100)+'% of total</div></div>';
+  });
+  kpis+='</div>';
+
+  // ── Rating distribution bar ──
+  var maxR=Math.max.apply(null,Object.values(d.rating_dist));
+  var ratingCols={'1':'#FF3B5C','2':'#FF6B35','3':'#FFB347','4':'#34C759','5':'#00D4AA'};
+  var rDist='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">RATING DISTRIBUTION</div>'
+    +'<div style="display:flex;flex-direction:column;gap:5px">';
+  [1,2,3,4,5].forEach(function(star){
+    var cnt=d.rating_dist[String(star)]||0;
+    var w=Math.round(cnt/maxR*100);
+    var col=ratingCols[String(star)];
+    rDist+='<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:11px;color:var(--text3);width:20px;text-align:right">'+star+'★</span>'
+      +'<div style="flex:1;height:16px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden">'
+      +'<div style="width:'+w+'%;height:100%;background:'+col+';border-radius:4px;min-width:2px"></div></div>'
+      +'<span style="font-size:10px;font-weight:700;color:'+col+';width:32px">'+cnt+'</span>'
+      +'<span style="font-size:9px;color:var(--text3);width:34px">'+Math.round(cnt/total*100)+'%</span>'
+      +'</div>';
+  });
+  rDist+='</div></div>';
+
+  // ── Monthly trend mini sparkline ──
+  var maxMo=Math.max.apply(null,d.monthly.map(function(m){return m.count;}));
+  var spark='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">MONTHLY SUBMISSION VOLUME</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
+  d.monthly.forEach(function(m){
+    var h=Math.max(Math.round(m.count/maxMo*55),2);
+    var isHigh=m.count===maxMo;
+    spark+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default" title="'+m.month+': '+m.count+'">'
+      +'<div style="font-size:7px;color:'+(isHigh?'#FFB347':'var(--text3)')+';font-weight:'+(isHigh?700:400)+'">'+m.count+'</div>'
+      +'<div style="width:100%;height:'+h+'px;background:'+(isHigh?'#FFB347':'rgba(0,180,255,0.4)')+';border-radius:2px 2px 0 0"></div>'
+      +'<div style="font-size:6px;color:var(--text3);white-space:nowrap">'+m.month.slice(5)+'</div>'
+      +'</div>';
+  });
+  spark+='</div></div>';
+
+  // ── Platform split ──
+  var platTotal=Object.values(d.platform_dist).reduce(function(a,b){return a+b;},0);
+  var platCols={app:'#00B4FF',web:'#BF5AF2',push:'#FFB347',unknown:'rgba(255,255,255,0.2)'};
+  var platNames={app:'📱 App',web:'🌐 Web',push:'🔔 Push',unknown:'❓ Unknown'};
+  var platBar='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">PLATFORM SPLIT</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:6px">';
+  ['app','web','push','unknown'].forEach(function(p){
+    var cnt=d.platform_dist[p]||0;
+    var h=Math.round(cnt/platTotal*60)+4;
+    platBar+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+      +'<div style="font-size:8px;color:'+(platCols[p])+';font-weight:700">'+cnt+'</div>'
+      +'<div style="width:100%;height:'+h+'px;background:'+platCols[p]+';border-radius:3px 3px 0 0;opacity:0.8"></div>'
+      +'<div style="font-size:8px;color:var(--text3)">'+platNames[p]+'</div>'
+      +'</div>';
+  });
+  platBar+='</div></div>';
+
+  // ── Theme heatmap ──
+  var maxTheme=d.themes[0]?d.themes[0].count:1;
+  var themes='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;letter-spacing:.5px">TOP THEMES — by mention count (bar) · avg rating (colour)</div>'
+    +'<div style="font-size:9px;color:var(--text3);margin-bottom:10px">🔴 avg ≤2.5 · 🟡 avg 2.5–3.5 · 🟢 avg >3.5</div>'
+    +'<div style="display:flex;flex-direction:column;gap:5px">';
+  d.themes.forEach(function(t){
+    var bw=Math.round(t.count/maxTheme*100);
+    var tCol=t.avg_rating<=2.5?'#FF3B5C':t.avg_rating<=3.5?'#FFB347':'#34C759';
+    var intentBreak=Object.entries(t.by_intent||{}).map(function(e){
+      var ic=intentColors[e[0]]||'#999';
+      return '<span style="font-size:8px;padding:1px 5px;border-radius:8px;background:'+ic+'22;color:'+ic+';border:1px solid '+ic+'44">'+e[0].split(' ')[e[0].split(' ').length-1]+' '+e[1]+'</span>';
+    }).join('');
+    themes+='<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+tCol+'">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      +'<span style="font-size:11px;font-weight:600;color:var(--text);flex:1">'+t.label+'</span>'
+      +'<span style="font-size:10px;font-weight:700;color:'+tCol+'">'+t.avg_rating.toFixed(1)+'★</span>'
+      +'<span style="font-size:10px;color:var(--text3)">'+t.count+' mentions</span>'
+      +'</div>'
+      +'<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:5px">'
+      +'<div style="width:'+bw+'%;height:100%;background:'+tCol+';border-radius:3px;opacity:0.7"></div></div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap">'+intentBreak+'</div></div>';
+  });
+  themes+='</div></div>';
+
+  // ── Verbatims section ──
+  function renderVerbatims(items, title, color, icon){
+    var html='<div class="panel" style="padding:12px 16px;margin-bottom:12px;border-left:3px solid '+color+'">'
+      +'<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:.5px;margin-bottom:10px">'+icon+' '+title+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px">';
+    items.forEach(function(v){
+      var rCol=v.rating<=2?'#FF3B5C':v.rating<=3?'#FFB347':'#34C759';
+      html+='<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px">'
+        +(v.rating?'<span style="font-size:9px;font-weight:700;color:'+rCol+';margin-right:6px">'+v.rating+'★</span>':'')
+        +'<span style="font-size:9px;color:var(--text3);margin-right:6px">'+v.platform+'</span>'
+        +'<span style="font-size:9px;color:var(--text3)">'+v.date+'</span>'
+        +'<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.5">'+v.text+'</div>'
+        +'</div>';
+    });
+    html+='</div></div>';
+    return html;
+  }
+
+  var issueVerbatims=renderVerbatims(d.verbatims.issues.slice(0,6),'TOP REPORTED ISSUES','#FF3B5C','🚨');
+  var featureVerbatims=renderVerbatims(d.verbatims.features.slice(0,6),'TOP FEATURE REQUESTS','#00B4FF','💡');
+  var lowVerbatims=renderVerbatims(d.verbatims.low_rating.slice(0,5),'1–2★ CRITICAL VERBATIMS','#FF6B35','⚠️');
+
+  // ── Design Insights callout ──
+  var insights='<div class="panel" style="padding:14px 16px;margin-bottom:12px;background:rgba(255,179,71,0.06);border:1px solid rgba(255,179,71,0.2)">'
+    +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:10px">🔎 KEY DESIGN INSIGHTS FROM CSV DATA</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px;color:var(--text)">'
+    +'<div><div style="font-weight:700;color:#FF3B5C;margin-bottom:4px">🚨 Critical Pain Points</div>'
+    +'<ul style="margin:0;padding-left:16px;line-height:1.8;color:var(--text2)">'
+    +'<li>Charts are the #1 complaint (avg 2.0★) — especially mobile</li>'
+    +'<li>New platform vs old platform UX regression — users want to revert</li>'
+    +'<li>Holdings & portfolio visibility broken post-redesign</li>'
+    +'<li>Customer support unresponsive (lowest avg rating: 1.6★)</li>'
+    +'<li>Brokerage pricing shock (₹2 → ₹20) causing 1★ reviews</li>'
+    +'</ul></div>'
+    +'<div><div style="font-weight:700;color:#00B4FF;margin-bottom:4px">💡 Top Feature Gaps</div>'
+    +'<ul style="margin:0;padding-left:16px;line-height:1.8;color:var(--text2)">'
+    +'<li>Dark Mode — asked across all intents (still missing)</li>'
+    +'<li>Trade on chart with drag & drop SL/TP</li>'
+    +'<li>PnL / reporting: monthly, quarterly, yearly views</li>'
+    +'<li>Portfolio grouping by segment (LTCG / STCG split)</li>'
+    +'<li>Algo trading / Tradetron / Quantman integration</li>'
+    +'</ul></div>'
+    +'</div></div>';
+
+  // ── Store Reviews Cross-Check ──────────────────────────────────────────────
+  var VENTURA_ID='6689520233';
+  var VENTURA_PKG='com.ventura.mvp';
+  var storeRevs=(_reviewsData||{})[VENTURA_ID]||[];
+  var storeTexts=storeRevs.map(function(r){return ((r.body||r.title||'')+'').toLowerCase();});
+  var storeRated=storeRevs.filter(function(r){return Number(r.rating)>=1&&Number(r.rating)<=5;});
+  var storeAvgRating=storeRated.length?(storeRated.reduce(function(s,r){return s+Number(r.rating);},0)/storeRated.length).toFixed(2):null;
+
+  var crossCheck='';
+  if(!storeRevs.length){
+    crossCheck='<div class="panel" style="padding:14px 16px;margin-bottom:12px;border:1px dashed rgba(0,180,255,0.3);background:rgba(0,180,255,0.04);text-align:center">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">📱 Store Reviews not loaded yet</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Loading Ventura App Store + Play Store reviews in background… Refresh in a moment.</div>'
+      +'<button class="btn" style="font-size:11px;padding:5px 14px" onclick="loadReviews(true).then(function(){var c=document.getElementById(\'content\');if(c&&_pulseFilter===\'analysis\')c.innerHTML=vPulse();})">↻ Load Now</button>'
+      +'</div>';
+  } else {
+    // Run theme analysis on store reviews
+    function textHasStore(t,kws){return kws.some(function(k){return t.includes(k);});}
+    var csvThemeMap={};
+    (_CSV_ANALYTICS.themes||[]).forEach(function(t){csvThemeMap[t.slug]=t;});
+    var crossRows=_STORE_THEMES.map(function(st){
+      var storeCnt=storeTexts.filter(function(t){return textHasStore(t,st.kws);}).length;
+      var storePct=storeTexts.length?Math.round(storeCnt/storeTexts.length*100):0;
+      var csvTheme=csvThemeMap[st.slug];
+      var csvCnt=csvTheme?csvTheme.count:0;
+      var csvPct=csvTheme?Math.round(csvCnt/total*100):0;
+      return {label:st.label,storePct:storePct,csvPct:csvPct,storeCnt:storeCnt,csvCnt:csvCnt,
+              match:Math.abs(storePct-csvPct)<=8?'✅ Aligned':storePct>csvPct+8?'📱 Bigger in store':'📋 Bigger in survey'};
+    }).filter(function(r){return r.storePct>0||r.csvPct>0;})
+      .sort(function(a,b){return (b.storePct+b.csvPct)-(a.storePct+a.csvPct);});
+
+    // App Store vs Play Store split
+    var appStoreCnt=storeRevs.filter(function(r){return r.source==='appstore';}).length;
+    var playStoreCnt=storeRevs.length-appStoreCnt;
+    var storeRatCol=storeAvgRating>=4?'#34C759':storeAvgRating>=3?'#FFB347':'#FF3B5C';
+
+    crossCheck='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+      // Header
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px">📊 STORE REVIEWS CROSS-CHECK — '+storeRevs.length+' reviews loaded</div>'
+      +'<div style="font-size:10px;color:var(--text3)">🍎 App Store: '+appStoreCnt+'  |  🤖 Play Store: '+playStoreCnt+'</div>'
+      +(storeAvgRating?'<div style="font-size:12px;font-weight:700;color:'+storeRatCol+'">Store avg: '+Number(storeAvgRating).toFixed(1)+'★</div>':'')
+      +'<div style="margin-left:auto;font-size:9px;color:var(--text3)">✅ Aligned (±8%)  |  📱 Bigger in store  |  📋 Bigger in survey</div>'
+      +'</div>'
+      // Cross-check rows
+      +'<div style="display:flex;flex-direction:column;gap:4px">'
+      +crossRows.map(function(r){
+        var barMax=Math.max(r.storePct,r.csvPct,1);
+        var storeW=Math.round(r.storePct/barMax*100);
+        var csvW=Math.round(r.csvPct/barMax*100);
+        var matchCol=r.match.startsWith('✅')?'#34C759':r.match.startsWith('📱')?'#00B4FF':'#FFB347';
+        return '<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+          +'<span style="font-size:11px;font-weight:600;color:var(--text);flex:1">'+r.label+'</span>'
+          +'<span style="font-size:9px;color:'+matchCol+'">'+r.match+'</span>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;gap:2px">'
+          // Store bar
+          +'<div style="display:flex;align-items:center;gap:5px">'
+          +'<span style="font-size:8px;color:#00B4FF;width:56px;text-align:right;flex-shrink:0">📱 Store</span>'
+          +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
+          +'<div style="width:'+storeW+'%;height:100%;background:#00B4FF;border-radius:2px;opacity:0.8"></div></div>'
+          +'<span style="font-size:9px;font-weight:700;color:#00B4FF;width:28px;text-align:right">'+r.storePct+'%</span>'
+          +'<span style="font-size:8px;color:var(--text3);width:44px">('+r.storeCnt+' rev)</span>'
+          +'</div>'
+          // CSV bar
+          +'<div style="display:flex;align-items:center;gap:5px">'
+          +'<span style="font-size:8px;color:#FFB347;width:56px;text-align:right;flex-shrink:0">📋 Survey</span>'
+          +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
+          +'<div style="width:'+csvW+'%;height:100%;background:#FFB347;border-radius:2px;opacity:0.8"></div></div>'
+          +'<span style="font-size:9px;font-weight:700;color:#FFB347;width:28px;text-align:right">'+r.csvPct+'%</span>'
+          +'<span style="font-size:8px;color:var(--text3);width:44px">('+r.csvCnt+' sub)</span>'
+          +'</div>'
+          +'</div></div>';
+      }).join('')
+      +'</div>'
+      // Sample store verbatims
+      +'<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px">'
+      +'<div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">RECENT VENTURA STORE REVIEWS</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px">'
+      +storeRevs.slice(0,6).map(function(r){
+        var rCol=Number(r.rating)<=2?'#FF3B5C':Number(r.rating)<=3?'#FFB347':'#34C759';
+        return '<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+rCol+'">'
+          +'<div style="font-size:9px;color:'+rCol+';font-weight:700;margin-bottom:2px">'+r.rating+'★'+(r.version?' · v'+r.version:'')+(r.source?' · '+r.source:'')+(r.date?' · '+r.date.slice(0,10):'')+'</div>'
+          +(r.title?'<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">'+r.title+'</div>':'')
+          +(r.body?'<div style="font-size:11px;color:var(--text2);line-height:1.4">'+r.body.slice(0,200)+(r.body.length>200?'…':'')+'</div>':'')
+          +'</div>';
+      }).join('')
+      +'</div></div></div>';
+  }
+
+  return kpis
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0">'
+    +'<div>'+rDist+'</div><div>'+spark+'</div><div>'+platBar+'</div>'
+    +'</div>'
+    +insights
+    +themes
+    +crossCheck
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div>'+issueVerbatims+lowVerbatims+'</div>'
+    +'<div>'+featureVerbatims+'</div>'
+    +'</div>';
+}
+
 function vPulse(){
   var s=_pulseSentiment;
   var cf=_competitorFilter;
   var isReviews=_pulseFilter==='reviews';
   var isFeedback=_pulseFilter==='feedback';
   var isComm=_pulseFilter==='community';
-  var isComp=!isReviews&&!isFeedback&&!isComm;
+  var isAnalysis=_pulseFilter==='analysis';
+  var isComp=!isReviews&&!isFeedback&&!isComm&&!isAnalysis;
   var tabBase='padding:11px 20px;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2px solid;cursor:pointer;font-family:var(--font);margin-bottom:-1px;transition:all .15s;';
   var tabOn=tabBase+'color:var(--text);border-bottom-color:var(--blue);';
   var tabOff=tabBase+'color:var(--text3);border-bottom-color:transparent;';
-  var tabBar='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px">'
+  var tabBar='<div style="display:flex;align-items:flex-end;border-bottom:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap">'
     +'<button onclick="setPF(\'competitor\')" style="'+(isComp?tabOn:tabOff)+'">🎨 Product Design Catchup</button>'
-    +'<button onclick="setPF(\'community\')" style="'+(isComm?tabOn:tabOff)+'">📈 Trading & Investing Communities</button>'
+    +'<button onclick="setPF(\'community\')" style="'+(isComm?tabOn:tabOff)+'">📈 Communities</button>'
     +'<button onclick="setPF(\'reviews\')" style="'+(isReviews?tabOn:tabOff)+'">⭐ App Reviews</button>'
     +'<button onclick="setPF(\'feedback\')" style="'+(isFeedback?tabOn:tabOff)+'">🗣️ Customer Feedback</button>'
-    +(!isReviews&&!isFeedback?'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>':'')
+    +'<button onclick="setPF(\'analysis\')" style="'+(isAnalysis?tabOn:tabOff)+'">📊 Ventura Analysis</button>'
+    +(!isReviews&&!isFeedback&&!isAnalysis?'<button class="btn" style="margin-left:auto;margin-bottom:8px;font-size:11px;padding:4px 10px" onclick="loadPulse(true)">↻ Refresh</button>':'')
     +'</div>';
   if(isReviews) return tabBar+vReviews();
   if(isFeedback) return tabBar+vFeedback();
+  if(isAnalysis) return tabBar+vAnalysis();
   var filterRow='';
   if(isComp){
     // Competitor tab: topic filters
@@ -5073,6 +5506,14 @@ function setPF(f){
         // Re-render feedback tab once reviews arrive so snapshot populates
         var cc=document.getElementById('content');
         if(cc&&_pulseFilter==='feedback') cc.innerHTML=vPulse();
+      });
+    }
+  } else if(f==='analysis'){
+    // CSV data is embedded; auto-load store reviews in background if not yet loaded
+    if(!_reviewsLoading&&Object.keys(_reviewsData).length===0){
+      loadReviews().then(function(){
+        var cc=document.getElementById('content');
+        if(cc&&_pulseFilter==='analysis') cc.innerHTML=vPulse();
       });
     }
   } else {
