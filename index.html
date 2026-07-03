@@ -29,6 +29,29 @@
   --glow-magenta:0 0 12px rgba(255,0,204,0.4);
   --glow-cyan:0 0 12px rgba(0,229,255,0.35);
 }
+/* ── Light theme ───────────────────────────────────────────────────────────── */
+[data-theme="light"]{
+  --bg:#F0F3F8;--surface:#FFFFFF;--surface2:#F5F7FB;--border:#DDE3EE;--border2:#C8D0E0;
+  --text:#1A2235;--text2:#4A5878;--text3:#8A96A8;
+  --accent:#007AFF;--accent-dark:#0060CC;
+  --blue:#007AFF;--blue-light:rgba(0,122,255,0.10);
+  --green:#1AAF5D;--green-light:rgba(26,175,93,0.10);
+  --amber:#D97706;--amber-light:rgba(217,119,6,0.10);
+  --red:#E53E3E;--red-light:rgba(229,62,62,0.10);
+  --purple:#7C3AED;--purple-light:rgba(124,58,237,0.10);
+  --magenta:#C026D3;--cyan:#0891B2;
+  --glow-blue:none;--glow-green:none;--glow-amber:none;
+  --glow-red:none;--glow-magenta:none;--glow-cyan:none;
+}
+[data-theme="light"] .mc.green .mc-v,
+[data-theme="light"] .mc.amber .mc-v,
+[data-theme="light"] .mc.red .mc-v,
+[data-theme="light"] .mc.blue .mc-v{text-shadow:none}
+[data-theme="light"] .s-live{background:rgba(26,175,93,0.12);color:#1AAF5D;border-color:rgba(26,175,93,0.3)}
+[data-theme="light"] .bf-green,[data-theme="light"] .bf-blue,
+[data-theme="light"] .bf-amber,[data-theme="light"] .bf-purple{box-shadow:none}
+[data-theme="light"] .panel{box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+[data-theme="light"] .logomark{box-shadow:none}
 html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--text)}
 .app{display:flex;height:100vh;overflow:hidden}
 .sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
@@ -317,6 +340,13 @@ input[type=range]{accent-color:var(--blue)}
     <div class="topbar">
       <span class="tb-title" id="viewTitle">Dashboard</span>
       <span class="tb-sub" id="viewSub">Loading…</span>
+      <button onclick="toggleTheme()" id="themeToggle" style="display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;transition:all .2s;outline:none;margin-right:6px">
+        <span id="themeIcon" style="font-size:13px">☀️</span>
+        <span id="themeLabel">Light mode</span>
+        <div id="themeTrack" style="width:28px;height:16px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0">
+          <div id="themeThumb" style="width:12px;height:12px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>
+        </div>
+      </button>
       <button class="btn accent" id="btnTopAddTask" onclick="view==='tracker'?openAddTodo(''):openAddTask()">+ Add task</button>
     </div>
     <div class="content" id="content"><div class="empty">Loading…</div></div>
@@ -2974,6 +3004,19 @@ var _feedbackPeriod = '7d';    // '7d'|'30d'|'90d'|'1y'|'all'
 var _reviewsApp = 'all';
 var _reviewsStarFilter = 'all';
 var _reviewsSourceFilter = 'all'; // 'all' | 'appstore' | 'playstore'
+var _isLightTheme = false;
+function toggleTheme(){
+  _isLightTheme = !_isLightTheme;
+  document.documentElement.setAttribute('data-theme', _isLightTheme ? 'light' : '');
+  var icon  = document.getElementById('themeIcon');
+  var label = document.getElementById('themeLabel');
+  var track = document.getElementById('themeTrack');
+  var thumb = document.getElementById('themeThumb');
+  if(icon)  icon.textContent  = _isLightTheme ? '🌙' : '☀️';
+  if(label) label.textContent = _isLightTheme ? 'Dark mode' : 'Light mode';
+  if(track) track.style.background = _isLightTheme ? 'var(--blue)' : 'var(--border2)';
+  if(thumb) thumb.style.transform  = _isLightTheme ? 'translateX(12px)' : 'translateX(0)';
+}
 var _reviewsDateFilter = 'all';   // 'all' | '7d' | '30d' | '3m' | '6m' | '1y'
 var _reviewsQualityFilter = 'substantive'; // 'all' | 'substantive'
 var _reviewsData = {};     // {appId: [{rating,title,body,author,date,version,source}]}
