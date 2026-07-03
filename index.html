@@ -5190,257 +5190,282 @@ function vFeedback(){
 function vAnalysis(){
   var d=_CSV_ANALYTICS;
   if(!d) return '<div class="empty">No analysis data loaded.</div>';
-  var total=d.total, avgR=d.avg_rating;
+  var total=d.total, csvAvg=d.avg_rating;
 
-  // ── KPI strip ──
-  var intentColors={'Give Feedback':'#FFB347','Request a Feature':'#00B4FF','Report an Issue':'#FF3B5C'};
-  var kpis='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
-  // Overall
-  var rCol=avgR>=4?'#34C759':avgR>=3?'#FFB347':'#FF3B5C';
-  kpis+='<div class="panel" style="padding:12px 16px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">TOTAL RESPONSES</div>'
-    +'<div style="font-size:28px;font-weight:900;color:var(--text)">'+total+'</div>'
-    +'<div style="font-size:9px;color:var(--text3)">'+d.date_range.from+' → '+d.date_range.to+'</div></div>';
-  kpis+='<div class="panel" style="padding:12px 16px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">AVG RATING</div>'
-    +'<div style="font-size:28px;font-weight:900;color:'+rCol+'">'+avgR.toFixed(1)+'<span style="font-size:14px">★</span></div>'
-    +'<div style="font-size:9px;color:var(--text3)">Overall NPS signal</div></div>';
-  // Intent KPIs
-  ['Give Feedback','Request a Feature','Report an Issue'].forEach(function(intent){
-    var cnt=d.intent_counts[intent]||0;
-    var avg=d.avg_by_intent[intent]||0;
-    var col=intentColors[intent]||'#999';
-    var icon=intent==='Give Feedback'?'💬':intent==='Request a Feature'?'💡':'🚨';
-    kpis+='<div class="panel" style="padding:12px 16px;text-align:center;border-left:3px solid '+col+'">'
-      +'<div style="font-size:9px;font-weight:700;color:'+col+';letter-spacing:.5px;margin-bottom:4px">'+icon+' '+intent.toUpperCase().replace('REQUEST A ','').replace('GIVE ','').replace('REPORT AN ','')+'</div>'
-      +'<div style="font-size:28px;font-weight:900;color:var(--text)">'+cnt+'</div>'
-      +'<div style="font-size:9px;color:var(--text3)">avg '+avg.toFixed(1)+'★ · '+Math.round(cnt/total*100)+'% of total</div></div>';
-  });
-  kpis+='</div>';
+  // ── Resolve store reviews ──────────────────────────────────────────────────
+  var VENTURA_ID='6689520233';
+  var allStoreRevs=(_reviewsData||{})[VENTURA_ID]||[];
+  var appRevs=allStoreRevs.filter(function(r){return (r.source||'').toLowerCase()==='appstore';});
+  var playRevs=allStoreRevs.filter(function(r){return (r.source||'').toLowerCase()!=='appstore';});
+  var storeLoaded=allStoreRevs.length>0;
 
-  // ── Rating distribution bar ──
-  var maxR=Math.max.apply(null,Object.values(d.rating_dist));
-  var ratingCols={'1':'#FF3B5C','2':'#FF6B35','3':'#FFB347','4':'#34C759','5':'#00D4AA'};
-  var rDist='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">RATING DISTRIBUTION</div>'
-    +'<div style="display:flex;flex-direction:column;gap:5px">';
-  [1,2,3,4,5].forEach(function(star){
-    var cnt=d.rating_dist[String(star)]||0;
-    var w=Math.round(cnt/maxR*100);
-    var col=ratingCols[String(star)];
-    rDist+='<div style="display:flex;align-items:center;gap:8px">'
-      +'<span style="font-size:11px;color:var(--text3);width:20px;text-align:right">'+star+'★</span>'
-      +'<div style="flex:1;height:16px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden">'
-      +'<div style="width:'+w+'%;height:100%;background:'+col+';border-radius:4px;min-width:2px"></div></div>'
-      +'<span style="font-size:10px;font-weight:700;color:'+col+';width:32px">'+cnt+'</span>'
-      +'<span style="font-size:9px;color:var(--text3);width:34px">'+Math.round(cnt/total*100)+'%</span>'
+  function avgRat(revs){
+    var rated=revs.filter(function(r){return Number(r.rating)>=1&&Number(r.rating)<=5;});
+    return rated.length?(rated.reduce(function(s,r){return s+Number(r.rating);},0)/rated.length):null;
+  }
+  var appAvg=avgRat(appRevs);
+  var playAvg=avgRat(playRevs);
+  var storeAvg=avgRat(allStoreRevs);
+
+  // ── Source summary header ──────────────────────────────────────────────────
+  function srcCard(icon, label, n, avg, col, sub){
+    var ac=avg!=null?(avg>=4?'#34C759':avg>=3?'#FFB347':'#FF3B5C'):'var(--text3)';
+    return '<div class="panel" style="padding:14px 16px;text-align:center;border-top:3px solid '+col+'">'
+      +'<div style="font-size:10px;font-weight:700;color:'+col+';letter-spacing:.5px;margin-bottom:6px">'+icon+' '+label+'</div>'
+      +'<div style="font-size:26px;font-weight:900;color:var(--text)">'+n+'</div>'
+      +'<div style="font-size:9px;color:var(--text3);margin-top:2px">'+sub+'</div>'
+      +(avg!=null?'<div style="font-size:16px;font-weight:800;color:'+ac+';margin-top:6px">'+avg.toFixed(1)+'★</div>':'<div style="font-size:11px;color:var(--text3);margin-top:6px">No rating data</div>')
       +'</div>';
-  });
-  rDist+='</div></div>';
+  }
+  var srcHeader='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">'
+    +srcCard('🍎','App Store', appRevs.length, appAvg,'#34C759', storeLoaded?'iTunes reviews':'not loaded yet')
+    +srcCard('🤖','Play Store',playRevs.length,playAvg,'#00B4FF', storeLoaded?'Google Play reviews':'not loaded yet')
+    +srcCard('📋','Survey / Tally',total,csvAvg,'#FFB347', d.date_range.from+' → '+d.date_range.to)
+    +'</div>';
 
-  // ── Monthly trend mini sparkline ──
+  if(!storeLoaded){
+    srcHeader+='<div style="text-align:center;margin-bottom:14px;padding:10px;background:rgba(0,180,255,0.05);border:1px dashed rgba(0,180,255,0.3);border-radius:8px">'
+      +'<span style="font-size:11px;color:var(--text3)">App Store + Play Store reviews not loaded yet — </span>'
+      +'<button class="btn" style="font-size:11px;padding:4px 12px;margin-left:6px" onclick="loadReviews(true).then(function(){var c=document.getElementById(\'content\');if(c&&_pulseFilter===\'analysis\')c.innerHTML=vPulse();})">↻ Load Now</button>'
+      +'</div>';
+  }
+
+  // ── Tri-source rating comparison ───────────────────────────────────────────
+  var ratingCols={'1':'#FF3B5C','2':'#FF6B35','3':'#FFB347','4':'#34C759','5':'#00D4AA'};
+  var maxCsvR=Math.max.apply(null,[1,2,3,4,5].map(function(s){return d.rating_dist[String(s)]||0;}));
+
+  function ratingBar(revs, label, col){
+    var dist={1:0,2:0,3:0,4:0,5:0};
+    revs.forEach(function(r){var s=Math.round(Number(r.rating));if(s>=1&&s<=5)dist[s]++;});
+    var tot=revs.length||1;
+    var maxD=Math.max.apply(null,Object.values(dist));if(!maxD)maxD=1;
+    var html='';
+    [5,4,3,2,1].forEach(function(star){
+      var cnt=dist[star];
+      var w=Math.round(cnt/maxD*100);
+      var cc=ratingCols[String(star)];
+      html+='<div style="display:flex;align-items:center;gap:6px">'
+        +'<span style="font-size:10px;color:var(--text3);width:16px;text-align:right">'+star+'</span>'
+        +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
+        +'<div style="width:'+w+'%;height:100%;background:'+cc+';border-radius:2px"></div></div>'
+        +'<span style="font-size:9px;color:var(--text3);width:28px">'+Math.round(cnt/tot*100)+'%</span>'
+        +'</div>';
+    });
+    return '<div style="flex:1">'
+      +'<div style="font-size:9px;font-weight:700;color:'+col+';letter-spacing:.4px;margin-bottom:6px">'+label+'</div>'
+      +html+'</div>';
+  }
+
+  var csvRatingRevFmt=[1,2,3,4,5].reduce(function(acc,s){
+    var cnt=d.rating_dist[String(s)]||0;
+    for(var i=0;i<cnt;i++) acc.push({rating:s});
+    return acc;
+  },[]);
+
+  var ratingComp='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:12px">⭐ RATING DISTRIBUTION — ALL SOURCES</div>'
+    +'<div style="display:flex;gap:16px">'
+    +(storeLoaded&&appRevs.length?ratingBar(appRevs,'🍎 App Store','#34C759'):'')
+    +(storeLoaded&&playRevs.length?ratingBar(playRevs,'🤖 Play Store','#00B4FF'):'')
+    +ratingBar(csvRatingRevFmt,'📋 Survey / Tally','#FFB347')
+    +'</div></div>';
+
+  // ── Theme cross-check: all 3 sources ──────────────────────────────────────
+  var intentColors={'Give Feedback':'#FFB347','Request a Feature':'#00B4FF','Report an Issue':'#FF3B5C'};
+  var csvThemeMap={};
+  (d.themes||[]).forEach(function(t){csvThemeMap[t.slug]=t;});
+
+  function textHas(t,kws){return kws.some(function(k){return t.includes(k);});}
+  var appTexts=appRevs.map(function(r){return ((r.body||r.title||'')+'').toLowerCase();});
+  var playTexts=playRevs.map(function(r){return ((r.body||r.title||'')+'').toLowerCase();});
+
+  var themeRows=_STORE_THEMES.map(function(st){
+    var appCnt=appTexts.filter(function(t){return textHas(t,st.kws);}).length;
+    var playCnt=playTexts.filter(function(t){return textHas(t,st.kws);}).length;
+    var appPct=appTexts.length?Math.round(appCnt/appTexts.length*100):0;
+    var playPct=playTexts.length?Math.round(playCnt/playTexts.length*100):0;
+    var csvT=csvThemeMap[st.slug];
+    var csvCnt=csvT?csvT.count:0;
+    var csvPct=csvT?Math.round(csvCnt/total*100):0;
+    var csvAvgT=csvT?csvT.avg_rating:null;
+    var allPcts=[appPct,playPct,csvPct];
+    var maxPct=Math.max.apply(null,allPcts)||1;
+    // alignment signal: all three within ±10 of each other
+    var maxSpread=Math.max.apply(null,allPcts)-Math.min.apply(null,allPcts);
+    var align=storeLoaded?(maxSpread<=10?'✅ Aligned':appPct>csvPct+10&&playPct>csvPct+10?'📱 Louder in stores':'📋 Louder in survey'):'';
+    var alignCol=align.startsWith('✅')?'#34C759':align.startsWith('📱')?'#00B4FF':'#FFB347';
+    var tColR=csvAvgT!=null?(csvAvgT<=2.5?'#FF3B5C':csvAvgT<=3.5?'#FFB347':'#34C759'):'var(--text3)';
+    return {label:st.label,appPct:appPct,playPct:playPct,csvPct:csvPct,
+            appCnt:appCnt,playCnt:playCnt,csvCnt:csvCnt,csvAvgT:csvAvgT,
+            maxPct:maxPct,align:align,alignCol:alignCol,tColR:tColR,
+            total:appPct+playPct+csvPct};
+  }).filter(function(r){return r.total>0;})
+    .sort(function(a,b){return b.total-a.total;});
+
+  function miniBar(pct,maxPct,col){
+    var w=Math.round(pct/maxPct*100);
+    return '<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
+      +'<div style="width:'+w+'%;height:100%;background:'+col+';border-radius:2px;opacity:0.85"></div></div>';
+  }
+
+  var themeSection='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px">🔥 THEME ANALYSIS — APP STORE · PLAY STORE · SURVEY</div>'
+    +(storeLoaded?'<div style="margin-left:auto;font-size:8px;color:var(--text3)">✅ Aligned (±10%)  |  📱 Louder in stores  |  📋 Louder in survey</div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:4px;margin-bottom:8px;padding-left:2px">'
+    +'<div style="flex:1;font-size:8px;font-weight:700;color:var(--text3)">THEME</div>'
+    +(storeLoaded?'<div style="width:120px;font-size:8px;color:#34C759;text-align:center">🍎 APP STORE</div>':'')
+    +(storeLoaded?'<div style="width:120px;font-size:8px;color:#00B4FF;text-align:center">🤖 PLAY STORE</div>':'')
+    +'<div style="width:120px;font-size:8px;color:#FFB347;text-align:center">📋 SURVEY</div>'
+    +(storeLoaded?'<div style="width:70px;font-size:8px;color:var(--text3);text-align:center">SIGNAL</div>':'')
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:4px">'
+    +themeRows.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:4px;padding:6px 6px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+r.tColR+'">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.label+'</div>'
+        +(r.csvAvgT!=null?'<div style="font-size:9px;color:'+r.tColR+'">'+r.csvAvgT.toFixed(1)+'★ survey avg</div>':'')
+        +'</div>'
+        +(storeLoaded?'<div style="width:120px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;align-items:center">'
+          +miniBar(r.appPct,r.maxPct,'#34C759')
+          +'<span style="font-size:9px;font-weight:700;color:#34C759">'+r.appPct+'% <span style="font-size:8px;color:var(--text3)">('+r.appCnt+')</span></span>'
+          +'</div>':'')
+        +(storeLoaded?'<div style="width:120px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;align-items:center">'
+          +miniBar(r.playPct,r.maxPct,'#00B4FF')
+          +'<span style="font-size:9px;font-weight:700;color:#00B4FF">'+r.playPct+'% <span style="font-size:8px;color:var(--text3)">('+r.playCnt+')</span></span>'
+          +'</div>':'')
+        +'<div style="width:120px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;align-items:center">'
+        +miniBar(r.csvPct,r.maxPct,'#FFB347')
+        +'<span style="font-size:9px;font-weight:700;color:#FFB347">'+r.csvPct+'% <span style="font-size:8px;color:var(--text3)">('+r.csvCnt+')</span></span>'
+        +'</div>'
+        +(storeLoaded?'<div style="width:70px;flex-shrink:0;text-align:center;font-size:9px;color:'+r.alignCol+'">'+r.align+'</div>':'')
+        +'</div>';
+    }).join('')
+    +'</div></div>';
+
+  // ── Survey distributions (CSV) ─────────────────────────────────────────────
   var maxMo=Math.max.apply(null,d.monthly.map(function(m){return m.count;}));
   var spark='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">MONTHLY SUBMISSION VOLUME</div>'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">📅 MONTHLY SURVEY VOLUME (📋 Survey only)</div>'
     +'<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
   d.monthly.forEach(function(m){
     var h=Math.max(Math.round(m.count/maxMo*55),2);
     var isHigh=m.count===maxMo;
     spark+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default" title="'+m.month+': '+m.count+'">'
       +'<div style="font-size:7px;color:'+(isHigh?'#FFB347':'var(--text3)')+';font-weight:'+(isHigh?700:400)+'">'+m.count+'</div>'
-      +'<div style="width:100%;height:'+h+'px;background:'+(isHigh?'#FFB347':'rgba(0,180,255,0.4)')+';border-radius:2px 2px 0 0"></div>'
+      +'<div style="width:100%;height:'+h+'px;background:'+(isHigh?'#FFB347':'rgba(255,179,71,0.35)')+';border-radius:2px 2px 0 0"></div>'
       +'<div style="font-size:6px;color:var(--text3);white-space:nowrap">'+m.month.slice(5)+'</div>'
       +'</div>';
   });
   spark+='</div></div>';
 
-  // ── Platform split ──
-  var platTotal=Object.values(d.platform_dist).reduce(function(a,b){return a+b;},0);
-  var platCols={app:'#00B4FF',web:'#BF5AF2',push:'#FFB347',unknown:'rgba(255,255,255,0.2)'};
-  var platNames={app:'📱 App',web:'🌐 Web',push:'🔔 Push',unknown:'❓ Unknown'};
-  var platBar='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">PLATFORM SPLIT</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:6px">';
-  ['app','web','push','unknown'].forEach(function(p){
-    var cnt=d.platform_dist[p]||0;
-    var h=Math.round(cnt/platTotal*60)+4;
-    platBar+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
-      +'<div style="font-size:8px;color:'+(platCols[p])+';font-weight:700">'+cnt+'</div>'
-      +'<div style="width:100%;height:'+h+'px;background:'+platCols[p]+';border-radius:3px 3px 0 0;opacity:0.8"></div>'
-      +'<div style="font-size:8px;color:var(--text3)">'+platNames[p]+'</div>'
+  // Intent + platform (CSV)
+  var intentBar='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:.5px">💬 SURVEY INTENT SPLIT (📋 Survey only)</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">';
+  ['Give Feedback','Request a Feature','Report an Issue'].forEach(function(intent){
+    var cnt=d.intent_counts[intent]||0;
+    var avg=d.avg_by_intent[intent]||0;
+    var col=intentColors[intent];
+    var icon=intent==='Give Feedback'?'💬':intent==='Request a Feature'?'💡':'🚨';
+    var w=Math.round(cnt/total*100);
+    var ac=avg>=4?'#34C759':avg>=3?'#FFB347':'#FF3B5C';
+    intentBar+='<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:10px;width:90px;color:var(--text2);flex-shrink:0">'+icon+' '+intent.replace('Give ','').replace('Request a ','').replace('Report an ','')+'</span>'
+      +'<div style="flex:1;height:14px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'
+      +'<div style="width:'+w+'%;height:100%;background:'+col+';border-radius:3px;opacity:0.75"></div></div>'
+      +'<span style="font-size:9px;font-weight:700;color:'+col+';width:28px;text-align:right">'+cnt+'</span>'
+      +'<span style="font-size:9px;color:'+ac+';width:32px">'+avg.toFixed(1)+'★</span>'
       +'</div>';
   });
-  platBar+='</div></div>';
+  intentBar+='</div></div>';
 
-  // ── Theme heatmap ──
-  var maxTheme=d.themes[0]?d.themes[0].count:1;
-  var themes='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
-    +'<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;letter-spacing:.5px">TOP THEMES — by mention count (bar) · avg rating (colour)</div>'
-    +'<div style="font-size:9px;color:var(--text3);margin-bottom:10px">🔴 avg ≤2.5 · 🟡 avg 2.5–3.5 · 🟢 avg >3.5</div>'
-    +'<div style="display:flex;flex-direction:column;gap:5px">';
-  d.themes.forEach(function(t){
-    var bw=Math.round(t.count/maxTheme*100);
-    var tCol=t.avg_rating<=2.5?'#FF3B5C':t.avg_rating<=3.5?'#FFB347':'#34C759';
-    var intentBreak=Object.entries(t.by_intent||{}).map(function(e){
-      var ic=intentColors[e[0]]||'#999';
-      return '<span style="font-size:8px;padding:1px 5px;border-radius:8px;background:'+ic+'22;color:'+ic+';border:1px solid '+ic+'44">'+e[0].split(' ')[e[0].split(' ').length-1]+' '+e[1]+'</span>';
-    }).join('');
-    themes+='<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+tCol+'">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-      +'<span style="font-size:11px;font-weight:600;color:var(--text);flex:1">'+t.label+'</span>'
-      +'<span style="font-size:10px;font-weight:700;color:'+tCol+'">'+t.avg_rating.toFixed(1)+'★</span>'
-      +'<span style="font-size:10px;color:var(--text3)">'+t.count+' mentions</span>'
-      +'</div>'
-      +'<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:5px">'
-      +'<div style="width:'+bw+'%;height:100%;background:'+tCol+';border-radius:3px;opacity:0.7"></div></div>'
-      +'<div style="display:flex;gap:4px;flex-wrap:wrap">'+intentBreak+'</div></div>';
-  });
-  themes+='</div></div>';
-
-  // ── Verbatims section ──
-  function renderVerbatims(items, title, color, icon){
-    var html='<div class="panel" style="padding:12px 16px;margin-bottom:12px;border-left:3px solid '+color+'">'
-      +'<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:.5px;margin-bottom:10px">'+icon+' '+title+'</div>'
-      +'<div style="display:flex;flex-direction:column;gap:8px">';
-    items.forEach(function(v){
-      var rCol=v.rating<=2?'#FF3B5C':v.rating<=3?'#FFB347':'#34C759';
-      html+='<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px">'
-        +(v.rating?'<span style="font-size:9px;font-weight:700;color:'+rCol+';margin-right:6px">'+v.rating+'★</span>':'')
-        +'<span style="font-size:9px;color:var(--text3);margin-right:6px">'+v.platform+'</span>'
-        +'<span style="font-size:9px;color:var(--text3)">'+v.date+'</span>'
-        +'<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.5">'+v.text+'</div>'
-        +'</div>';
-    });
-    html+='</div></div>';
-    return html;
+  // ── Store verbatims: App Store + Play Store side by side ───────────────────
+  function storeVerbatimCard(r){
+    var rCol=Number(r.rating)<=2?'#FF3B5C':Number(r.rating)<=3?'#FFB347':'#34C759';
+    return '<div style="padding:7px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+rCol+';margin-bottom:6px">'
+      +'<div style="font-size:9px;font-weight:700;color:'+rCol+';margin-bottom:2px">'+r.rating+'★'
+      +(r.date?' · '+String(r.date).slice(0,10):'')+(r.version?' · v'+r.version:'')+'</div>'
+      +(r.title?'<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">'+r.title+'</div>':'')
+      +(r.body?'<div style="font-size:10px;color:var(--text2);line-height:1.4">'+String(r.body).slice(0,200)+(r.body.length>200?'…':'')+'</div>':'')
+      +'</div>';
   }
 
-  var issueVerbatims=renderVerbatims(d.verbatims.issues.slice(0,6),'TOP REPORTED ISSUES','#FF3B5C','🚨');
-  var featureVerbatims=renderVerbatims(d.verbatims.features.slice(0,6),'TOP FEATURE REQUESTS','#00B4FF','💡');
-  var lowVerbatims=renderVerbatims(d.verbatims.low_rating.slice(0,5),'1–2★ CRITICAL VERBATIMS','#FF6B35','⚠️');
+  var storeVerbatims='';
+  if(storeLoaded){
+    var showApp=appRevs.slice(0,6);
+    var showPlay=playRevs.slice(0,6);
+    storeVerbatims='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
+      +'<div class="panel" style="padding:12px 16px">'
+      +'<div style="font-size:10px;font-weight:700;color:#34C759;letter-spacing:.5px;margin-bottom:8px">🍎 APP STORE — RECENT REVIEWS ('+appRevs.length+' total)</div>'
+      +(showApp.length?showApp.map(storeVerbatimCard).join(''):'<div style="font-size:11px;color:var(--text3)">No App Store reviews loaded</div>')
+      +'</div>'
+      +'<div class="panel" style="padding:12px 16px">'
+      +'<div style="font-size:10px;font-weight:700;color:#00B4FF;letter-spacing:.5px;margin-bottom:8px">🤖 PLAY STORE — RECENT REVIEWS ('+playRevs.length+' total)</div>'
+      +(showPlay.length?showPlay.map(storeVerbatimCard).join(''):'<div style="font-size:11px;color:var(--text3)">No Play Store reviews loaded</div>')
+      +'</div>'
+      +'</div>';
+  }
 
-  // ── Design Insights callout ──
+  // ── Survey verbatims ───────────────────────────────────────────────────────
+  function surveyCard(v){
+    var rCol=v.rating<=2?'#FF3B5C':v.rating<=3?'#FFB347':'#34C759';
+    return '<div style="padding:7px 10px;background:rgba(255,255,255,0.03);border-radius:6px;margin-bottom:6px">'
+      +(v.rating?'<span style="font-size:9px;font-weight:700;color:'+rCol+';margin-right:6px">'+v.rating+'★</span>':'')
+      +'<span style="font-size:9px;color:var(--text3);margin-right:4px">'+v.platform+'</span>'
+      +'<span style="font-size:9px;color:var(--text3)">'+v.date+'</span>'
+      +'<div style="font-size:11px;color:var(--text);margin-top:4px;line-height:1.5">'+v.text+'</div>'
+      +'</div>';
+  }
+
+  var csvVerbatims='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
+    +'<div>'
+    +'<div class="panel" style="padding:12px 16px;margin-bottom:10px;border-left:3px solid #FF3B5C">'
+    +'<div style="font-size:10px;font-weight:700;color:#FF3B5C;letter-spacing:.5px;margin-bottom:8px">🚨 TOP ISSUES — SURVEY</div>'
+    +d.verbatims.issues.slice(0,5).map(surveyCard).join('')
+    +'</div>'
+    +'<div class="panel" style="padding:12px 16px;border-left:3px solid #FF6B35">'
+    +'<div style="font-size:10px;font-weight:700;color:#FF6B35;letter-spacing:.5px;margin-bottom:8px">⚠️ 1–2★ CRITICAL — SURVEY</div>'
+    +d.verbatims.low_rating.slice(0,4).map(surveyCard).join('')
+    +'</div></div>'
+    +'<div class="panel" style="padding:12px 16px;border-left:3px solid #00B4FF">'
+    +'<div style="font-size:10px;font-weight:700;color:#00B4FF;letter-spacing:.5px;margin-bottom:8px">💡 FEATURE REQUESTS — SURVEY</div>'
+    +d.verbatims.features.slice(0,8).map(surveyCard).join('')
+    +'</div>'
+    +'</div>';
+
+  // ── Key insights callout ───────────────────────────────────────────────────
   var insights='<div class="panel" style="padding:14px 16px;margin-bottom:12px;background:rgba(255,179,71,0.06);border:1px solid rgba(255,179,71,0.2)">'
-    +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:10px">🔎 KEY DESIGN INSIGHTS FROM CSV DATA</div>'
+    +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:10px">🔎 KEY DESIGN INSIGHTS (All Sources)</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px;color:var(--text)">'
     +'<div><div style="font-weight:700;color:#FF3B5C;margin-bottom:4px">🚨 Critical Pain Points</div>'
-    +'<ul style="margin:0;padding-left:16px;line-height:1.8;color:var(--text2)">'
-    +'<li>Charts are the #1 complaint (avg 2.0★) — especially mobile</li>'
-    +'<li>New platform vs old platform UX regression — users want to revert</li>'
-    +'<li>Holdings & portfolio visibility broken post-redesign</li>'
-    +'<li>Customer support unresponsive (lowest avg rating: 1.6★)</li>'
-    +'<li>Brokerage pricing shock (₹2 → ₹20) causing 1★ reviews</li>'
+    +'<ul style="margin:0;padding-left:16px;line-height:1.9;color:var(--text2)">'
+    +'<li>Charts: #1 complaint across Store + Survey (avg 2.0★)</li>'
+    +'<li>UX regression post-redesign — users want the old platform back</li>'
+    +'<li>Holdings / portfolio visibility broken post-redesign</li>'
+    +'<li>Support unresponsive — lowest rating signal (1.6★)</li>'
+    +'<li>Pricing shock (₹2→₹20) driving 1★ store reviews</li>'
     +'</ul></div>'
     +'<div><div style="font-weight:700;color:#00B4FF;margin-bottom:4px">💡 Top Feature Gaps</div>'
-    +'<ul style="margin:0;padding-left:16px;line-height:1.8;color:var(--text2)">'
-    +'<li>Dark Mode — asked across all intents (still missing)</li>'
-    +'<li>Trade on chart with drag & drop SL/TP</li>'
-    +'<li>PnL / reporting: monthly, quarterly, yearly views</li>'
+    +'<ul style="margin:0;padding-left:16px;line-height:1.9;color:var(--text2)">'
+    +'<li>Dark Mode — requested across all 3 sources</li>'
+    +'<li>Trade on chart: drag-and-drop SL/TP</li>'
+    +'<li>PnL reporting: monthly, quarterly, yearly views</li>'
     +'<li>Portfolio grouping by segment (LTCG / STCG split)</li>'
     +'<li>Algo trading / Tradetron / Quantman integration</li>'
     +'</ul></div>'
     +'</div></div>';
 
-  // ── Store Reviews Cross-Check ──────────────────────────────────────────────
-  var VENTURA_ID='6689520233';
-  var VENTURA_PKG='com.ventura.mvp';
-  var storeRevs=(_reviewsData||{})[VENTURA_ID]||[];
-  var storeTexts=storeRevs.map(function(r){return ((r.body||r.title||'')+'').toLowerCase();});
-  var storeRated=storeRevs.filter(function(r){return Number(r.rating)>=1&&Number(r.rating)<=5;});
-  var storeAvgRating=storeRated.length?(storeRated.reduce(function(s,r){return s+Number(r.rating);},0)/storeRated.length).toFixed(2):null;
-
-  var crossCheck='';
-  if(!storeRevs.length){
-    crossCheck='<div class="panel" style="padding:14px 16px;margin-bottom:12px;border:1px dashed rgba(0,180,255,0.3);background:rgba(0,180,255,0.04);text-align:center">'
-      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">📱 Store Reviews not loaded yet</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Loading Ventura App Store + Play Store reviews in background… Refresh in a moment.</div>'
-      +'<button class="btn" style="font-size:11px;padding:5px 14px" onclick="loadReviews(true).then(function(){var c=document.getElementById(\'content\');if(c&&_pulseFilter===\'analysis\')c.innerHTML=vPulse();})">↻ Load Now</button>'
-      +'</div>';
-  } else {
-    // Run theme analysis on store reviews
-    function textHasStore(t,kws){return kws.some(function(k){return t.includes(k);});}
-    var csvThemeMap={};
-    (_CSV_ANALYTICS.themes||[]).forEach(function(t){csvThemeMap[t.slug]=t;});
-    var crossRows=_STORE_THEMES.map(function(st){
-      var storeCnt=storeTexts.filter(function(t){return textHasStore(t,st.kws);}).length;
-      var storePct=storeTexts.length?Math.round(storeCnt/storeTexts.length*100):0;
-      var csvTheme=csvThemeMap[st.slug];
-      var csvCnt=csvTheme?csvTheme.count:0;
-      var csvPct=csvTheme?Math.round(csvCnt/total*100):0;
-      return {label:st.label,storePct:storePct,csvPct:csvPct,storeCnt:storeCnt,csvCnt:csvCnt,
-              match:Math.abs(storePct-csvPct)<=8?'✅ Aligned':storePct>csvPct+8?'📱 Bigger in store':'📋 Bigger in survey'};
-    }).filter(function(r){return r.storePct>0||r.csvPct>0;})
-      .sort(function(a,b){return (b.storePct+b.csvPct)-(a.storePct+a.csvPct);});
-
-    // App Store vs Play Store split
-    var appStoreCnt=storeRevs.filter(function(r){return r.source==='appstore';}).length;
-    var playStoreCnt=storeRevs.length-appStoreCnt;
-    var storeRatCol=storeAvgRating>=4?'#34C759':storeAvgRating>=3?'#FFB347':'#FF3B5C';
-
-    crossCheck='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'
-      // Header
-      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px">📊 STORE REVIEWS CROSS-CHECK — '+storeRevs.length+' reviews loaded</div>'
-      +'<div style="font-size:10px;color:var(--text3)">🍎 App Store: '+appStoreCnt+'  |  🤖 Play Store: '+playStoreCnt+'</div>'
-      +(storeAvgRating?'<div style="font-size:12px;font-weight:700;color:'+storeRatCol+'">Store avg: '+Number(storeAvgRating).toFixed(1)+'★</div>':'')
-      +'<div style="margin-left:auto;font-size:9px;color:var(--text3)">✅ Aligned (±8%)  |  📱 Bigger in store  |  📋 Bigger in survey</div>'
-      +'</div>'
-      // Cross-check rows
-      +'<div style="display:flex;flex-direction:column;gap:4px">'
-      +crossRows.map(function(r){
-        var barMax=Math.max(r.storePct,r.csvPct,1);
-        var storeW=Math.round(r.storePct/barMax*100);
-        var csvW=Math.round(r.csvPct/barMax*100);
-        var matchCol=r.match.startsWith('✅')?'#34C759':r.match.startsWith('📱')?'#00B4FF':'#FFB347';
-        return '<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px">'
-          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
-          +'<span style="font-size:11px;font-weight:600;color:var(--text);flex:1">'+r.label+'</span>'
-          +'<span style="font-size:9px;color:'+matchCol+'">'+r.match+'</span>'
-          +'</div>'
-          +'<div style="display:flex;flex-direction:column;gap:2px">'
-          // Store bar
-          +'<div style="display:flex;align-items:center;gap:5px">'
-          +'<span style="font-size:8px;color:#00B4FF;width:56px;text-align:right;flex-shrink:0">📱 Store</span>'
-          +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
-          +'<div style="width:'+storeW+'%;height:100%;background:#00B4FF;border-radius:2px;opacity:0.8"></div></div>'
-          +'<span style="font-size:9px;font-weight:700;color:#00B4FF;width:28px;text-align:right">'+r.storePct+'%</span>'
-          +'<span style="font-size:8px;color:var(--text3);width:44px">('+r.storeCnt+' rev)</span>'
-          +'</div>'
-          // CSV bar
-          +'<div style="display:flex;align-items:center;gap:5px">'
-          +'<span style="font-size:8px;color:#FFB347;width:56px;text-align:right;flex-shrink:0">📋 Survey</span>'
-          +'<div style="flex:1;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">'
-          +'<div style="width:'+csvW+'%;height:100%;background:#FFB347;border-radius:2px;opacity:0.8"></div></div>'
-          +'<span style="font-size:9px;font-weight:700;color:#FFB347;width:28px;text-align:right">'+r.csvPct+'%</span>'
-          +'<span style="font-size:8px;color:var(--text3);width:44px">('+r.csvCnt+' sub)</span>'
-          +'</div>'
-          +'</div></div>';
-      }).join('')
-      +'</div>'
-      // Sample store verbatims
-      +'<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px">'
-      +'<div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">RECENT VENTURA STORE REVIEWS</div>'
-      +'<div style="display:flex;flex-direction:column;gap:6px">'
-      +storeRevs.slice(0,6).map(function(r){
-        var rCol=Number(r.rating)<=2?'#FF3B5C':Number(r.rating)<=3?'#FFB347':'#34C759';
-        return '<div style="padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid '+rCol+'">'
-          +'<div style="font-size:9px;color:'+rCol+';font-weight:700;margin-bottom:2px">'+r.rating+'★'+(r.version?' · v'+r.version:'')+(r.source?' · '+r.source:'')+(r.date?' · '+r.date.slice(0,10):'')+'</div>'
-          +(r.title?'<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">'+r.title+'</div>':'')
-          +(r.body?'<div style="font-size:11px;color:var(--text2);line-height:1.4">'+r.body.slice(0,200)+(r.body.length>200?'…':'')+'</div>':'')
-          +'</div>';
-      }).join('')
-      +'</div></div></div>';
-  }
-
-  return kpis
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:0">'
-    +'<div>'+rDist+'</div><div>'+spark+'</div><div>'+platBar+'</div>'
-    +'</div>'
+  return srcHeader
+    +ratingComp
+    +themeSection
     +insights
-    +themes
-    +crossCheck
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +'<div>'+issueVerbatims+lowVerbatims+'</div>'
-    +'<div>'+featureVerbatims+'</div>'
-    +'</div>';
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
+    +'<div>'+spark+'</div><div>'+intentBar+'</div>'
+    +'</div>'
+    +storeVerbatims
+    +csvVerbatims;
 }
 
 function vPulse(){
