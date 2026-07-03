@@ -5222,20 +5222,38 @@ function vAnalysis(){
   var playAvg=avgRat(playRevs);
   var storeAvg=avgRat(allStoreRevs);
 
+  // ── Date range helper ──────────────────────────────────────────────────────
+  function dateRange(revs){
+    var dates=revs.map(function(r){return r.date?new Date(r.date):null;}).filter(Boolean).filter(function(dt){return !isNaN(dt);});
+    if(!dates.length) return null;
+    var mn=new Date(Math.min.apply(null,dates));
+    var mx=new Date(Math.max.apply(null,dates));
+    function fmt(dt){return dt.toISOString().slice(0,7);}
+    return fmt(mn)===fmt(mx)?fmt(mx):fmt(mn)+' → '+fmt(mx);
+  }
+
   // ── Source summary header ──────────────────────────────────────────────────
-  function srcCard(icon, label, n, avg, col, sub){
+  function srcCard(icon, label, n, avg, col, sub, span){
     var ac=avg!=null?(avg>=4?'#34C759':avg>=3?'#FFB347':'#FF3B5C'):'var(--text3)';
     return '<div class="panel" style="padding:14px 16px;text-align:center;border-top:3px solid '+col+'">'
       +'<div style="font-size:10px;font-weight:700;color:'+col+';letter-spacing:.5px;margin-bottom:6px">'+icon+' '+label+'</div>'
       +'<div style="font-size:26px;font-weight:900;color:var(--text)">'+n+'</div>'
       +'<div style="font-size:9px;color:var(--text3);margin-top:2px">'+sub+'</div>'
-      +(avg!=null?'<div style="font-size:16px;font-weight:800;color:'+ac+';margin-top:6px">'+avg.toFixed(1)+'★</div>':'<div style="font-size:11px;color:var(--text3);margin-top:6px">No rating data</div>')
+      +(span?'<div style="font-size:9px;color:var(--text3);margin-top:2px">📅 '+span+'</div>':'')
+      +(avg!=null?'<div style="font-size:16px;font-weight:800;color:'+ac+';margin-top:6px">'+avg.toFixed(1)+'★ avg</div>':'<div style="font-size:11px;color:var(--text3);margin-top:6px">No rating data</div>')
       +'</div>';
   }
+  var appSpan  = storeLoaded ? dateRange(appRevs)  : null;
+  var playSpan = storeLoaded ? dateRange(playRevs) : null;
+  var csvSpan  = d.date_range.from+' → '+d.date_range.to;
+
   var srcHeader='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">'
-    +srcCard('🍎','App Store', appRevs.length, appAvg,'#34C759', storeLoaded?'iTunes reviews':'not loaded yet')
-    +srcCard('🤖','Play Store',playRevs.length,playAvg,'#00B4FF', storeLoaded?'Google Play reviews':'not loaded yet')
-    +srcCard('📋','Survey / Tally',total,csvAvg,'#FFB347', d.date_range.from+' → '+d.date_range.to)
+    +srcCard('🍎','App Store',  appRevs.length,  appAvg,  '#34C759',
+      storeLoaded?'iTunes · all available reviews':'not loaded yet', appSpan)
+    +srcCard('🤖','Play Store', playRevs.length, playAvg, '#00B4FF',
+      storeLoaded?'Google Play · all available reviews':'not loaded yet', playSpan)
+    +srcCard('📋','Survey / Tally', total, csvAvg, '#FFB347',
+      'Tally feedback · all submissions', csvSpan)
     +'</div>';
 
   if(!storeLoaded){
