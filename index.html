@@ -5024,6 +5024,203 @@ function vFeedback(){
   // ═══════════════════════════════════════════════════════════════════════════
   var out=importBanner+periodBar+schemaBanner;
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // EXECUTIVE SUMMARY — KPI GRID + INSIGHTS (reference dashboard style)
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── KPI Cards ─────────────────────────────────────────────────────────────
+  function fbKpiCard(icon,iconBg,iconCol,val,label,sub,badge,badgeCol){
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 18px 14px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.18);transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+      +'<div style="width:34px;height:34px;border-radius:10px;background:'+iconBg+';display:flex;align-items:center;justify-content:center;font-size:16px">'+icon+'</div>'
+      +(badge?'<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:'+badgeCol+'22;color:'+badgeCol+'">'+badge+'</span>':'')
+      +'</div>'
+      +'<div style="font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;color:'+iconCol+'">'+val+'</div>'
+      +'<div style="font-size:12px;color:var(--text);margin-top:5px;font-weight:500">'+label+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:5px">'+sub+'</div>'
+      +'</div>';
+  }
+  var kpiCards=[
+    fbKpiCard('📋','rgba(0,122,255,0.15)','var(--blue)',total,'Total Responses',
+      (volDeltaStr?volDeltaStr+' vs prev period':'All captured responses'),
+      null,null),
+    fbKpiCard('⭐','rgba(255,159,10,0.15)','#FF9F0A',rated.length?avgRating.toFixed(1)+' ★':'—','Avg Rating',
+      rated.length+' rated · '+pctPos+'% promoters',
+      ratingDeltaStr?(parseFloat(ratingDeltaStr)>=0?'↑ Up':'↓ Down')+(ratingDelta?' '+Math.abs(ratingDelta):''): null,
+      parseFloat(ratingDeltaStr)>=0?'#34C759':'#FF3B5C'),
+    fbKpiCard('🏥','rgba(52,199,89,0.15)',healthColor,healthScore+'/100','Health Score',
+      healthScore>=70?'Healthy experience':healthScore>=50?'Needs attention':'Urgent issues',
+      healthScore>=70?'Healthy':healthScore>=50?'Fair':'Critical',
+      healthScore>=70?'#34C759':healthScore>=50?'#FF9F0A':'#FF3B5C'),
+    fbKpiCard('💬','rgba(0,180,255,0.15)','#00B4FF',withFeedback,'Open Feedback',
+      Math.round(withFeedback/total*100)+'% left written comments',null,null),
+    fbKpiCard('😤','rgba(255,59,92,0.15)','#FF3B5C',
+      emoData.length?emoData[0].icon+' '+emoData[0].label:'—',
+      'Top Emotion',
+      emoData.length?emoData[0].count+' mentions ('+emoData[0].pct+'%)':'No emotion data',null,null),
+    fbKpiCard('🔥','rgba(191,90,242,0.15)','#BF5AF2',
+      themeData.length?themeData[0].mentions:'—',
+      'Top Theme: '+(themeData.length?themeData[0].label:'—'),
+      themeData.length?Math.round(themeData[0].mentions/total*100)+'% of responses · '+themeData[0].trend:'',null,null),
+  ];
+  var kpiGrid='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px">'
+    +kpiCards.join('')
+    +'</div>';
+  out+=kpiGrid;
+
+  // ── Executive Insights ─────────────────────────────────────────────────────
+  var insightBullets=[];
+  if(themeData.length) insightBullets.push('<b>'+Math.round(themeData[0].mentions/total*100)+'%</b> of respondents mention "'+themeData[0].label+'" — the #1 feedback theme'+(themeData.length>1?', ahead of "'+themeData[1].label+'" ('+themeData[1].mentions+' mentions)':'')+'.');
+  if(pctNeg>30) insightBullets.push('Negative sentiment is elevated at <b>'+pctNeg+'%</b> ('+detractors+' detractors). This signals unresolved friction that needs prioritization.');
+  else if(pctPos>60) insightBullets.push('<b>'+pctPos+'%</b> of rated respondents are promoters (4–5★), indicating a predominantly positive experience.');
+  if(emoData.length){
+    var topNeg=emoData.filter(function(e){return e.id==='frustrated'||e.id==='angry'||e.id==='anxious';});
+    if(topNeg.length) insightBullets.push('Negative emotions — especially <b>'+topNeg[0].label+'</b> ('+topNeg[0].count+' mentions) — are present in open feedback, pointing to real pain that goes beyond rating scores.');
+  }
+  if(journeyData.length){
+    var worstStep=journeyData.slice().sort(function(a,b){return b.painScore-a.painScore;})[0];
+    if(worstStep&&worstStep.painScore>0) insightBullets.push('The <b>'+worstStep.label+'</b> step has the highest friction ('+worstStep.painScore+'% negative mentions), making it the most impactful journey point to fix.');
+  }
+  if(featureData.length){
+    var highFriction=featureData.filter(function(f){return f.frictionScore>50;});
+    if(highFriction.length) insightBullets.push('<b>'+highFriction[0].label+'</b> has the highest user friction ('+highFriction[0].frictionScore+'% negative in that feature\'s mentions) — a targeted fix here could meaningfully move ratings.');
+  }
+  if(withFeedback>0) insightBullets.push('<b>'+Math.round(withFeedback/total*100)+'%</b> of respondents left written comments — a strong signal of engagement and urgency from users.');
+  if(issueData.length){
+    var critical=issueData.filter(function(i){return i.sev.includes('Critical');});
+    if(critical.length) insightBullets.push(critical.length+' issue'+(critical.length>1?'s are':' is')+' rated <b>🔴 Critical</b> in severity: <b>'+critical.map(function(i){return i.label;}).join(', ')+'</b>. These warrant immediate sprint attention.');
+  }
+  if(ratingDeltaStr&&ratingDelta){
+    var deltaV=parseFloat(ratingDelta);
+    if(Math.abs(deltaV)>=0.2) insightBullets.push('Average rating has '+(deltaV>0?'<b style="color:#34C759">improved by '+deltaV+'★</b>':'<b style="color:#FF3B5C">dropped by '+Math.abs(deltaV)+'★</b>')+' compared to the previous period — monitor this trend closely.');
+  }
+  var execInsights='<div style="margin-bottom:20px">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+    +'<div style="width:32px;height:32px;border-radius:9px;background:rgba(255,179,71,0.18);display:flex;align-items:center;justify-content:center;font-size:15px">🔎</div>'
+    +'<div><div style="font-size:15px;font-weight:700;color:var(--text)">Executive Insights</div>'
+    +'<div style="font-size:11.5px;color:var(--text3)">Auto-generated from '+total+' responses · '+per==='all'?'All Time':per+' window'+'</div></div>'
+    +'</div>'
+    +'<div style="display:grid;gap:8px">'
+    +insightBullets.map(function(txt,i){
+      return '<div style="display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">'
+        +'<div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(0,122,255,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--blue)">'+(i+1)+'</div>'
+        +'<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">'+txt+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div></div>';
+  out+=execInsights;
+
+  // ── SECTION HEADER HELPER (reference style) ───────────────────────────────
+  function sectionHead(emoji,bg,title,sub){
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+      +'<div style="width:32px;height:32px;border-radius:9px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:15px">'+emoji+'</div>'
+      +'<div><div style="font-size:14.5px;font-weight:700;color:var(--text)">'+title+'</div>'
+      +(sub?'<div style="font-size:11px;color:var(--text3)">'+sub+'</div>':'')
+      +'</div></div>';
+  }
+
+  // ── PAIN POINTS + FEATURE REQUESTS (ranked lists, reference style) ─────────
+  var painDefs=[
+    {label:'Login / OTP Friction',   kws:['login','otp','sign in','authentication'],        effort:20},
+    {label:'App Performance / Speed',kws:['slow','lag','crash','freeze','hang'],             effort:60},
+    {label:'Holdings Not Reflecting',kws:['holding','not reflecting','not showing'],         effort:35},
+    {label:'Chart Issues',           kws:['chart','candle','15 min','chart break'],          effort:50},
+    {label:'Fund Transfer Problems', kws:['fund','deposit','withdraw','payment gateway'],    effort:55},
+    {label:'Navigation Confusion',   kws:['confus','find','navigate','complex','difficult'], effort:25},
+    {label:'Old App Regression',     kws:['old app','previous version','new app'],           effort:70},
+    {label:'Watchlist Issues',       kws:['watchlist','watch list'],                         effort:20},
+    {label:'Order / Execution Bugs', kws:['order','execution','reject','bracket'],           effort:45},
+    {label:'Customer Support',       kws:['support','customer care','no answer','complaint'],effort:30},
+  ];
+  var featDefs=[
+    {label:'Dark Mode',              kws:['dark mode','dark theme','night mode'],  effort:25},
+    {label:'Chart Trading (drag SL)',kws:['chart buy','sell on chart','drag'],    effort:55},
+    {label:'Option Chain: IV / OI',  kws:['option chain','iv','pcr','oi'],        effort:50},
+    {label:'Algo / Automation',      kws:['algo','algorithm','automated','api'],   effort:75},
+    {label:'Screener',               kws:['screener','screen stocks'],             effort:60},
+    {label:'Intraday→Delivery (I2D)',kws:['intraday to delivery','i2d','cnc mis'],effort:40},
+    {label:'PnL Export / Reports',   kws:['pnl','profit and loss','excel sheet'],  effort:30},
+    {label:'Stock SIP',              kws:['sip','recurring investment'],           effort:50},
+    {label:'Watchlist Limit (10+)',  kws:['watchlist limit','more stocks'],        effort:20},
+    {label:'Bracket / GTT Orders',   kws:['bracket order','gtt'],                 effort:55},
+  ];
+  function detectRank(defs){
+    return defs.map(function(d){
+      var cnt=0,quote='';
+      data.forEach(function(r){var t=allText(r);if(textHas(t,d.kws)){cnt++;if(!quote&&t.length>30)quote=t.substring(0,120)+(t.length>120?'…':'');}});
+      return Object.assign({},d,{count:cnt,quote:quote});
+    }).filter(function(d){return d.count>0;}).sort(function(a,b){return b.count-a.count;}).slice(0,8);
+  }
+  var painRanked=detectRank(painDefs);
+  var featRanked=detectRank(featDefs);
+  var rankMax=Math.max.apply(null,painRanked.concat(featRanked).map(function(r){return r.count;}))||1;
+  function rankList(items,accentCol){
+    if(!items.length) return '<div style="font-size:12px;color:var(--text3);padding:16px">No data for this period.</div>';
+    return '<div style="display:flex;flex-direction:column;gap:10px">'
+      +items.map(function(it,i){
+        var barW=Math.round(it.count/rankMax*100);
+        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">'
+          +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+          +'<div style="width:22px;height:22px;border-radius:50%;background:'+accentCol+'22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+accentCol+';flex-shrink:0">'+(i+1)+'</div>'
+          +'<div style="flex:1;font-size:13px;font-weight:600;color:var(--text)">'+it.label+'</div>'
+          +'<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+accentCol+'18;color:'+accentCol+'">'+it.count+' mentions</span>'
+          +'</div>'
+          +'<div style="height:5px;border-radius:5px;background:var(--border);overflow:hidden;margin-bottom:8px">'
+          +'<div style="width:'+barW+'%;height:100%;border-radius:5px;background:linear-gradient(90deg,'+accentCol+','+accentCol+'99);transition:width .5s"></div>'
+          +'</div>'
+          +(it.quote?'<div style="font-size:11px;color:var(--text3);font-style:italic;border-left:2px solid '+accentCol+'55;padding:4px 0 4px 10px;line-height:1.5">"'+_esc(it.quote)+'"</div>':'')
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+  var ppHead=sectionHead('⚠️','rgba(255,59,92,0.15)','Top Pain Points','Ranked by number of respondent mentions');
+  var frHead=sectionHead('💡','rgba(0,180,255,0.15)','Feature Requests','Most requested capabilities');
+  var painFeatSection='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div>'+ppHead+rankList(painRanked,'#FF3B5C')+'</div>'
+    +'<div>'+frHead+rankList(featRanked,'#00B4FF')+'</div>'
+    +'</div>';
+  out+=painFeatSection;
+
+  // ── THEME CARDS (reference dashboard grid style) ───────────────────────────
+  var themeHead=sectionHead('🗂️','rgba(191,90,242,0.15)','Feedback Themes','Mention count, sentiment split, and verbatim samples');
+  var themeCardGrid=(function(){
+    if(!themeData.length) return '<div style="font-size:12px;color:var(--text3);padding:16px">No themes detected for this period.</div>';
+    var maxM=themeData[0].mentions||1;
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'
+      +themeData.map(function(t){
+        var fillW=Math.round(t.mentions/maxM*100);
+        var pct=Math.round(t.mentions/total*100);
+        var trendCol=t.trend.startsWith('↑')?'#FF3B5C':t.trend.startsWith('↓')?'#34C759':'var(--text3)';
+        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:16px;transition:border-color .15s,transform .15s">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:18px">'+t.icon+'</span>'
+          +'<span style="font-size:13.5px;font-weight:700;color:var(--text)">'+t.label+'</span>'
+          +'</div>'
+          +'<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+t.col+'1A;color:'+t.col+'">'+t.mentions+'</span>'
+          +'</div>'
+          +'<div style="height:6px;border-radius:6px;background:var(--border);overflow:hidden;margin-bottom:10px">'
+          +'<div style="width:'+fillW+'%;height:100%;border-radius:6px;background:linear-gradient(90deg,'+t.col+','+t.col+'88);transition:width .5s"></div>'
+          +'</div>'
+          +'<div style="display:flex;gap:0;height:4px;border-radius:4px;overflow:hidden;margin-bottom:10px">'
+          +'<div style="width:'+t.posRatio+'%;background:#34C759" title="Positive: '+t.pos+'"></div>'
+          +'<div style="width:'+(t.neu&&t.mentions?Math.round(t.neu/t.mentions*100):0)+'%;background:#FFB347"></div>'
+          +'<div style="width:'+t.negRatio+'%;background:#FF3B5C" title="Negative: '+t.neg+'"></div>'
+          +'</div>'
+          +'<div style="display:flex;gap:10px;margin-bottom:10px">'
+          +'<span style="font-size:10px;color:#34C759">'+t.posRatio+'% positive</span>'
+          +'<span style="font-size:10px;color:#FF3B5C">'+t.negRatio+'% negative</span>'
+          +'<span style="font-size:10px;color:'+trendCol+';margin-left:auto">'+t.trend+'</span>'
+          +'</div>'
+          +(t.examples[0]?'<div style="font-size:11px;color:var(--text3);font-style:italic;border-left:2px solid '+t.col+'55;padding:4px 0 4px 10px;line-height:1.45">'+_esc(t.examples[0].text.substring(0,110))+(t.examples[0].text.length>110?'…':'')+'</div>':'')
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }());
+  out+=themeHead+themeCardGrid+'<div style="height:20px"></div>';
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DETAILED ANALYSIS (existing sections, continue below)
+  // ══════════════════════════════════════════════════════════════════════════
   // ── A. HEALTH DASHBOARD ───────────────────────────────────────────────────
   var healthDash='<div class="panel" style="padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,rgba(30,32,48,0.8),rgba(20,22,36,0.9));border:1px solid rgba(255,255,255,0.08)">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
@@ -5231,39 +5428,7 @@ function vFeedback(){
     out+=section('TREND',trendChart);
   }
 
-  // ── D. THEME ANALYSIS ─────────────────────────────────────────────────────
-  var themeMax=themeData.length?(themeData[0].mentions):1;
-  var themeHtml='<div style="display:flex;flex-direction:column;gap:6px">'
-    +themeData.map(function(t){
-      var pct=Math.round(t.mentions/total*100);
-      var trendColor=t.trend.startsWith('↑')?'#FF3B5C':t.trend.startsWith('↓')?'#34C759':'var(--text3)';
-      return '<div class="panel" style="padding:10px 12px;border-left:3px solid '+t.col+'">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">'
-        +'<div style="display:flex;align-items:center;gap:6px">'
-        +'<span style="font-size:14px">'+t.icon+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:var(--text)">'+t.label+'</span>'
-        +'<span style="font-size:10px;color:var(--text3)">'+t.segment+'</span>'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:8px">'
-        +'<span style="font-size:10px;color:'+trendColor+'">'+t.trend+'</span>'
-        +'<span style="font-size:10px;color:var(--text3)">'+t.mentions+' mentions · '+pct+'%</span>'
-        +'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:0;border-radius:3px;overflow:hidden;height:6px;margin-bottom:6px">'
-        +'<div style="width:'+t.posRatio+'%;background:#34C759;transition:width .4s" title="'+t.pos+' positive"></div>'
-        +'<div style="width:'+(t.neu?Math.round(t.neu/t.mentions*100):0)+'%;background:#FFB347" title="Neutral"></div>'
-        +'<div style="width:'+t.negRatio+'%;background:#FF3B5C;transition:width .4s" title="'+t.neg+' negative"></div>'
-        +'</div>'
-        +'<div style="display:flex;gap:10px">'
-        +'<span style="font-size:9px;color:#34C759">'+t.posRatio+'% positive</span>'
-        +'<span style="font-size:9px;color:#FF3B5C">'+t.negRatio+'% negative</span>'
-        +'<span style="font-size:9px;color:var(--text3)">Importance: '+t.importance+'/100</span>'
-        +'</div>'
-        +(t.examples[0]?'<div style="font-size:10px;color:var(--text3);margin-top:6px;font-style:italic;border-left:2px solid '+t.col+'44;padding-left:6px">'+_esc(t.examples[0].text.substring(0,100))+(t.examples[0].text.length>100?'…':'')+'</div>':'')
-        +'</div>';
-    }).join('')
-    +'</div>';
-  out+=section('THEME ANALYSIS',themeHtml);
+  // ── D. THEME ANALYSIS — already rendered in executive summary above, skip duplicate ──
 
   // ── E. FEATURE ANALYSIS ───────────────────────────────────────────────────
   var featureHtml='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">'
