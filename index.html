@@ -2976,7 +2976,8 @@ var _reviewsStarFilter = 'all';
 var _reviewsSourceFilter = 'all'; // 'all' | 'appstore' | 'playstore'
 var _reviewsDateFilter = 'all';   // 'all' | '7d' | '30d' | '3m' | '6m' | '1y'
 var _reviewsQualityFilter = 'substantive'; // 'all' | 'substantive'
-var _reviewsData = {};   // {appId: [{rating,title,body,author,date,version,source}]}
+var _reviewsData = {};     // {appId: [{rating,title,body,author,date,version,source}]}
+var _appStoreMeta = {};    // {appId: {avgRating, ratingCount, currentVersionRating, ...}}
 var _reviewsLoading = false;
 var _reviewsTier = 'all';
 var _pulseSentiment = 'all';
@@ -3988,10 +3989,38 @@ async function loadReviews(force){
   if(_reviewsLoading&&!force) return;
   _reviewsLoading=true;
   _reviewsData={};
+  _appStoreMeta={};
 
-  // --- App Store (iTunes RSS) — fetch pages 1–10 per app, merge ---
-  function parseItunesPage(d){
-    // Apple quirk: single entry comes as object, multiple as array
+  // --- iTunes Lookup — aggregate ratings for every app (reliable, CORS-safe) ---
+  var itunesLookupPromise=(async function(){
+    try{
+      var ids=REVIEW_APPS.map(function(a){return a.id;}).join(',');
+      var r=await fetch('https://itunes.apple.com/in/lookup?id='+ids);
+      if(!r.ok) return {};
+      var d=await r.json();
+      var out={};
+      (d.results||[]).forEach(function(app){
+        if(app.trackId){
+          out[String(app.trackId)]={
+            avgRating:app.averageUserRating||null,
+            ratingCount:app.userRatingCount||0,
+            currentVersionRating:app.averageUserRatingForCurrentVersion||null,
+            currentVersionRatingCount:app.userRatingCountForCurrentVersion||0,
+            appName:app.trackName||''
+          };
+        }
+      });
+      console.log('[iTunes Lookup] fetched metadata for',Object.keys(out).length,'apps');
+      return out;
+    }catch(e){
+      console.warn('[iTunes Lookup] failed:',e);
+      return {};
+    }
+  }());
+
+  // --- App Store individual reviews — via Supabase edge fn (same as Play Store) ---
+  // Falls back to iTunes RSS if edge fn doesn't support appIds param
+  function parseItunesRSS(d){
     var raw=(d.feed&&d.feed.entry)||[];
     if(raw && !Array.isArray(raw)) raw=[raw];
     return raw.filter(function(e){return e['im:rating'];}).map(function(e){
@@ -4006,63 +4035,97 @@ async function loadReviews(force){
       };
     });
   }
-  var appStorePromises=REVIEW_APPS.map(function(a){
-    // Fetch pages 1–10 in parallel (Apple RSS: up to 50 per page, max 500 total)
-    var pages=[1,2,3,4,5,6,7,8,9,10];
-    var pagePromises=pages.map(function(pg){
-      var url='https://itunes.apple.com/in/rss/customerreviews/page='+pg+'/id='+a.id+'/sortBy=mostRecent/json';
-      return fetch(url)
+  // Fetch only pages 1–2 per app via RSS (avoid rate limiting with 100 concurrent requests)
+  var appStoreRSSPromises=REVIEW_APPS.map(function(a){
+    var pgs=[1,2];
+    return Promise.all(pgs.map(function(pg){
+      return fetch('https://itunes.apple.com/in/rss/customerreviews/page='+pg+'/id='+a.id+'/sortBy=mostRecent/json')
         .then(function(r){return r.ok?r.json():null;})
-        .then(function(d){return d?parseItunesPage(d):[];})
-        .catch(function(){return [];});
-    });
-    return Promise.all(pagePromises).then(function(pages){
-      var allRevs=[].concat.apply([],pages);
-      // Deduplicate by author+date
+        .then(function(d){
+          if(!d){console.warn('[AppStore RSS] page '+pg+' for '+a.name+' returned non-OK'); return [];}
+          var revs=parseItunesRSS(d);
+          console.log('[AppStore RSS] '+a.name+' page '+pg+': '+revs.length+' reviews');
+          return revs;
+        })
+        .catch(function(e){console.warn('[AppStore RSS] '+a.name+' pg'+pg,e);return [];});
+    })).then(function(pages){
+      var all=[].concat.apply([],pages);
       var seen={};
-      allRevs=allRevs.filter(function(r){
-        var key=r.author+'|'+r.date;
-        if(seen[key]) return false;
-        seen[key]=true; return true;
-      });
-      console.log('[AppStore] '+a.name+': '+allRevs.length+' reviews');
-      return {appId:a.id, reviews:allRevs};
+      return {appId:a.id,reviews:all.filter(function(r){
+        var k=r.author+'|'+r.date; if(seen[k])return false; seen[k]=true; return true;
+      })};
     });
   });
 
-  // --- Play Store (Supabase Edge Function) — single batch call ---
-  var playStorePromise=(async function(){
+  // --- Play Store + App Store (server-side via Supabase edge fn) ---
+  var storeEdgePromise=(async function(){
     try{
       var pkgs=REVIEW_APPS.map(function(a){return a.pkg;}).filter(Boolean);
+      var appIds=REVIEW_APPS.map(function(a){return a.id;}).filter(Boolean);
       var psRes=await fetch(SB+'/functions/v1/play-reviews',{
         method:'POST',
         headers:Object.assign({'Content-Type':'application/json'},H),
-        body:JSON.stringify({packageNames:pkgs})
+        body:JSON.stringify({packageNames:pkgs, appIds:appIds})
       });
-      if(psRes.ok) return await psRes.json();
+      if(psRes.ok){
+        var data=await psRes.json();
+        console.log('[Edge Fn] keys returned:',Object.keys(data));
+        return data;
+      }
+      console.warn('[Edge Fn] HTTP',psRes.status);
       return {};
     }catch(e){
-      console.warn('Play Store edge fn failed:',e);
+      console.warn('[Edge Fn] failed:',e);
       return {};
     }
   }());
 
-  // Run App Store + Play Store fully in parallel
-  var results=await Promise.all([Promise.all(appStorePromises),playStorePromise]);
-  var appStoreResults=results[0];
-  var psData=results[1];
+  // Run all in parallel
+  var results=await Promise.all([Promise.all(appStoreRSSPromises), storeEdgePromise, itunesLookupPromise]);
+  var appStoreRSSResults=results[0];
+  var edgeData=results[1];
+  var itunesMeta=results[2];
 
-  // Merge App Store results
-  appStoreResults.forEach(function(r){
-    _reviewsData[r.appId]=r.reviews;
+  // Store iTunes aggregate metadata
+  _appStoreMeta=itunesMeta;
+
+  // Merge App Store RSS results first
+  appStoreRSSResults.forEach(function(r){
+    _reviewsData[r.appId]=(r.reviews||[]);
   });
 
-  // Merge Play Store results (appended after App Store)
+  // Merge edge function results — Play Store reviews (keyed by pkg)
   REVIEW_APPS.forEach(function(a){
-    if(psData[a.pkg]&&psData[a.pkg].length){
+    // Play Store data (keyed by package name)
+    if(edgeData[a.pkg]&&edgeData[a.pkg].length){
       var existing=_reviewsData[a.id]||[];
-      _reviewsData[a.id]=existing.concat(psData[a.pkg]);
+      var playRevs=edgeData[a.pkg].map(function(r){
+        return Object.assign({},r,{source:r.source||'playstore'});
+      });
+      _reviewsData[a.id]=existing.concat(playRevs);
     }
+    // App Store data from edge fn (keyed by app ID, if edge fn supports it)
+    if(edgeData[a.id]&&edgeData[a.id].length){
+      var existing=_reviewsData[a.id]||[];
+      var asRevs=edgeData[a.id].map(function(r){
+        return Object.assign({},r,{source:'appstore'});
+      });
+      // Dedupe: don't add if already in RSS results
+      var existingKeys={};
+      existing.filter(function(r){return r.source==='appstore';}).forEach(function(r){
+        existingKeys[r.author+'|'+r.date]=true;
+      });
+      var newRevs=asRevs.filter(function(r){return !existingKeys[r.author+'|'+r.date];});
+      _reviewsData[a.id]=existing.concat(newRevs);
+      console.log('[Edge Fn AppStore] '+a.name+': added '+newRevs.length+' reviews');
+    }
+  });
+  // Log final counts
+  REVIEW_APPS.forEach(function(a){
+    var revs=_reviewsData[a.id]||[];
+    var as=revs.filter(function(r){return r.source==='appstore';}).length;
+    var ps=revs.filter(function(r){return r.source!=='appstore';}).length;
+    console.log('[Reviews] '+a.name+': AppStore='+as+' PlayStore='+ps);
   });
 
   _reviewsLoading=false;
@@ -5222,6 +5285,14 @@ function vAnalysis(){
   var playAvg=avgRat(playRevs);
   var storeAvg=avgRat(allStoreRevs);
 
+  // iTunes Lookup aggregate (fallback when RSS returns no reviews)
+  var itunesMeta=(_appStoreMeta||{})[VENTURA_ID]||null;
+  var appRatingCount=appRevs.length;
+  if(!appAvg && itunesMeta && itunesMeta.avgRating){
+    appAvg=itunesMeta.avgRating;
+    appRatingCount=itunesMeta.ratingCount||0;
+  }
+
   // ── Date range helper ──────────────────────────────────────────────────────
   function dateRange(revs){
     var dates=revs.map(function(r){return r.date?new Date(r.date):null;}).filter(Boolean).filter(function(dt){return !isNaN(dt);});
@@ -5247,9 +5318,13 @@ function vAnalysis(){
   var playSpan = storeLoaded ? dateRange(playRevs) : null;
   var csvSpan  = d.date_range.from+' → '+d.date_range.to;
 
+  var appStoreSub=!storeLoaded?'not loaded yet'
+    :appRevs.length?'iTunes · '+appRevs.length+' individual reviews'
+    :itunesMeta?'iTunes Lookup · '+itunesMeta.ratingCount+' total ratings (no individual reviews available)'
+    :'iTunes · 0 reviews returned';
+
   var srcHeader='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">'
-    +srcCard('🍎','App Store',  appRevs.length,  appAvg,  '#34C759',
-      storeLoaded?'iTunes · all available reviews':'not loaded yet', appSpan)
+    +srcCard('🍎','App Store',  appRatingCount,  appAvg,  '#34C759', appStoreSub, appSpan)
     +srcCard('🤖','Play Store', playRevs.length, playAvg, '#00B4FF',
       storeLoaded?'Google Play · all available reviews':'not loaded yet', playSpan)
     +srcCard('📋','Survey / Tally', total, csvAvg, '#FFB347',
