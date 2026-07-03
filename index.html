@@ -4337,10 +4337,34 @@ function parseTallyCSV(csvText){
     var responseId = col(row,'Submission ID') || ('csv-'+Math.random().toString(36).slice(2));
     var submittedAt = col(row,'Submitted at') || null;
 
-    // Rating: numeric 1-5
-    var ratingRaw = col(row,'How would you rate your overall experience?');
-    var rating = ratingRaw ? parseInt(ratingRaw,10) : null;
-    if(isNaN(rating)) rating=null;
+    // Rating: numeric 1-5 — try every plausible Tally column name
+    var RATING_COL_NAMES=[
+      'How would you rate your overall experience?',
+      'How would you rate your experience?',
+      'Overall rating','Overall Rating',
+      'Rate your experience','Rate your overall experience',
+      'Rating','rating','Stars','stars',
+      'How satisfied are you?','Satisfaction',
+      'How do you rate','Experience rating',
+      'Please rate','Rate us','Score','NPS',
+    ];
+    var ratingRaw='';
+    for(var ri=0;ri<RATING_COL_NAMES.length;ri++){
+      ratingRaw=col(row,RATING_COL_NAMES[ri]);
+      if(ratingRaw) break;
+    }
+    // Also scan any header that looks like a rating question
+    if(!ratingRaw){
+      for(var hk in idx){
+        var hl=hk.toLowerCase();
+        if(hl.includes('rate')||hl.includes('rating')||hl.includes('stars')||hl.includes('score')||hl.includes('satisf')||hl.includes('experience')){
+          var v=(row[idx[hk]]||'').trim();
+          if(v){ratingRaw=v;break;}
+        }
+      }
+    }
+    var rating=ratingRaw?parseInt(ratingRaw,10):null;
+    if(isNaN(rating)||rating<1||rating>5) rating=null;
 
     // Intent type drives which DB column the text goes into
     var intent = col(row,'Would you like to'); // "Give Feedback" | "Report an Issue" | "Request a Feature"
@@ -4532,6 +4556,28 @@ function _fbRating(r){
       if(Number.isInteger(n3)&&n3>=1&&n3<=5) return n3;
     }
   }
+
+  // 4. Sentiment inference fallback — derive implied rating from the text content
+  // Used when no explicit rating column exists (e.g. CSV imports with only free-text fields)
+  var allT=[r.feedback_text,r.pain_points,r.feature_requests].filter(Boolean).join(' ').toLowerCase();
+  if(allT.length>5){
+    var POS5=['excellent','amazing','outstanding','fantastic','perfect','love it','absolutely love','best app','superb','brilliant','awesome','very happy','highly recommend','great work','wonderful'];
+    var POS4=['good','nice','smooth','easy','helpful','satisfied','happy','works well','improved','pretty good','convenient','appreciate','solid'];
+    var NEG2=['slow','crash','bug','broken','error','issue','problem','doesn\'t work','not working','frustrat','horrible','terrible','pathetic','worst','useless','hate','annoying','disappointed','waste','scam'];
+    var NEG1=['fraud','cheat','pathetic','disgusting','never again','lost money','very bad','absolutely terrible','complete waste'];
+    for(var pi=0;pi<NEG1.length;pi++){if(allT.includes(NEG1[pi])) return 1;}
+    var negScore=0,posScore=0;
+    for(var pi2=0;pi2<NEG2.length;pi2++){if(allT.includes(NEG2[pi2])) negScore++;}
+    for(var pi3=0;pi3<POS5.length;pi3++){if(allT.includes(POS5[pi3])) posScore+=2;}
+    for(var pi4=0;pi4<POS4.length;pi4++){if(allT.includes(POS4[pi4])) posScore++;}
+    if(negScore>=3) return 2;
+    if(negScore>=1&&posScore===0) return 2;
+    if(posScore>=4) return 5;
+    if(posScore>=2) return 4;
+    if(posScore>=1&&negScore===0) return 4;
+    if(negScore>=1&&posScore>=1) return 3;
+    return 3; // neutral / ambiguous text
+  }
   return null;
 }
 
@@ -4704,11 +4750,12 @@ function vFeedback(){
         rfPreview=JSON.stringify(rfParsed).slice(0,300);
       }catch(e){rfPreview=String(rfVal).slice(0,300);}
     }
-    schemaBanner='<div style="margin-bottom:12px;padding:10px 14px;background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.35);border-radius:8px">'
-      +'<div style="font-size:11px;font-weight:700;color:#FFB347;margin-bottom:6px">⚠️ Rating field not found in Supabase data — showing raw_fields to diagnose</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Columns: <code style="color:var(--text2)">'+allKeys.join(', ')+'</code></div>'
-      +(numKeys.length?'<div style="font-size:10px;color:#FFB347;margin-bottom:4px">Numeric 1–10 fields: <code>'+numKeys.map(function(k){return k+'='+sampleRow[k];}).join(', ')+'</code></div>':'')
-      +(rfPreview?'<div style="font-size:10px;color:var(--text3);margin-bottom:2px"><b style="color:var(--text2)">raw_fields:</b> <code style="color:#00B4FF;word-break:break-all">'+_esc(rfPreview)+'</code></div>':'<div style="font-size:10px;color:var(--text3)">raw_fields is empty or null</div>')
+    schemaBanner='<div style="margin-bottom:12px;padding:10px 14px 10px 12px;background:rgba(0,180,255,0.07);border:1px solid rgba(0,180,255,0.2);border-radius:8px;display:flex;align-items:flex-start;gap:10px">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:11px;font-weight:700;color:#00B4FF;margin-bottom:4px">ℹ️ No explicit rating column found — using sentiment inference for all '+data.length+' responses</div>'
+      +'<div style="font-size:10px;color:var(--text3)">Ratings are estimated from text sentiment (positive / negative keywords). Results may be approximate.<br>Columns in your data: <code style="color:var(--text2)">'+allKeys.join(', ')+'</code></div>'
+      +'</div>'
+      +'<button onclick="this.parentNode.style.display=\'none\'" style="flex-shrink:0;background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0 4px;line-height:1" title="Dismiss">✕</button>'
       +'</div>';
   }
   var avgRating=ratings.length?(ratings.reduce(function(a,b){return a+b;},0)/ratings.length):0;
