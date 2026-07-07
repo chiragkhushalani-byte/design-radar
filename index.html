@@ -5231,7 +5231,7 @@ function vFeedback(){
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
     +'<div style="width:32px;height:32px;border-radius:9px;background:rgba(255,179,71,0.18);display:flex;align-items:center;justify-content:center;font-size:15px">🔎</div>'
     +'<div><div style="font-size:15px;font-weight:700;color:var(--text)">Executive Insights</div>'
-    +'<div style="font-size:11.5px;color:var(--text3)">Auto-generated from '+total+' responses · '+per==='all'?'All Time':per+' window'+'</div></div>'
+    +'<div style="font-size:11.5px;color:var(--text3)">Auto-generated from '+total+' responses · '+(per==='all'?'All Time':per+' window')+'</div></div>'
     +'</div>'
     +'<div style="display:grid;gap:8px">'
     +insightBullets.map(function(txt,i){
@@ -5366,7 +5366,7 @@ function vFeedback(){
     +'</div>'
     +'<div>'
     +'<div style="font-size:13px;font-weight:700;color:var(--text)">Overall Health Score</div>'
-    +'<div style="font-size:11px;color:var(--text3)">'+total+' responses · '+per.toUpperCase()+' window'+(ratingDeltaStr?' · <span style="color:'+ratingDeltaColor+'">'+ratingDeltaStr+' vs prev period</span>':'')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">'+total+' responses · '+(per==='all'?'All Time':per.toUpperCase()+' window')+(ratingDeltaStr?' · <span style="color:'+ratingDeltaColor+'">'+ratingDeltaStr+' vs prev period</span>':'')+'</div>'
     +'</div>'
     +'</div>'
     // KPI pills
