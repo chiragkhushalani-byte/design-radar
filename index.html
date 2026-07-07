@@ -4447,22 +4447,46 @@ async function importTallyCSV(file){
     _fbImportMsg='Uploading '+rows.length+' responses to Supabase…';
     if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
 
+    // ── Run a single test row first to detect schema/RLS errors early ──────────
+    var testRow=rows[0];
+    var testRes=await fetch(SB+'/rest/v1/customer_feedback',{
+      method:'POST',
+      headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
+      body:JSON.stringify([testRow])
+    });
+    if(!testRes.ok){
+      var testErr=await testRes.text().catch(function(){return 'unknown error';});
+      // Parse Supabase error for human-readable message
+      var sbErr='';
+      try{ var je=JSON.parse(testErr); sbErr=je.message||je.hint||je.details||testErr; }catch(pe){ sbErr=testErr; }
+      // Common error translations
+      var friendly=sbErr;
+      if(/permission denied|not authorized|rls/i.test(sbErr)) friendly='Supabase Row Level Security (RLS) is blocking inserts. Go to Supabase → Table Editor → customer_feedback → RLS and add an INSERT policy for anon role, or disable RLS for this table.';
+      else if(/column.*does not exist/i.test(sbErr)) friendly='A column in the upload doesn\'t exist in your Supabase table. Check that the table has: response_id, submitted_at, rating, feedback_text, pain_points, feature_requests, raw_fields.';
+      else if(/null value.*not-null/i.test(sbErr)) friendly='A required column has a NOT NULL constraint but we\'re sending null. Try making the column nullable in Supabase.';
+      else if(/unique.*constraint|duplicate key/i.test(sbErr)) friendly='Duplicate response_id conflict. The merge-duplicates strategy requires a unique constraint on response_id — add one in Supabase if missing.';
+      _fbImportStatus='error';
+      _fbImportMsg='❌ Supabase rejected the import: '+friendly+' | Raw: '+sbErr.slice(0,200);
+      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+      return;
+    }
+
     // Batch upsert in chunks of 50, with one retry on failure
-    var CHUNK=50; var inserted=0; var failed=0; var failedRows=[];
-    for(var i=0;i<rows.length;i+=CHUNK){
+    var CHUNK=50; var inserted=1; var failed=0; var firstErrMsg='';
+    for(var i=1;i<rows.length;i+=CHUNK){
       var chunk=rows.slice(i,i+CHUNK);
       var res=await fetch(SB+'/rest/v1/customer_feedback',{
         method:'POST',
-        headers:Object.assign({'Prefer':'resolution=merge-duplicates,return=representation'},HR),
+        headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
         body:JSON.stringify(chunk)
       });
       if(res.ok){
-        var body=await res.json().catch(function(){return chunk;});
-        inserted+=(Array.isArray(body)?body.length:chunk.length);
+        inserted+=chunk.length;
       } else {
         var errText=await res.text().catch(function(){return '';});
+        if(!firstErrMsg) firstErrMsg=errText.slice(0,300);
         console.warn('Chunk error',res.status,errText,'— retrying one row at a time…');
-        // Retry row-by-row so we salvage as many as possible
+        // Retry row-by-row to salvage as many as possible
         for(var j=0;j<chunk.length;j++){
           var r2=await fetch(SB+'/rest/v1/customer_feedback',{
             method:'POST',
@@ -4470,16 +4494,18 @@ async function importTallyCSV(file){
             body:JSON.stringify([chunk[j]])
           });
           if(r2.ok){ inserted++; }
-          else { failed++; failedRows.push(chunk[j]); }
+          else { failed++; }
         }
       }
       // Update progress banner
-      _fbImportMsg='Uploading… '+Math.min(i+CHUNK,rows.length)+' / '+rows.length+' processed';
+      _fbImportMsg='Uploading… '+Math.min(i+CHUNK,rows.length)+' / '+rows.length+' ✓ '+inserted+' inserted'+(failed?' · '+failed+' failed':'');
       if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
     }
 
-    _fbImportStatus='done';
-    _fbImportMsg='✅ Inserted '+inserted+' of '+rows.length+' responses'+(failed?' · '+failed+' rows failed':'')+'!';
+    _fbImportStatus= failed>0&&inserted===1?'error':'done';
+    _fbImportMsg= failed===0
+      ?'✅ All '+inserted+' responses inserted successfully!'
+      :'⚠️ Inserted '+inserted+' of '+rows.length+' — '+failed+' rows rejected by Supabase.'+(firstErrMsg?' Reason: '+firstErrMsg.slice(0,150):'');
     await loadFeedback(true);
   }catch(e){
     _fbImportStatus='error';_fbImportMsg='❌ Error: '+String(e);
@@ -4491,6 +4517,46 @@ function triggerTallyImport(){
   var inp=document.createElement('input');
   inp.type='file';inp.accept='.csv';
   inp.onchange=function(e){if(e.target.files[0])importTallyCSV(e.target.files[0]);};
+  inp.click();
+}
+
+// ── Load CSV directly into memory (no Supabase) ──────────────────────────────
+// Parses the file, stores rows in _feedbackData, and re-renders immediately.
+// Nothing is sent to Supabase — works even if RLS blocks inserts.
+var _csvDirectMode=false; // true when data came from local CSV (not Supabase)
+function loadCSVDirect(){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='.csv';
+  inp.onchange=async function(e){
+    var file=e.target.files[0];
+    if(!file) return;
+    _fbImportStatus='importing';
+    _fbImportMsg='Reading '+file.name+'…';
+    var c=document.getElementById('content');
+    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+    try{
+      var text=await file.text();
+      var rows=parseTallyCSV(text);
+      if(!rows.length){
+        _fbImportStatus='error';
+        _fbImportMsg='❌ No rows found — check the CSV format.';
+        if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+        return;
+      }
+      // Merge with existing Supabase rows (keep Supabase rows not in CSV by response_id)
+      var csvIds=new Set(rows.map(function(r){return r.response_id;}));
+      var supabaseOnly=(_feedbackData||[]).filter(function(r){return r.response_id&&!csvIds.has(r.response_id);});
+      _feedbackData=rows.concat(supabaseOnly);
+      _csvDirectMode=true;
+      _fbImportStatus='done';
+      _fbImportMsg='📂 Loaded '+rows.length+' rows from CSV directly'+(supabaseOnly.length?' + '+supabaseOnly.length+' from Supabase':'')+'  (local only — not saved to Supabase)';
+      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+    }catch(err){
+      _fbImportStatus='error';
+      _fbImportMsg='❌ Error reading CSV: '+String(err);
+      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
+    }
+  };
   inp.click();
 }
 
@@ -4676,7 +4742,8 @@ function vFeedback(){
       +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No customer feedback yet</div>'
       +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">Import existing Tally responses via CSV, or set up the webhook to auto-capture new ones.</div>'
       +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-      +'<button class="btn" style="font-size:11px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import Tally CSV</button>'
+      +'<button class="btn" style="font-size:11px;background:rgba(52,199,89,0.15);color:#34C759;border-color:#34C759" onclick="loadCSVDirect()">📂 Load CSV Directly</button>'
+      +'<button class="btn" style="font-size:11px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import to Supabase</button>'
       +'<button class="btn" style="font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
       +'</div></div>';
   }
@@ -4693,6 +4760,7 @@ function vFeedback(){
     +'</div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<a href="https://tally.so/forms" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border);padding:5px 10px;border-radius:6px;display:flex;align-items:center;gap:4px">↗ View Responses on Tally</a>'
+    +'<button class="btn" style="font-size:11px;padding:4px 12px;background:rgba(52,199,89,0.12);color:#34C759;border-color:#34C759" onclick="loadCSVDirect()">📂 Load CSV Directly</button>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(0,180,255,0.12);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import CSV</button>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)">↻</button>'
     +'</div>'
