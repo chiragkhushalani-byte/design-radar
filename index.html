@@ -6180,28 +6180,26 @@ async function pokeDesigner(id){
   var msg=POKE_MESSAGES[Math.floor(Math.random()*POKE_MESSAGES.length)];
   var nameList=names.join(', ');
 
-  var slackPayload={
-    blocks:[
-      {type:'section',text:{type:'mrkdwn',text:'👉 *Poke from Design Radar*'}},
-      {type:'section',text:{type:'mrkdwn',
-        text:'Hey *'+nameList+'* — just a nudge about this task:\n\n*'+t.name+'*\n_Status: '+t.status+' · '+daysInBucket+' days in bucket_'}},
-      {type:'section',text:{type:'mrkdwn',text:msg}},
-      {type:'section',text:{type:'mrkdwn',
-        text:':point_right: <https://designradar-vsl.vercel.app|Open Design Radar> and give it some love.'}},
-      {type:'context',elements:[{type:'mrkdwn',text:'_Sent by Chirag via Design Radar_'}]}
-    ]
+  // Send structured payload — Edge Function sends individual DMs per designer
+  var payload={
+    designerNames:names,
+    taskName:t.name,
+    taskStatus:t.status,
+    daysInBucket:daysInBucket,
+    message:msg
   };
 
   try{
     var res=await fetch(SB+'/functions/v1/slack-poke',{
       method:'POST',
       headers:Object.assign({},H,{'Content-Type':'application/json'}),
-      body:JSON.stringify(slackPayload)
+      body:JSON.stringify(payload)
     });
-    if(res.ok){
-      toast('👉 Poke sent to '+nameList+' on Slack!',3500);
+    var data=await res.json();
+    if(res.ok&&data.ok){
+      toast('👉 DM sent to '+nameList+'!',3500);
     } else {
-      throw new Error('HTTP '+res.status);
+      throw new Error(data.error||'HTTP '+res.status);
     }
   }catch(e){
     toast('Could not send poke: '+e.message);
