@@ -4250,12 +4250,9 @@ async function loadFeedback(force){
   if(_feedbackLoading&&!force) return;
   _feedbackLoading=true;
   try{
-    // Paginate in chunks of 1000 using URL params (PostgREST limit/offset)
     var all=[];var pageSize=1000;var from=0;
     while(true){
-      var res=await fetch(SB+'/rest/v1/customer_feedback?select=*&order=submitted_at.desc&limit='+pageSize+'&offset='+from,{
-        headers:H
-      });
+      var res=await fetch(SB+'/rest/v1/customer_feedback?select=*&order=submitted_at.desc&limit='+pageSize+'&offset='+from,{headers:H});
       if(!res.ok){console.warn('Feedback load error:',res.status);break;}
       var page=await res.json();
       all=all.concat(page);
@@ -4263,24 +4260,9 @@ async function loadFeedback(force){
       from+=pageSize;
       if(from>10000) break;
     }
-    _feedbackData=all;
-    // Diagnostic: log actual column names + first row to help debug rating issues
-    if(all.length){
-      var firstRow=all[0];
-      console.log('[Feedback] Columns in Supabase row:',Object.keys(firstRow));
-      console.log('[Feedback] First row sample:',JSON.stringify(firstRow).slice(0,400));
-      var withRating=all.filter(function(r){return _fbRating(r)!==null;});
-      console.log('[Feedback] '+all.length+' rows loaded, '+withRating.length+' have a parseable rating (1-5)');
-      if(!withRating.length){
-        // Show which fields have numeric-looking values to help identify the rating field
-        var numericFields=Object.keys(firstRow).filter(function(k){
-          var v=Number(firstRow[k]);return v>=1&&v<=10&&!isNaN(v);
-        });
-        console.warn('[Feedback] No rating found. Numeric fields in first row:',numericFields,
-          '— values:',numericFields.map(function(k){return k+'='+firstRow[k];}));
-      }
-    }
-  }catch(e){console.warn('Failed to load customer feedback:',e);}
+    _feedbackData=_deduplicateRows(all);
+    console.log('[Feedback] '+all.length+' from Supabase → '+_feedbackData.length+' after dedup');
+  }catch(e){console.warn('Failed to load feedback:',e);}
   _feedbackLoading=false;
   var c=document.getElementById('content');
   if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
@@ -4520,44 +4502,24 @@ function triggerTallyImport(){
   inp.click();
 }
 
-// ── Load CSV directly into memory (no Supabase) ──────────────────────────────
-// Parses the file, stores rows in _feedbackData, and re-renders immediately.
-// Nothing is sent to Supabase — works even if RLS blocks inserts.
-var _csvDirectMode=false; // true when data came from local CSV (not Supabase)
-function loadCSVDirect(){
-  var inp=document.createElement('input');
-  inp.type='file';inp.accept='.csv';
-  inp.onchange=async function(e){
-    var file=e.target.files[0];
-    if(!file) return;
-    _fbImportStatus='importing';
-    _fbImportMsg='Reading '+file.name+'…';
-    var c=document.getElementById('content');
-    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-    try{
-      var text=await file.text();
-      var rows=parseTallyCSV(text);
-      if(!rows.length){
-        _fbImportStatus='error';
-        _fbImportMsg='❌ No rows found — check the CSV format.';
-        if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-        return;
-      }
-      // Merge with existing Supabase rows (keep Supabase rows not in CSV by response_id)
-      var csvIds=new Set(rows.map(function(r){return r.response_id;}));
-      var supabaseOnly=(_feedbackData||[]).filter(function(r){return r.response_id&&!csvIds.has(r.response_id);});
-      _feedbackData=rows.concat(supabaseOnly);
-      _csvDirectMode=true;
-      _fbImportStatus='done';
-      _fbImportMsg='📂 Loaded '+rows.length+' rows from CSV directly'+(supabaseOnly.length?' + '+supabaseOnly.length+' from Supabase':'')+'  (local only — not saved to Supabase)';
-      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-    }catch(err){
-      _fbImportStatus='error';
-      _fbImportMsg='❌ Error reading CSV: '+String(err);
-      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-    }
-  };
-  inp.click();
+// ── Deduplication helpers ─────────────────────────────────────────────────────
+// Build a stable fingerprint: prefer response_id, else date+text snippet.
+function _fbFingerprint(r){
+  if(r.response_id) return 'id:'+r.response_id;
+  var d=(r.submitted_at||r.created_at||'').toString().slice(0,16);
+  var t=(r.feedback_text||r.pain_points||r.feature_requests||'').toString().trim().slice(0,40);
+  return 'fp:'+d+'|'+t;
+}
+
+// Remove duplicate rows — keeps first occurrence of each fingerprint.
+function _deduplicateRows(rows){
+  var seen=new Set();
+  return rows.filter(function(r){
+    var fp=_fbFingerprint(r);
+    if(seen.has(fp)) return false;
+    seen.add(fp);
+    return true;
+  });
 }
 
 // Strip [Column Header] labels left by old CSV import format
@@ -4726,9 +4688,9 @@ function vFeedback(){
   // Import status banner
   var importBanner='';
   if(_fbImportStatus==='importing'){
-    importBanner='<div style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#00B4FF">⏳ '+_esc(_fbImportMsg)+'</div>';
+    importBanner='<div style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#00B4FF;display:flex;align-items:center;gap:8px">⏳ '+_esc(_fbImportMsg)+'</div>';
   } else if(_fbImportStatus==='done'){
-    importBanner='<div style="background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#34C759">'+_esc(_fbImportMsg)+'</div>';
+    importBanner='<div style="background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.25);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#34C759;display:flex;align-items:center;gap:8px">'+_esc(_fbImportMsg)+'</div>';
   } else if(_fbImportStatus==='error'){
     importBanner='<div style="background:rgba(255,59,92,0.1);border:1px solid rgba(255,59,92,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#FF3B5C">'+_esc(_fbImportMsg)+'</div>';
   }
@@ -4740,10 +4702,9 @@ function vFeedback(){
     return importBanner+'<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
       +'<div style="font-size:32px;margin-bottom:12px">📭</div>'
       +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No customer feedback yet</div>'
-      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">Import existing Tally responses via CSV, or set up the webhook to auto-capture new ones.</div>'
+      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">Upload your Tally CSV export — data is saved to Supabase so everyone sees the same responses.</div>'
       +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-      +'<button class="btn" style="font-size:11px;background:rgba(52,199,89,0.15);color:#34C759;border-color:#34C759" onclick="loadCSVDirect()">📂 Load CSV Directly</button>'
-      +'<button class="btn" style="font-size:11px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import to Supabase</button>'
+      +'<button class="btn" style="font-size:12px;padding:8px 20px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Upload CSV to Supabase</button>'
       +'<button class="btn" style="font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
       +'</div></div>';
   }
@@ -4759,10 +4720,9 @@ function vFeedback(){
     }).join('')
     +'</div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
-    +'<a href="https://tally.so/forms" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border);padding:5px 10px;border-radius:6px;display:flex;align-items:center;gap:4px">↗ View Responses on Tally</a>'
-    +'<button class="btn" style="font-size:11px;padding:4px 12px;background:rgba(52,199,89,0.12);color:#34C759;border-color:#34C759" onclick="loadCSVDirect()">📂 Load CSV Directly</button>'
-    +'<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(0,180,255,0.12);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Import CSV</button>'
-    +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)">↻</button>'
+    +'<a href="https://tally.so/forms" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border);padding:5px 10px;border-radius:6px;display:flex;align-items:center;gap:4px">↗ Tally</a>'
+    +'<button class="btn" style="font-size:11px;padding:4px 14px;background:rgba(0,180,255,0.12);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()" title="Upload fresh CSV — replaces existing data in Supabase">📥 Upload New CSV</button>'
+    +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)" title="Refresh data from Supabase">↻</button>'
     +'</div>'
     +'</div>';
 
