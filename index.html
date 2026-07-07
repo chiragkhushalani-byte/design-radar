@@ -1519,6 +1519,7 @@ function toggleMeatball(tid,e){
   if(canDone&&t.status!=='done'&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'0\')">✅&nbsp; Mark done</div>';
   if(canDone&&(t.status==='done'||t.status==='live')) items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'1\')">↩️&nbsp; Reopen</div>';
   if(canDone&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();openMarkLive(this.dataset.tid)">🚀&nbsp; Mark live</div>';
+  if(currentRole==='head') items+='<div class="mb-sep"></div><div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();pokeDesigner(this.dataset.tid)" style="color:var(--amber)">👉&nbsp; Poke designer</div>';
   if(canDel)    items+='<div class="mb-sep"></div><div class="mb-item mb-del" data-tid="'+tid+'" onclick="closeMeatballs();deleteTaskById(this.dataset.tid)">🗑&nbsp; Delete</div>';
 
   if(!items) return;
@@ -6145,6 +6146,68 @@ function renderPulseGrid(){
   if(!html) html='<div class="empty" style="grid-column:1/-1">No feeds match this filter</div>';
   grid.innerHTML=html;
 }
+
+// ── POKE DESIGNER ─────────────────────────────────────
+const POKE_MESSAGES = [
+  'Just checking if this task is still alive. The task is. Are you? 👀',
+  'This task has been sitting here for a while. It misses you. It cries at night. 😢',
+  'Friendly reminder that "in progress" is not a permanent life choice. 🙃',
+  'Design Radar noticed this task hasn\'t moved. We\'re not mad. Just... disappointed. 😌',
+  'Quick question: is this task pending, or are you just testing our patience? 🤔',
+  'This task filed a missing person report. Please check in. 📋',
+  'Still going? No rush. The sprint can wait. Forever apparently. ⏳',
+  'Plot twist: the task is done but nobody updated the status. Right? ...Right? 😬',
+  'We believe in you. The task believes in you. The sprint deadline, less so. 💀',
+  'Your task has been in the bucket so long it\'s started paying rent. 🏠',
+];
+
+async function pokeDesigner(id){
+  var t=(tasks||[]).find(function(x){return x.id===id;});
+  if(!t){toast('Task not found');return;}
+
+  var names=(t.designer_names&&t.designer_names.length>0)
+    ?t.designer_names
+    :(t.designer_name?[t.designer_name]:[]);
+
+  if(names.length===0){toast('No designer assigned to this task');return;}
+
+  var daysInBucket=0;
+  if(t.created_at){
+    var created=new Date(t.created_at);
+    daysInBucket=Math.floor((Date.now()-created.getTime())/(1000*60*60*24));
+  }
+
+  var msg=POKE_MESSAGES[Math.floor(Math.random()*POKE_MESSAGES.length)];
+  var nameList=names.join(', ');
+
+  var slackPayload={
+    blocks:[
+      {type:'section',text:{type:'mrkdwn',text:'👉 *Poke from Design Radar*'}},
+      {type:'section',text:{type:'mrkdwn',
+        text:'Hey *'+nameList+'* — just a nudge about this task:\n\n*'+t.name+'*\n_Status: '+t.status+' · '+daysInBucket+' days in bucket_'}},
+      {type:'section',text:{type:'mrkdwn',text:msg}},
+      {type:'section',text:{type:'mrkdwn',
+        text:':point_right: <https://designradar-vsl.vercel.app|Open Design Radar> and give it some love.'}},
+      {type:'context',elements:[{type:'mrkdwn',text:'_Sent by Chirag via Design Radar_'}]}
+    ]
+  };
+
+  try{
+    var res=await fetch(SB+'/functions/v1/slack-poke',{
+      method:'POST',
+      headers:Object.assign({},H,{'Content-Type':'application/json'}),
+      body:JSON.stringify(slackPayload)
+    });
+    if(res.ok){
+      toast('👉 Poke sent to '+nameList+' on Slack!',3500);
+    } else {
+      throw new Error('HTTP '+res.status);
+    }
+  }catch(e){
+    toast('Could not send poke: '+e.message);
+  }
+}
+
 
 // ── AUTO REFRESH ──────────────────────────────────────
 setInterval(async()=>{try{requests=await api('requests?select=*&order=created_at.desc');updateBadge();if(view==='inbox')render();}catch(e){}},30000);
