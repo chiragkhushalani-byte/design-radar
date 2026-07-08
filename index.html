@@ -6190,16 +6190,16 @@ async function pokeDesigner(id){
   };
 
   try{
-    var res=await fetch(SB+'/functions/v1/slack-poke',{
+    var res=await fetch('/api/slack-dm',{
       method:'POST',
-      headers:Object.assign({},H,{'Content-Type':'application/json'}),
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
     var data=await res.json();
     if(res.ok&&data.ok){
       toast('👉 DM sent to '+nameList+'!',3500);
     } else {
-      throw new Error(data.error||'HTTP '+res.status);
+      throw new Error((data.results||[]).join(', ')||'Unknown error');
     }
   }catch(e){
     toast('Could not send poke: '+e.message);
