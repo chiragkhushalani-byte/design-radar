@@ -785,7 +785,7 @@ function checkPasscode(){
       document.getElementById('lockStep2').style.display='flex';
       const picker=document.getElementById('lockNamePicker');
       // Populate after designers load — use hardcoded list as fallback
-      const designerNames=['Manaar Jafri','Ojus Thool','Varun Kewalramani','tanushree hanmattekar','Chirag Khushalani','Sahil Malek'];
+      const designerNames=['Aryan Mehta','Priya Sharma','Rohan Kulkarni','Neha Iyer','Vikram Nair'];
       picker.innerHTML=designerNames.map(function(n){
         return '<button data-dname="'+n+'" onclick="selectDesignerName(this.dataset.dname)" style="width:100%;padding:10px 14px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface2);color:var(--text);cursor:pointer;font-family:var(--font);text-align:left;transition:all .15s">'+n+'</button>';
       }).join('');
@@ -812,6 +812,20 @@ function checkPasscode(){
     err.textContent='Wrong passcode.';
     setTimeout(function(){inp.classList.remove('err','shake');err.textContent='';inp.value='';inp.focus();},1200);
   }
+}
+function selectDesignerName(name){
+  currentRole='designer';
+  currentUser=name;
+  sessionStorage.setItem('dr_ok','1');
+  sessionStorage.setItem('dr_role','designer');
+  sessionStorage.setItem('dr_user',name);
+  const ls=document.getElementById('lockScreen');
+  ls.style.opacity='0';ls.style.transition='opacity .3s';
+  setTimeout(function(){
+    ls.style.display='none';
+    applyRoleRestrictions();
+    loadAll();
+  },300);
 }
 function initLock(){
   if(sessionStorage.getItem('dr_ok')==='1'){
@@ -884,6 +898,17 @@ async function loadAll(){
     {id:'sr8', designer_name:'Neha Iyer',      skill:'Prototyping',           self_rating:7, head_rating:8, task:'COB Onboarding',        created_at:daysAgo(28)},
     {id:'sr9', designer_name:'Vikram Nair',    skill:'Visual Design / Craft', self_rating:8, head_rating:8, task:'Bonds Report Layout',   created_at:daysAgo(18)},
     {id:'sr10',designer_name:'Vikram Nair',    skill:'Interaction Design',    self_rating:7, head_rating:7, task:'FD Booking Flow',       created_at:daysAgo(8)},
+    {id:'sr11',designer_name:'Aryan Mehta',    skill:'UX Research',           self_rating:7, head_rating:8, task:'Order Flow Research',   created_at:daysAgo(40)},
+    {id:'sr12',designer_name:'Aryan Mehta',    skill:'Prototyping',           self_rating:8, head_rating:8, task:'Dark Mode Prototype',   created_at:daysAgo(12)},
+    {id:'sr13',designer_name:'Aryan Mehta',    skill:'Stakeholder Mgmt',      self_rating:7, head_rating:7, task:'PM Sync — Order Flow',  created_at:daysAgo(22)},
+    {id:'sr14',designer_name:'Priya Sharma',   skill:'Interaction Design',    self_rating:8, head_rating:8, task:'SIP Flow Design',       created_at:daysAgo(20)},
+    {id:'sr15',designer_name:'Priya Sharma',   skill:'Prototyping',           self_rating:7, head_rating:8, task:'SIP Prototype',         created_at:daysAgo(18)},
+    {id:'sr16',designer_name:'Rohan Kulkarni', skill:'Visual Design / Craft', self_rating:8, head_rating:8, task:'Bonds Layout',          created_at:daysAgo(25)},
+    {id:'sr17',designer_name:'Rohan Kulkarni', skill:'UX Research',           self_rating:6, head_rating:7, task:'Watchlist Research',    created_at:daysAgo(30)},
+    {id:'sr18',designer_name:'Neha Iyer',      skill:'Visual Design / Craft', self_rating:7, head_rating:8, task:'IPO Form Visual',       created_at:daysAgo(35)},
+    {id:'sr19',designer_name:'Neha Iyer',      skill:'Interaction Design',    self_rating:8, head_rating:8, task:'COB Flow Design',       created_at:daysAgo(20)},
+    {id:'sr20',designer_name:'Vikram Nair',    skill:'UX Research',           self_rating:7, head_rating:7, task:'MF Discovery Research', created_at:daysAgo(22)},
+    {id:'sr21',designer_name:'Vikram Nair',    skill:'Prototyping',           self_rating:8, head_rating:8, task:'FD Flow Prototype',     created_at:daysAgo(14)},
   ];
 
   var todayStr = today.toISOString().split('T')[0];
@@ -897,6 +922,9 @@ async function loadAll(){
     {id:'dt7', designer_name:'Neha Iyer',      task:'IPO form — KYC step wireframes',     done:false, todo_date:todayStr, sort_order:1, created_at:daysAgo(0)},
     {id:'dt8', designer_name:'Vikram Nair',    task:'FD booking — 3-step flow review',    done:false, todo_date:todayStr, sort_order:1, created_at:daysAgo(0)},
     {id:'dt9', designer_name:'Vikram Nair',    task:'Bonds report — typography pass',     done:true,  todo_date:todayStr, sort_order:2, created_at:daysAgo(0)},
+    // Yesterday todos (some missed)
+    {id:'dt10',designer_name:'Aryan Mehta',    task:'Stakeholder sign-off — Order Flow',   done:false, todo_date:daysAgo(1).split('T')[0], sort_order:1, created_at:daysAgo(1)},
+    {id:'dt11',designer_name:'Neha Iyer',      task:'COB flow — user testing script',      done:false, todo_date:daysAgo(1).split('T')[0], sort_order:1, created_at:daysAgo(1)},
   ];
 
   goals = [
@@ -904,7 +932,17 @@ async function loadAll(){
     {id:'g2', title:'Reduce avg task time in bucket to <7 days', owner:'All',         target_date:daysAgo(-30), progress:40, sort_order:2, created_at:daysAgo(90)},
     {id:'g3', title:'100% design handoffs with documented specs', owner:'Priya Sharma',target_date:daysAgo(-45), progress:80, sort_order:3, created_at:daysAgo(90)},
   ];
-  goalTasks = [];
+  goalTasks = [
+    {id:'gt1', goal_id:'g1', title:'Ship Order Flow redesign', done:true,  sort_order:1},
+    {id:'gt2', goal_id:'g1', title:'Ship SIP date picker',     done:true,  sort_order:2},
+    {id:'gt3', goal_id:'g1', title:'Ship Portfolio P&L widget',done:true,  sort_order:3},
+    {id:'gt4', goal_id:'g1', title:'Ship COB onboarding v2',   done:false, sort_order:4},
+    {id:'gt5', goal_id:'g2', title:'Fix IPO form drop-off',    done:false, sort_order:1},
+    {id:'gt6', goal_id:'g2', title:'Triage overdue tasks',     done:true,  sort_order:2},
+    {id:'gt7', goal_id:'g3', title:'Figma handoff — Order Flow',done:true, sort_order:1},
+    {id:'gt8', goal_id:'g3', title:'Figma handoff — SIP',       done:true, sort_order:2},
+    {id:'gt9', goal_id:'g3', title:'Figma handoff — COB',       done:false,sort_order:3},
+  ];
 
   document.getElementById('viewSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   autoFlagRisks();
