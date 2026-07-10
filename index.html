@@ -101,6 +101,8 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shado
 .s-todo{background:var(--surface2);color:var(--text2)}.s-inprogress{background:var(--blue-light);color:var(--blue)}
 .s-review{background:rgba(255,179,71,0.15);color:var(--amber)}.s-done{background:rgba(57,255,20,0.1);color:var(--green)}
 .s-live{background:rgba(57,255,20,0.15);color:#39FF14;border:1px solid rgba(57,255,20,0.3)}
+.s-onhold{background:rgba(255,179,71,0.1);color:var(--amber);border:1px dashed var(--amber)}
+.task-note-ic{cursor:default;color:var(--text3);font-size:11px;margin-left:4px}
 .risk-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;background:rgba(255,59,92,0.15);color:var(--red);padding:2px 7px;border-radius:20px;font-weight:500}
 .mb-btn{background:none;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;padding:3px 8px;letter-spacing:1px;font-family:inherit;transition:all .12s;line-height:1}
 .mb-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}
@@ -365,7 +367,7 @@ input[type=range]{accent-color:var(--blue)}
       </div>
       <div class="mrow">
         <div class="mfield"><label>Priority</label><select id="f-priority"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
-        <div class="mfield"><label>Status</label><select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="review">Review</option><option value="done">Done</option><option value="live">Live</option></select></div>
+        <div class="mfield"><label>Status</label><select id="f-status"><option value="todo" selected>To do</option><option value="inprogress">In progress</option><option value="onhold">On hold</option><option value="review">Review</option><option value="done">Done</option><option value="live">Live</option></select></div>
       </div>
       <div class="mrow">
         <div class="mfield"><label>Effort (pts)</label><select id="f-effort"><option value="1">1 — quick</option><option value="2" selected>2 — small</option><option value="3">3 — medium</option><option value="4">4 — large</option><option value="5">5 — epic</option></select></div>
@@ -690,6 +692,29 @@ input[type=range]{accent-color:var(--blue)}
   </div>
 </div>
 
+<!-- PUT ON HOLD MODAL -->
+<div class="modal-overlay" id="moHold" onclick="if(event.target===this)closeModal('moHold')">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <span class="modal-title">Put task on hold</span>
+      <button class="modal-close" onclick="closeModal('moHold')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:var(--r-md);padding:10px 12px;margin-bottom:4px">
+        <div id="hold-task-name" style="font-size:13px;font-weight:500"></div>
+      </div>
+      <div class="mfield">
+        <label>Reason (optional)</label>
+        <textarea id="hold-reason" placeholder="e.g. Waiting on PM input, blocked by dependency…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('moHold')">Cancel</button>
+      <button class="btn accent" style="background:var(--amber);border-color:var(--amber)" onclick="submitHold()">⏸ Put on hold</button>
+    </div>
+  </div>
+</div>
+
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
     <div class="lock-logo"><svg width="22" height="22" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="6" r="1.8" fill="#fff"/></svg></div>
@@ -761,7 +786,7 @@ function toast(msg,dur){dur=dur||2200;const t=document.getElementById('toast');t
 
 // ── LOCK ──────────────────────────────────────────────
 const ROLES = {
-  'DESIGN2026': {role:'head',    label:'Head of Design'},
+  'CHIRAG@8250': {role:'head',    label:'Head of Design'},
   'MISTAKES':   {role:'designer',label:'Designer'},
   'PMACCESS':   {role:'pm',      label:'Product Manager'}
 };
@@ -894,6 +919,7 @@ function getLoad(){
   (DESIGNERS||[]).forEach(d=>{l[d.name]={effort:0,count:0,tasks:[],mins:0};});
   (tasks||[]).forEach(function(t){
     if(t.status==='done') return; // done tasks don't count toward load
+    if(t.status==='onhold') return; // paused tasks don't count toward active load either
     const designers=t.designer_names&&t.designer_names.length>0?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
     const splitEffort=designers.length>0?t.effort/designers.length:t.effort;
     designers.forEach(function(d){
@@ -943,7 +969,7 @@ function vDash(){
   const maxM=Math.max(1,...dm.map(function(d){return d[1].count;}));
   let riskRows='<div class="empty">No risks flagged</div>';
   if(riskT.length>0){riskRows='<table><thead><tr><th style="width:42%">Task</th><th style="width:20%">Designer</th><th style="width:38%">Risk</th></tr></thead><tbody>'+riskT.map(t=>'<tr class="tr"><td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">'+t.jira_ref+'</div></td><td style="color:var(--text2)">'+t.designer_name+'</td><td><span class="risk-pill">'+t.risk_note+'</span></td></tr>').join('')+'</tbody></table>';}
-  const staleDash=(tasks||[]).filter(function(t){return t.status!=='done'&&daysInBucket(t)>3;}).sort(function(a,b){return daysInBucket(b)-daysInBucket(a);}).slice(0,4);
+  const staleDash=(tasks||[]).filter(function(t){return t.status!=='done'&&t.status!=='onhold'&&daysInBucket(t)>3;}).sort(function(a,b){return daysInBucket(b)-daysInBucket(a);}).slice(0,4);
   let logRows=staleDash.length===0?'<div class="empty">No stale tasks — all moving fast</div>'
     :staleDash.map(function(t){
       const designers=(t.designer_names&&t.designer_names.length>0)?t.designer_names:(t.designer_name&&t.designer_name!=='—'?[t.designer_name]:['—']);
@@ -976,6 +1002,7 @@ function vSprint(){
   if(sfilt==='risk')filtered=filtered.filter(function(t){return t.risk;});
   else if(sfilt==='inprogress')filtered=filtered.filter(function(t){return t.status==='inprogress';});
   else if(sfilt==='review')filtered=filtered.filter(function(t){return t.status==='review';});
+  else if(sfilt==='onhold')filtered=filtered.filter(function(t){return t.status==='onhold';});
   if(dfilt&&dfilt!=='all'){
     var df=dfilt.toLowerCase();
     filtered=filtered.filter(function(t){
@@ -996,9 +1023,9 @@ function vSprint(){
       }).join('');
 
     return '<tr class="task-row" draggable="true" data-id="'+t.id+'">'
-      +'<td><div style="font-weight:500">'+t.name+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+(t.brd_link?'&nbsp;·&nbsp;<a href="'+t.brd_link+'" target="_blank" style="color:var(--blue);text-decoration:none">BRD ↗</a>':'')+'</div></td>'
+      +'<td><div style="font-weight:500">'+t.name+(t.notes?' <span class="task-note-ic" title="'+String(t.notes).replace(/"/g,'&quot;')+'">📝</span>':'')+'</div><div style="font-size:10px;color:var(--text3)">PM: '+(t.pm||'—')+(t.brd_link?'&nbsp;·&nbsp;<a href="'+t.brd_link+'" target="_blank" style="color:var(--blue);text-decoration:none">BRD ↗</a>':'')+'</div></td>'
       +'<td><span class="badge '+(t.priority==='critical'?'bc':t.priority==='high'?'bh':t.priority==='medium'?'bm':'bl')+'">'+t.priority+'</span></td>'
-      +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status==='live'?'🚀 live':t.status)+'</span></td>'
+      +'<td><span class="badge s-'+t.status+'">'+(t.status==='inprogress'?'in progress':t.status==='onhold'?'⏸ on hold':t.status==='live'?'🚀 live':t.status)+'</span></td>'
       +'<td>'+designerBadges+'</td>'
       +'<td style="color:var(--text2)">'+t.effort+'pt</td>'
       +'<td>'+daysInBucketBadge(t)+'</td>'
@@ -1014,6 +1041,7 @@ function vSprint(){
     +'<button class="fb '+(sfilt==='all'?'active':'')+'" data-f="all" onclick="setSF(this.dataset.f,this)">All</button>'
     +'<button class="fb '+(sfilt==='inprogress'?'active':'')+'" data-f="inprogress" onclick="setSF(this.dataset.f,this)">In progress</button>'
     +'<button class="fb '+(sfilt==='review'?'active':'')+'" data-f="review" onclick="setSF(this.dataset.f,this)">Review</button>'
+    +'<button class="fb '+(sfilt==='onhold'?'active':'')+'" data-f="onhold" onclick="setSF(this.dataset.f,this)">⏸ On hold</button>'
     +'<button class="fb '+(sfilt==='risk'?'active':'')+'" data-f="risk" onclick="setSF(this.dataset.f,this)">At risk</button>'
     +'<div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>'
     +'<select onchange="setDF(this.value)" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);cursor:pointer">'
@@ -1099,7 +1127,7 @@ function vCapacity(){
     const over=l.count>5,avail=l.count<=2;
     const fc=over?'bf-red':l.count>3?'bf-amber':'bf-green';
     const tag=over?'<span style="font-size:10px;background:rgba(255,59,92,0.12);color:var(--red);padding:1px 7px;border-radius:10px;font-weight:500">overloaded</span>':avail?'<span style="font-size:10px;background:rgba(57,255,20,0.1);color:var(--green);padding:1px 7px;border-radius:10px;font-weight:500">available</span>':'';
-    const chips=l.tasks.map(t=>'<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)">'+(t.name.length>20?t.name.slice(0,20)+'…':t.name)+'</span>').join('');
+    const chips=l.tasks.map(t=>'<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)"'+(t.notes?' title="'+String(t.notes).replace(/"/g,'&quot;')+'"':'')+'>'+(t.name.length>20?t.name.slice(0,20)+'…':t.name)+(t.notes?' 📝':'')+'</span>').join('');
     return '<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div class="avatar '+AV[i%AV.length]+'">'+d.initials+'</div><span style="font-size:13px;font-weight:500;flex:1">'+d.name+'</span><span style="font-size:11px;color:var(--text3)">'+l.count+' tasks · '+l.effort+'/10 pts · '+fmtM(l.mins)+'</span>'+tag+'</div><div style="padding-left:36px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="bar-bg"><div class="bar-fill '+fc+'" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--text3);min-width:28px">'+pct+'%</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+chips+'</div></div></div>';
   }).join('');
   return '<div class="section-row"><span class="st">Team capacity</span></div><div class="panel"><div style="padding:14px">'+cards+'</div></div>'+aiPanel('capacity');
@@ -1519,6 +1547,8 @@ function toggleMeatball(tid,e){
   if(canDone&&t.status!=='done'&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'0\')">✅&nbsp; Mark done</div>';
   if(canDone&&(t.status==='done'||t.status==='live')) items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();toggleTaskDone(this.dataset.tid,\'1\')">↩️&nbsp; Reopen</div>';
   if(canDone&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();openMarkLive(this.dataset.tid)">🚀&nbsp; Mark live</div>';
+  if(canDone&&t.status!=='onhold'&&t.status!=='done'&&t.status!=='live') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();openHoldModal(this.dataset.tid)">⏸&nbsp; Put on hold</div>';
+  if(canDone&&t.status==='onhold') items+='<div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();resumeFromHold(this.dataset.tid)">▶️&nbsp; Resume</div>';
   if(currentRole==='head') items+='<div class="mb-sep"></div><div class="mb-item" data-tid="'+tid+'" onclick="closeMeatballs();pokeDesigner(this.dataset.tid)" style="color:var(--amber)">👉&nbsp; Poke designer</div>';
   if(canDel)    items+='<div class="mb-sep"></div><div class="mb-item mb-del" data-tid="'+tid+'" onclick="closeMeatballs();deleteTaskById(this.dataset.tid)">🗑&nbsp; Delete</div>';
 
@@ -2187,6 +2217,13 @@ function autoFlagRisks(){
     const designers = t.designer_names&&t.designer_names.length>0 ? t.designer_names : (t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
     const hasDesigner = designers.length > 0;
 
+    // On-hold tasks are intentionally paused — never flag them as at-risk
+    if(t.status==='onhold'){
+      t.risk = false;
+      t.risk_note = '';
+      return;
+    }
+
     // Rule 3: no designer
     if(!hasDesigner){
       t.risk = true;
@@ -2678,6 +2715,51 @@ async function submitMarkLive(){
   } catch(e){toast('Error: '+e.message);}
 }
 
+// ── FEATURE: PUT TASK ON HOLD / RESUME ────────────────────────────────────
+let holdTaskId=null;
+function openHoldModal(id){
+  const t=(tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  holdTaskId=id;
+  document.getElementById('hold-task-name').textContent=t.name;
+  document.getElementById('hold-reason').value='';
+  openModal('moHold');
+}
+async function submitHold(){
+  if(!holdTaskId) return;
+  const t=tasks.find(x=>x.id===holdTaskId);
+  if(!t) return;
+  const reason=document.getElementById('hold-reason').value.trim();
+  const prevStatus=t.status; // remembered so "Resume" can restore it
+  const newNotes=(reason?'⏸ On hold: '+reason+'\n':'')+(t.notes||'');
+  try{
+    await api('tasks?id=eq.'+holdTaskId,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({status:'onhold',notes:newNotes})});
+    t.status='onhold';
+    t.notes=newNotes;
+    t._preHoldStatus=prevStatus;
+    autoFlagRisks();
+    closeModal('moHold');
+    render();
+    toast('Task put on hold ⏸');
+  } catch(e){toast('Error: '+e.message);}
+}
+async function resumeFromHold(id){
+  const t=(tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  const restoredStatus=(t._preHoldStatus&&t._preHoldStatus!=='onhold')?t._preHoldStatus:'inprogress';
+  // Strip the auto-added "⏸ On hold: …" line from notes now that it's resolved
+  const cleanedNotes=(t.notes||'').split('\n').filter(function(line){return line.indexOf('⏸ On hold:')!==0;}).join('\n');
+  try{
+    await api('tasks?id=eq.'+id,{method:'PATCH',headers:Object.assign({},H,{'Prefer':'return=minimal'}),body:JSON.stringify({status:restoredStatus,notes:cleanedNotes})});
+    t.status=restoredStatus;
+    t.notes=cleanedNotes;
+    delete t._preHoldStatus;
+    autoFlagRisks();
+    render();
+    toast('Task resumed');
+  } catch(e){toast('Error: '+e.message);}
+}
+
 // ── FEATURE 2: MISSED TODO — REASON + SHIFT TO NEXT WORKING DAY ──────────
 let missedTodoId = null;
 
@@ -2910,7 +2992,7 @@ function renderTaskDates(t){
   if(t.due_date){
     const due = new Date(t.due_date+'T12:00:00');
     const today = new Date();
-    const overdue = t.status!=='done' && due < today;
+    const overdue = t.status!=='done' && t.status!=='onhold' && due < today;
     lines.push('<div style="font-size:10px;color:'+(overdue?'var(--red)':'var(--text3)')+'">Due: <span style="font-weight:500;color:'+(overdue?'var(--red)':'var(--text)')+'">'
       +due.toLocaleDateString('en-IN',{day:'numeric',month:'short'})
       +(overdue?' ⚠️':'')+'</span></div>');
