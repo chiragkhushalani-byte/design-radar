@@ -4351,239 +4351,12 @@ async function loadFeedback(force){
   if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
 }
 
-// ── Tally CSV importer ───────────────────────────────────────────────────────
-// Hardcoded to match "We'd Love Your Feedback!" Tally form columns exactly.
-// Columns: Submission ID | Respondent ID | Submitted at | Would you like to |
-//          Briefly describe what's on your mind | Help us understand better (Optional) |
-//          How would you rate your overall experience? | client_id | app_web |
-//          Please tell us more (Short or long answer) | Client ID | App/web
-
-function parseTallyCSV(csvText){
-  // Parse CSV respecting quoted fields
-  function parseLine(line){
-    var fields=[];var cur='';var inQ=false;
-    for(var i=0;i<line.length;i++){
-      var ch=line[i];
-      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
-      else if(ch===','&&!inQ){fields.push(cur);cur='';}
-      else{cur+=ch;}
-    }
-    fields.push(cur);
-    return fields;
-  }
-
-  var lines=csvText.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-  if(lines.length<2) return [];
-
-  // Normalise header names: trim whitespace/newlines, collapse curly quotes to straight
-  var rawHeaders=parseLine(lines[0]);
-  var headers=rawHeaders.map(function(h){
-    return h.trim().replace(/\n/g,'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
-  });
-
-  // Build lookup: normalised header → column index
-  var idx={};
-  headers.forEach(function(h,i){idx[h]=i;});
-
-  // Helper: get value by normalised header (case-insensitive fallback)
-  function col(row,name){
-    if(idx[name]!==undefined) return (row[idx[name]]||'').trim();
-    // fallback: partial match
-    var lname=name.toLowerCase();
-    for(var k in idx){if(k.toLowerCase().includes(lname)) return (row[idx[k]]||'').trim();}
-    return '';
-  }
-
-  var result=[];
-  for(var i=1;i<lines.length;i++){
-    if(!lines[i].trim()) continue;
-    var row=parseLine(lines[i]);
-
-    var responseId = col(row,'Submission ID') || ('csv-'+Math.random().toString(36).slice(2));
-    var submittedAt = col(row,'Submitted at') || null;
-
-    // Rating: numeric 1-5 — try every plausible Tally column name
-    var RATING_COL_NAMES=[
-      'How would you rate your overall experience?',
-      'How would you rate your experience?',
-      'Overall rating','Overall Rating',
-      'Rate your experience','Rate your overall experience',
-      'Rating','rating','Stars','stars',
-      'How satisfied are you?','Satisfaction',
-      'How do you rate','Experience rating',
-      'Please rate','Rate us','Score','NPS',
-    ];
-    var ratingRaw='';
-    for(var ri=0;ri<RATING_COL_NAMES.length;ri++){
-      ratingRaw=col(row,RATING_COL_NAMES[ri]);
-      if(ratingRaw) break;
-    }
-    // Also scan any header that looks like a rating question
-    if(!ratingRaw){
-      for(var hk in idx){
-        var hl=hk.toLowerCase();
-        if(hl.includes('rate')||hl.includes('rating')||hl.includes('stars')||hl.includes('score')||hl.includes('satisf')||hl.includes('experience')){
-          var v=(row[idx[hk]]||'').trim();
-          if(v){ratingRaw=v;break;}
-        }
-      }
-    }
-    var rating=ratingRaw?parseInt(ratingRaw,10):null;
-    if(isNaN(rating)||rating<1||rating>5) rating=null;
-
-    // Intent type drives which DB column the text goes into
-    var intent = col(row,'Would you like to'); // "Give Feedback" | "Report an Issue" | "Request a Feature"
-
-    // Collect all text fields
-    var mainText   = col(row,"Briefly describe what's on your mind");
-    var moreText   = col(row,'Help us understand better (Optional)');
-    var extraText  = col(row,'Please tell us more (Short or long answer)');
-    var platform   = col(row,'app_web') || col(row,'App/web');
-    var clientId   = col(row,'client_id') || col(row,'Client ID');
-
-    // Combine text fields
-    var parts=[mainText,moreText,extraText].filter(function(s){return s&&s.length>0;});
-    var fullText=parts.join('\n').trim()||null;
-
-    // Add platform/client metadata as context if available
-    var meta=[];
-    if(platform) meta.push('Platform: '+platform);
-    if(clientId) meta.push('Client: '+clientId);
-    var metaStr=meta.length?'\n['+meta.join(' | ')+']':'';
-    if(fullText&&metaStr) fullText+=metaStr;
-
-    var feedbackText=null, painPoints=null, featureRequests=null;
-    if(intent==='Report an Issue'){
-      painPoints=fullText;
-    } else if(intent==='Request a Feature'){
-      featureRequests=fullText;
-    } else {
-      // "Give Feedback" or unknown
-      feedbackText=fullText;
-    }
-
-    result.push({
-      response_id:responseId,
-      submitted_at:submittedAt,
-      rating:rating,
-      feedback_text:feedbackText,
-      pain_points:painPoints,
-      feature_requests:featureRequests,
-      raw_fields:[]
-    });
-  }
-  return result;
-}
-
-var _fbImportStatus=''; // '', 'importing', 'done', 'error'
+// CSV upload removed — Tally pushes responses directly to Supabase via webhook.
+var _fbImportStatus=''; // kept as empty stub — CSV import removed; Tally pushes directly
 var _fbImportMsg='';
 
-async function clearAndImportTallyCSV(){
-  // First delete all existing rows, then re-import fresh
-  if(!confirm('This will DELETE all existing feedback rows and re-import from CSV. Continue?')) return;
-  _fbImportStatus='importing';_fbImportMsg='Clearing old data…';
-  var c=document.getElementById('content');
-  if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-  try{
-    // DELETE all rows (needs service role — will fail with anon key; if so, skip and just upsert)
-    var delRes=await fetch(SB+'/rest/v1/customer_feedback?id=neq.00000000-0000-0000-0000-000000000000',{
-      method:'DELETE',headers:Object.assign({'Prefer':'return=minimal'},HR)
-    });
-    if(!delRes.ok) console.warn('Clear failed (anon key may lack DELETE), proceeding with upsert…');
-  }catch(e){console.warn('Clear error:',e);}
-  triggerTallyImport();
-}
-
-async function importTallyCSV(file){
-  _fbImportStatus='importing';
-  _fbImportMsg='Parsing CSV…';
-  var c=document.getElementById('content');
-  if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-
-  try{
-    var text=await file.text();
-    var rows=parseTallyCSV(text);
-    if(!rows.length){
-      _fbImportStatus='error';_fbImportMsg='No valid rows found in CSV.';
-      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-      return;
-    }
-
-    _fbImportMsg='Uploading '+rows.length+' responses to Supabase…';
-    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-
-    // ── Run a single test row first to detect schema/RLS errors early ──────────
-    var testRow=rows[0];
-    var testRes=await fetch(SB+'/rest/v1/customer_feedback',{
-      method:'POST',
-      headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
-      body:JSON.stringify([testRow])
-    });
-    if(!testRes.ok){
-      var testErr=await testRes.text().catch(function(){return 'unknown error';});
-      // Parse Supabase error for human-readable message
-      var sbErr='';
-      try{ var je=JSON.parse(testErr); sbErr=je.message||je.hint||je.details||testErr; }catch(pe){ sbErr=testErr; }
-      // Common error translations
-      var friendly=sbErr;
-      if(/permission denied|not authorized|rls/i.test(sbErr)) friendly='Supabase Row Level Security (RLS) is blocking inserts. Go to Supabase → Table Editor → customer_feedback → RLS and add an INSERT policy for anon role, or disable RLS for this table.';
-      else if(/column.*does not exist/i.test(sbErr)) friendly='A column in the upload doesn\'t exist in your Supabase table. Check that the table has: response_id, submitted_at, rating, feedback_text, pain_points, feature_requests, raw_fields.';
-      else if(/null value.*not-null/i.test(sbErr)) friendly='A required column has a NOT NULL constraint but we\'re sending null. Try making the column nullable in Supabase.';
-      else if(/unique.*constraint|duplicate key/i.test(sbErr)) friendly='Duplicate response_id conflict. The merge-duplicates strategy requires a unique constraint on response_id — add one in Supabase if missing.';
-      _fbImportStatus='error';
-      _fbImportMsg='❌ Supabase rejected the import: '+friendly+' | Raw: '+sbErr.slice(0,200);
-      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-      return;
-    }
-
-    // Batch upsert in chunks of 50, with one retry on failure
-    var CHUNK=50; var inserted=1; var failed=0; var firstErrMsg='';
-    for(var i=1;i<rows.length;i+=CHUNK){
-      var chunk=rows.slice(i,i+CHUNK);
-      var res=await fetch(SB+'/rest/v1/customer_feedback',{
-        method:'POST',
-        headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
-        body:JSON.stringify(chunk)
-      });
-      if(res.ok){
-        inserted+=chunk.length;
-      } else {
-        var errText=await res.text().catch(function(){return '';});
-        if(!firstErrMsg) firstErrMsg=errText.slice(0,300);
-        console.warn('Chunk error',res.status,errText,'— retrying one row at a time…');
-        // Retry row-by-row to salvage as many as possible
-        for(var j=0;j<chunk.length;j++){
-          var r2=await fetch(SB+'/rest/v1/customer_feedback',{
-            method:'POST',
-            headers:Object.assign({'Prefer':'resolution=merge-duplicates'},HR),
-            body:JSON.stringify([chunk[j]])
-          });
-          if(r2.ok){ inserted++; }
-          else { failed++; }
-        }
-      }
-      // Update progress banner
-      _fbImportMsg='Uploading… '+Math.min(i+CHUNK,rows.length)+' / '+rows.length+' ✓ '+inserted+' inserted'+(failed?' · '+failed+' failed':'');
-      if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-    }
-
-    _fbImportStatus= failed>0&&inserted===1?'error':'done';
-    _fbImportMsg= failed===0
-      ?'✅ All '+inserted+' responses inserted successfully!'
-      :'⚠️ Inserted '+inserted+' of '+rows.length+' — '+failed+' rows rejected by Supabase.'+(firstErrMsg?' Reason: '+firstErrMsg.slice(0,150):'');
-    await loadFeedback(true);
-  }catch(e){
-    _fbImportStatus='error';_fbImportMsg='❌ Error: '+String(e);
-    if(c&&_pulseFilter==='feedback') c.innerHTML=vPulse();
-  }
-}
-
-function triggerTallyImport(){
-  var inp=document.createElement('input');
-  inp.type='file';inp.accept='.csv';
-  inp.onchange=function(e){if(e.target.files[0])importTallyCSV(e.target.files[0]);};
-  inp.click();
-}
+// CSV import removed — Tally now pushes responses directly to Supabase via webhook.
+// Data is read-only in this UI; use loadFeedback() to refresh.
 
 // ── Deduplication helpers ─────────────────────────────────────────────────────
 // Build a stable fingerprint: prefer response_id, else date+text snippet.
@@ -4768,28 +4541,16 @@ function vFeedback(){
     }catch(e){return r;}
   });
 
-  // Import status banner
-  var importBanner='';
-  if(_fbImportStatus==='importing'){
-    importBanner='<div style="background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#00B4FF;display:flex;align-items:center;gap:8px">⏳ '+_esc(_fbImportMsg)+'</div>';
-  } else if(_fbImportStatus==='done'){
-    importBanner='<div style="background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.25);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#34C759;display:flex;align-items:center;gap:8px">'+_esc(_fbImportMsg)+'</div>';
-  } else if(_fbImportStatus==='error'){
-    importBanner='<div style="background:rgba(255,59,92,0.1);border:1px solid rgba(255,59,92,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#FF3B5C">'+_esc(_fbImportMsg)+'</div>';
-  }
-
   if(_feedbackLoading&&!allData.length){
-    return importBanner+'<div class="empty">Loading customer feedback…</div>';
+    return '<div class="empty">Loading customer feedback…</div>';
   }
   if(!allData.length){
-    return importBanner+'<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
+    return '<div class="panel" style="padding:32px;text-align:center;color:var(--text3)">'
       +'<div style="font-size:32px;margin-bottom:12px">📭</div>'
       +'<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">No customer feedback yet</div>'
-      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">Upload your Tally CSV export — data is saved to Supabase so everyone sees the same responses.</div>'
-      +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-      +'<button class="btn" style="font-size:12px;padding:8px 20px;background:rgba(0,180,255,0.15);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()">📥 Upload CSV to Supabase</button>'
+      +'<div style="font-size:12px;line-height:1.6;max-width:360px;margin:0 auto;margin-bottom:16px">Responses from the Tally form will appear here automatically.</div>'
       +'<button class="btn" style="font-size:11px" onclick="loadFeedback(true)">↻ Check Again</button>'
-      +'</div></div>';
+      +'</div>';
   }
 
   // ── Period filter ──────────────────────────────────────────────────────────
@@ -4804,7 +4565,6 @@ function vFeedback(){
     +'</div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<a href="https://tally.so/forms" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;border:1px solid var(--border);padding:5px 10px;border-radius:6px;display:flex;align-items:center;gap:4px">↗ Tally</a>'
-    +'<button class="btn" style="font-size:11px;padding:4px 14px;background:rgba(0,180,255,0.12);color:#00B4FF;border-color:#00B4FF" onclick="triggerTallyImport()" title="Upload fresh CSV — replaces existing data in Supabase">📥 Upload New CSV</button>'
     +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadFeedback(true)" title="Refresh data from Supabase">↻</button>'
     +'</div>'
     +'</div>';
@@ -4816,7 +4576,7 @@ function vFeedback(){
   if(!total){
     // Auto-find the closest period with data
     var bestPeriod=['7d','30d','90d','1y','all'].find(function(p){return _fbFilterData(allData,p).length>0;});
-    return importBanner+periodBar
+    return periodBar
       +'<div class="panel" style="padding:28px;text-align:center">'
       +'<div style="font-size:28px;margin-bottom:10px">📭</div>'
       +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No responses in this window</div>'
@@ -5199,7 +4959,7 @@ function vFeedback(){
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  var out=importBanner+periodBar+schemaBanner;
+  var out=periodBar+schemaBanner;
 
   // ══════════════════════════════════════════════════════════════════════════
   // EXECUTIVE SUMMARY — KPI GRID + INSIGHTS (reference dashboard style)
