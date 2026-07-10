@@ -1007,22 +1007,7 @@ function render(){
     });
     grid.innerHTML=html;
   },100);}
-  else if(view==='cobkyc'){c.innerHTML=vCobKyc();setTimeout(function(){
-    // DEMO MODE — inject dummy COB/KYC issues
-    var tbl=document.getElementById('cobTableBody');
-    if(!tbl)return;
-    var issues=[
-      {date:'23 Jun',client:'C-10482',type:'KYC Re-do',status:'Pending',note:'PAN mismatch — re-upload needed'},
-      {date:'22 Jun',client:'C-10391',type:'COB Failed',status:'Escalated',note:'Bank verification failed'},
-      {date:'21 Jun',client:'C-10287',type:'KYC Issue',status:'Resolved',note:'Address proof expired, re-submitted'},
-      {date:'20 Jun',client:'C-10156',type:'COB Delayed',status:'In Progress',note:'NSDL response pending'},
-      {date:'19 Jun',client:'C-10044',type:'COB Holdings',status:'Pending',note:'CDSL transfer delayed'},
-    ];
-    tbl.innerHTML=issues.map(function(i){
-      var sc=i.status==='Resolved'?'var(--green)':i.status==='Escalated'?'var(--red)':'var(--amber)';
-      return '<tr class="tr"><td>'+i.date+'</td><td>'+i.client+'</td><td>'+i.type+'</td><td><span style="color:'+sc+';font-size:11px;font-weight:500">'+i.status+'</span></td><td style="color:var(--text3);font-size:11px">'+i.note+'</td></tr>';
-    }).join('');
-  },200);}
+  else if(view==='cobkyc'){c.innerHTML=vCobKyc();setTimeout(renderIssueTable,60);}
   else if(view==='martech'){
     // DEMO MODE — show static martech placeholder
     c.innerHTML='<div style="padding:24px"><div class="ph"><span class="pt">Martech Analytics</span><span style="font-size:11px;color:var(--text3);margin-left:8px">Demo — connect Google Sheets in production</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">'
@@ -4991,7 +4976,614 @@ async function initAskChirag(){
 }
 
 // ── INIT ──────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════
+//  RESTORED FUNCTIONS — these were missing from the file,
+//  which is why data wasn't loading in any tab (added to fix demo)
+// ══════════════════════════════════════════════════════════
+var _missedTodos=[];
+var _assigningReqId=null, _discardingReqId=null, _editingRatingId=null;
+var _pulseFilter='competitor';
+var _pulseSentiment='all';
+var _competitorFilter='all';
+var _pulseSmartFilter='all';
+var _appStoreMeta={};
+var _feedbackData=[];
+var _feedbackLoading=false;
+var _feedbackPeriod='all';
+var _reviewsApp='';
+var _reviewsData={};
+var _reviewsDateFilter='all';
+var _reviewsLoading=false;
+var _reviewsQualityFilter='all';
+var _reviewsSourceFilter='all';
+var _reviewsStarFilter='all';
+var _reviewsTier='all';
+var SENTIMENT_META={
+  complaint:{label:'Complaint',emoji:'🚨',color:'#FF3B5C',bg:'rgba(255,59,92,0.15)'},
+  feedback:{label:'Feedback',emoji:'💬',color:'#FFB347',bg:'rgba(255,179,71,0.15)'},
+  appreciation:{label:'Appreciation',emoji:'👏',color:'#39FF14',bg:'rgba(57,255,20,0.12)'},
+  idea:{label:'Idea',emoji:'💡',color:'#00E5FF',bg:'rgba(0,229,255,0.15)'},
+  neutral:{label:'Neutral',emoji:'—',color:'#8A96A8',bg:'rgba(138,150,168,0.12)'}
+};
+var COMPETITOR_FILTER_META={
+  features:{label:'Features',emoji:'⚡',color:'#00E5FF',bg:'rgba(0,229,255,0.15)'},
+  design:{label:'Design',emoji:'🎨',color:'#BF5AF2',bg:'rgba(191,90,242,0.18)'},
+  launches:{label:'New Launches',emoji:'🚀',color:'#39FF14',bg:'rgba(57,255,20,0.15)'}
+};
+var SENTIMENT_KEYWORDS={
+  complaint:['complain','frustrat','annoying','worst','bad experience','disappoint','hate','terrible','issue','problem','broken','not working','doesn\'t work','crash','bug'],
+  appreciation:['love','great','awesome','amazing','excellent','thank','good job','well done','impressed','fantastic'],
+  feedback:['suggest','should add','would be nice','wish','feature request','please add','recommend','could improve','idea'],
+  idea:['what if','imagine if','feature idea','new feature']
+};
+var COMPETITOR_FILTER_KEYWORDS={
+  features:['feature','functionality','capability','tool','option','support for'],
+  design:['design','ui','ux','interface','layout','redesign','visual','look and feel'],
+  launches:['launch','announc','release','rolled out','introduc','unveil','new app','update']
+};
+var PULSE_KEYWORDS=['design','ux','ui','feature','app','product','fintech','trading','investor','portfolio','sip','mutual fund','broker','stock','finance'];
+
+function _issueToRow(i){
+  return {id:i.id,date:i.date,time:i.time||'',sender:i.sender,text:i.text,type:i.type,sentiment:i.sentiment,status:i.status,resolved_at:i.resolvedAt||null};
+}
+
+function applyRoleRestrictions(){
+  var hideMap={
+    designer:['capacity','martech'],
+    pm:['sprint','capacity','uximpact','skills','tracker','shipped','growthplans','askchirag','martech','cobkyc','pulse']
+  };
+  var hide=hideMap[currentRole]||[];
+  document.querySelectorAll('.ni').forEach(function(n){
+    var v=n.getAttribute('data-view');
+    n.style.display=(hide.indexOf(v)>=0)?'none':'';
+  });
+}
+
+function daysInBucket(t){
+  if(!t||!t.created_at) return 0;
+  var created=new Date(t.created_at);
+  if(isNaN(created.getTime())) return 0;
+  return Math.max(0,Math.floor((Date.now()-created.getTime())/(1000*60*60*24)));
+}
+
+function daysInBucketBadge(t){
+  var d=daysInBucket(t);
+  var color=d>20?'var(--red)':d>10?'var(--amber)':'var(--text3)';
+  return '<span style="font-size:10px;color:'+color+';font-weight:500">'+d+'d</span>';
+}
+
+function renderTaskDates(t){
+  var due=t.due_date?fmtD(t.due_date):'—';
+  var overdue=t.due_date&&new Date(t.due_date)<new Date()&&t.status!=='done'&&t.status!=='live';
+  return '<div style="font-size:11px;'+(overdue?'color:var(--red);font-weight:500':'color:var(--text2)')+'">Due '+due+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">Created '+fmtD(t.created_at)+'</div>';
+}
+
+function autoFlagRisks(){
+  (tasks||[]).forEach(function(t){
+    if(t.status==='done'||t.status==='live') return;
+    if(t.risk) return;
+    var overdue=t.due_date&&new Date(t.due_date)<new Date();
+    var stale=daysInBucket(t)>20;
+    if(overdue){t.risk=true;t.risk_note='Overdue';}
+    else if(stale){t.risk=true;t.risk_note=daysInBucket(t)+' days in bucket';}
+  });
+}
+
+function checkYesterdayTodos(){
+  var y=new Date();y.setDate(y.getDate()-1);
+  var ystr=y.toISOString().split('T')[0];
+  _missedTodos=(dailyTodos||[]).filter(function(t){return t.todo_date===ystr&&!t.done;});
+}
+
+function getSmartFlags(r){
+  var flags=[];
+  if(!r.expected_outcome) flags.push('Missing expected outcome');
+  if(!r.priority_reason) flags.push('No priority justification');
+  if(r.deadline){
+    var days=Math.floor((new Date(r.deadline)-Date.now())/(1000*60*60*24));
+    if(days<0) flags.push('Deadline passed');
+    else if(days<3) flags.push('Deadline in '+days+'d');
+  } else if(r.urgency==='high'){
+    flags.push('High urgency, no deadline set');
+  }
+  return flags;
+}
+
+function renderSmartFlags(r){
+  var flags=getSmartFlags(r);
+  if(!flags.length) return '';
+  return '<div style="padding-left:13px;margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">'
+    +flags.map(function(f){return '<span style="font-size:9px;background:rgba(255,179,71,0.12);color:var(--amber);padding:1px 6px;border-radius:10px">⚠ '+f+'</span>';}).join('')
+    +'</div>';
+}
+
+function vGoalsSection(){
+  var gl=goals||[];
+  if(!gl.length) return '';
+  var cards=gl.slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);}).map(function(g){
+    var linked=(goalTasks||[]).filter(function(gt){return gt.goal_id===g.id;}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);});
+    var pct=g.progress!=null?g.progress:0;
+    var chips=linked.map(function(gt){
+      return '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--surface2);color:'+(gt.done?'var(--green)':'var(--text2)')+';border:1px solid var(--border)">'+(gt.done?'✓ ':'○ ')+gt.title+'</span>';
+    }).join('');
+    return '<div class="goal-card">'
+      +'<span class="goal-cat" style="background:var(--blue-light);color:var(--blue)">'+(g.owner||'Team')+'</span>'
+      +'<div class="goal-title">'+g.title+'</div>'
+      +'<div class="goal-progress-row"><div class="goal-bar-bg"><div class="goal-bar-fill" style="width:'+pct+'%"></div></div><span class="goal-pct">'+pct+'%</span></div>'
+      +'<div class="goal-footer"><div class="goal-linked">'+chips+'</div>'
+      +(g.target_date?'<span class="goal-deadline">Target '+fmtD(g.target_date)+'</span>':'')
+      +'</div></div>';
+  }).join('');
+  return '<div class="panel" style="margin-top:14px"><div class="ph"><span class="pt">Team goals</span></div><div style="padding:14px">'+cards+'</div></div>';
+}
+
+// ── DAILY TRACKER ─────────────────────────────────────
+function vTracker(){
+  var todayStr=new Date().toISOString().split('T')[0];
+  var todays=(dailyTodos||[]).filter(function(t){return t.todo_date===todayStr;});
+  var byDesigner={};
+  todays.forEach(function(t){(byDesigner[t.designer_name]=byDesigner[t.designer_name]||[]).push(t);});
+  var names=Object.keys(byDesigner).sort();
+  var groups=names.map(function(n){
+    var items=byDesigner[n].slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0);});
+    var doneCount=items.filter(function(t){return t.done;}).length;
+    var rows=items.map(function(t){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
+        +'<input type="checkbox" '+(t.done?'checked':'')+' onchange="toggleTodoDone(\''+t.id+'\')" style="width:14px;height:14px;cursor:pointer"/>'
+        +'<span style="font-size:12px;'+(t.done?'color:var(--text3);text-decoration:line-through':'color:var(--text)')+'">'+t.task+'</span>'
+        +'</div>';
+    }).join('');
+    return '<div class="panel" style="margin-bottom:10px"><div class="ph"><div style="display:flex;align-items:center;gap:8px"><div class="avatar '+avFor(n)+'" style="width:22px;height:22px;font-size:9px">'+iniFor(n)+'</div><span class="pt">'+n+'</span></div><span style="font-size:11px;color:var(--text3)">'+doneCount+'/'+items.length+'</span></div><div style="padding:2px 14px">'+rows+'</div></div>';
+  }).join('')||'<div class="empty">No todos for today yet</div>';
+
+  var missedHtml='';
+  if((_missedTodos||[]).length){
+    var mrows=_missedTodos.map(function(t){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">'+t.task+'</span><span style="font-size:10px;color:var(--text3)">'+t.designer_name+'</span></div>';
+    }).join('');
+    missedHtml='<details class="panel" style="margin-bottom:14px"><summary style="cursor:pointer;padding:10px 14px;font-size:12px;font-weight:500;color:var(--amber);background:var(--surface2)">⚠ '+_missedTodos.length+' incomplete from yesterday</summary><div style="padding:6px 14px">'+mrows+'</div></details>';
+  }
+
+  return '<div class="section-row"><span class="st">Daily tracker</span><span style="font-size:11px;color:var(--text3)">'+new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})+'</span></div>'
+    +missedHtml+groups;
+}
+
+function toggleTodoDone(id){
+  var t=(dailyTodos||[]).find(function(x){return x.id===id;});
+  if(!t) return;
+  t.done=!t.done;
+  toast(t.done?'Marked done':'Marked not done');
+  render();
+}
+
+// ── SHIPPED LOG ────────────────────────────────────────
+function vShipped(){
+  return '<div class="section-row"><span class="st">Shipped log</span></div>'
+    +'<div class="panel"><div style="overflow-x:auto"><table><thead><tr><th style="width:30%">Task</th><th style="width:18%">Designer</th><th style="width:12%">Status</th><th style="width:13%">Shipped</th><th style="width:12%">Jira</th><th>Impact</th></tr></thead>'
+    +'<tbody id="shippedBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Loading…</td></tr></tbody></table></div></div>';
+}
+
+function slLoadItems(){
+  var tbody=document.getElementById('shippedBody');
+  if(!tbody) return;
+  var shipped=(tasks||[]).filter(function(t){return t.status==='done'||t.status==='live';})
+    .sort(function(a,b){return new Date(b.completed_at||0)-new Date(a.completed_at||0);});
+  if(!shipped.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Nothing shipped yet</td></tr>';return;}
+  tbody.innerHTML=shipped.map(function(t){
+    var designers=(t.designer_names&&t.designer_names.length)?t.designer_names.join(', '):(t.designer_name||'—');
+    var impact=(uxLogs||[]).find(function(u){return u.title===t.name;});
+    var impactHtml=impact?'<span style="font-size:10px;color:var(--green)">'+impact.metric+' '+impact.delta+'</span>':'<span style="font-size:10px;color:var(--text3)">—</span>';
+    return '<tr class="tr"><td style="font-weight:500">'+t.name+'</td><td style="color:var(--text2)">'+designers+'</td>'
+      +'<td><span class="badge '+(t.status==='live'?'s-live':'s-done')+'">'+(t.status==='live'?'🚀 live':'done')+'</span></td>'
+      +'<td style="color:var(--text3);font-size:11px">'+(t.completed_at?fmtD(t.completed_at):'—')+'</td>'
+      +'<td>'+(t.jira_ref&&t.jira_ref!=='—'?'<a href="https://venturasec.atlassian.net/browse/'+t.jira_ref+'" target="_blank" style="color:var(--blue);text-decoration:none;font-size:11px">'+t.jira_ref+'</a>':'—')+'</td>'
+      +'<td>'+impactHtml+'</td></tr>';
+  }).join('');
+}
+
+// ── PM REQUEST FORM (internal) ────────────────────────
+function vPMForm(){
+  return '<div style="max-width:640px;margin:0 auto">'
+    +'<div style="text-align:center;margin-bottom:20px"><div style="font-size:16px;font-weight:500">New design request</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Tell the design team what you need — they will triage and assign it.</div></div>'
+    +'<div class="panel" style="padding:18px">'
+    +'<div class="mfield"><label>Request title</label><input type="text" id="pmf-title" placeholder="e.g. Add SIP pause feature"/></div>'
+    +'<div class="mrow"><div class="mfield"><label>Your name</label><input type="text" id="pmf-name" placeholder="e.g. Rahul Jain"/></div>'
+    +'<div class="mfield"><label>Product</label><select id="pmf-product"><option>Algo</option><option>Cash/Equity</option><option>Commodities</option><option>IPO</option><option>Mutual Funds</option><option>Wallet</option><option>COB</option><option>FD</option><option>Bonds</option><option>All</option></select></div></div>'
+    +'<div class="mfield"><label>Problem statement</label><textarea id="pmf-problem" placeholder="What problem are users facing?"></textarea></div>'
+    +'<div class="mfield"><label>Expected outcome</label><textarea id="pmf-outcome" placeholder="What does success look like?"></textarea></div>'
+    +'<div class="mrow"><div class="mfield"><label>Urgency</label><select id="pmf-urgency"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>'
+    +'<div class="mfield"><label>Deadline (optional)</label><input type="date" id="pmf-deadline"/></div></div>'
+    +'<div class="mfield"><label>Why this priority?</label><textarea id="pmf-reason" placeholder="Context that helps us prioritise"></textarea></div>'
+    +'<div style="text-align:right;margin-top:6px"><button class="btn accent" onclick="submitPMFormRequest()">Submit request</button></div>'
+    +'</div></div>';
+}
+
+function pmFormInit(){
+  var el=document.getElementById('pmf-title');
+  if(el) el.focus();
+}
+
+function submitPMFormRequest(){
+  var titleEl=document.getElementById('pmf-title');
+  if(!titleEl) return;
+  var title=titleEl.value.trim();
+  if(!title){toast('Please enter a request title');return;}
+  var req={
+    id:'r'+Date.now(),title:title,
+    pm_name:document.getElementById('pmf-name').value.trim()||'Unknown PM',
+    product:document.getElementById('pmf-product').value,
+    urgency:document.getElementById('pmf-urgency').value,
+    description:'',user_type:'',
+    expected_outcome:document.getElementById('pmf-outcome').value.trim(),
+    priority_reason:document.getElementById('pmf-reason').value.trim(),
+    deadline:document.getElementById('pmf-deadline').value||null,
+    created_at:new Date().toISOString(),assigned:false,discarded:false,
+    problem_statement:document.getElementById('pmf-problem').value.trim()
+  };
+  requests.unshift(req);
+  updateBadge();
+  toast('Request submitted (demo — not sent to team)');
+  ['pmf-title','pmf-name','pmf-problem','pmf-outcome','pmf-reason','pmf-deadline'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+}
+
+// ── FILTER SETTERS ─────────────────────────────────────
+function setSF(f){sfilt=f;render();}
+function setDF(v){dfilt=v;render();}
+function setLF(name){lfilt=name;render();}
+function setIssueDateFilter(v){_issueDateFilter=v;render();}
+function setIssueActionFilter(v){_issueActionFilter=v;render();}
+
+// ── ISSUE LOG HELPERS ──────────────────────────────────
+function _lsSave(){try{localStorage.setItem('dr_issues',JSON.stringify(_issueData));}catch(e){}}
+
+function _getDateFilteredIssues(){
+  if(_issueDateFilter==='all') return _issueData.slice();
+  var daysMap={'7d':7,'30d':30,'90d':90,'180d':180,'365d':365};
+  var days=daysMap[_issueDateFilter]||36500;
+  var cutoff=Date.now()-days*24*60*60*1000;
+  return _issueData.filter(function(i){return new Date(i.date).getTime()>=cutoff;});
+}
+
+function _getActionFilteredIssues(list){
+  if(_issueActionFilter==='open') return list.filter(function(i){return i.status==='open';});
+  if(_issueActionFilter==='actionable') return list.filter(function(i){return i.status==='open'&&getUrgency(i.text)==='high';});
+  return list;
+}
+
+// ── TASK ROW ACTIONS ───────────────────────────────────
+function toggleMeatball(id,event){
+  if(event) event.stopPropagation();
+  openEditTask(id);
+}
+
+// ── PM REQUEST: ASSIGN / DISCARD ──────────────────────
+function openAssignModal(rid){
+  var r=(requests||[]).find(function(x){return x.id===rid;});
+  if(!r) return;
+  _assigningReqId=rid;
+  document.getElementById('assign-req-title').textContent=r.title;
+  document.getElementById('assign-req-meta').textContent=r.pm_name+' · '+r.product;
+  var wrap=document.getElementById('assign-designer-chips');
+  wrap.innerHTML='<select id="assign-designer-select" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text)">'
+    +(DESIGNERS||[]).map(function(d){return '<option value="'+d.name+'">'+d.name+'</option>';}).join('')+'</select>';
+  document.getElementById('assign-priority').value=r.urgency==='high'?'high':'medium';
+  document.getElementById('assign-jira').value='';
+  openModal('moAssign');
+}
+
+function submitAssign(){
+  var r=(requests||[]).find(function(x){return x.id===_assigningReqId;});
+  if(!r) return;
+  var sel=document.getElementById('assign-designer-select');
+  var designer=sel?sel.value:((DESIGNERS||[])[0]||{}).name;
+  var priority=document.getElementById('assign-priority').value;
+  var effort=parseInt(document.getElementById('assign-effort').value)||2;
+  var jira=document.getElementById('assign-jira').value.trim()||'—';
+  tasks.push({
+    id:'t'+Date.now(),name:r.title,pm:r.pm_name,priority:priority,status:'todo',
+    designer_names:designer?[designer]:[],effort:effort,jira_ref:jira,created_at:new Date().toISOString(),
+    completed_at:null,due_date:r.deadline||null,sort_order:tasks.length+1,risk:false,risk_note:'',
+    skills:[],brd_link:''
+  });
+  r.assigned=true;
+  closeModal('moAssign');
+  updateBadge();
+  toast('Assigned to '+designer+' — task created (demo)');
+  render();
+}
+
+function openDiscardModal(rid){
+  var r=(requests||[]).find(function(x){return x.id===rid;});
+  if(!r) return;
+  _discardingReqId=rid;
+  document.getElementById('discard-req-title').textContent=r.title;
+  document.getElementById('discard-req-meta').textContent=r.pm_name+' · '+r.product;
+  document.getElementById('discard-reason').value='';
+  openModal('moDiscard');
+}
+
+function submitDiscard(){
+  var r=(requests||[]).find(function(x){return x.id===_discardingReqId;});
+  if(!r) return;
+  r.discarded=true;
+  closeModal('moDiscard');
+  updateBadge();
+  toast('Request discarded');
+  render();
+}
+
+// ── UX IMPACT LOG ──────────────────────────────────────
+function openUXLog(){
+  var sel=document.getElementById('ux-task');
+  sel.innerHTML='<option value="">Select task…</option>'+(tasks||[]).filter(function(t){return t.status==='done'||t.status==='live';}).map(function(t){return '<option value="'+t.id+'">'+t.name+'</option>';}).join('');
+  document.getElementById('ux-date').value=new Date().toISOString().split('T')[0];
+  ['ux-success','ux-time','ux-dropoff','ux-error-rate','ux-csat','ux-nps','ux-adoption','ux-retention','ux-activation','ux-conversion','ux-bounce','ux-sample','ux-obs','ux-feedback','ux-issues','ux-worked'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('ux-task-name').textContent='';
+  document.getElementById('ux-designer').textContent='';
+  openModal('moUX');
+}
+
+function onUXTask(){
+  var sel=document.getElementById('ux-task');
+  var t=(tasks||[]).find(function(x){return x.id===sel.value;});
+  document.getElementById('ux-task-name').textContent=t?t.name:'';
+  document.getElementById('ux-designer').textContent=t?((t.designer_names&&t.designer_names[0])||t.designer_name||''):'';
+}
+
+function submitUXLog(){
+  var taskId=document.getElementById('ux-task').value;
+  var t=(tasks||[]).find(function(x){return x.id===taskId;});
+  if(!t){toast('Please select a task');return;}
+  var success=document.getElementById('ux-success').value;
+  var csat=document.getElementById('ux-csat').value;
+  var metric=success?'Task success rate':(csat?'CSAT score':'Impact logged');
+  var result=success?success+'%':(csat||'—');
+  uxLogs.unshift({
+    id:'u'+Date.now(),title:t.name,product:'—',category:'Usability',
+    metric:metric,baseline:'—',result:result,delta:'',
+    evidence:document.getElementById('ux-obs').value.trim()||'Self-reported',
+    created_at:new Date().toISOString(),
+    designer_name:(t.designer_names&&t.designer_names[0])||t.designer_name||currentUser
+  });
+  closeModal('moUX');
+  toast('UX impact logged (demo)');
+  render();
+}
+
+// ── SKILL RATINGS ──────────────────────────────────────
+function openSkillRate(){
+  var sel=document.getElementById('sk-task');
+  sel.innerHTML='<option value="">Select task…</option>'+(tasks||[]).map(function(t){return '<option value="'+t.id+'">'+t.name+'</option>';}).join('');
+  document.getElementById('sk-task-name').textContent='';
+  document.getElementById('sk-designer').textContent='';
+  document.getElementById('sk-skills-container').innerHTML='';
+  document.getElementById('sk-notes-wrap').style.display='none';
+  openModal('moSkill');
+}
+
+function onSKTask(){
+  var sel=document.getElementById('sk-task');
+  var t=(tasks||[]).find(function(x){return x.id===sel.value;});
+  var cont=document.getElementById('sk-skills-container');
+  if(!t){cont.innerHTML='';document.getElementById('sk-notes-wrap').style.display='none';return;}
+  document.getElementById('sk-task-name').textContent=t.name;
+  var dn=(t.designer_names&&t.designer_names[0])||t.designer_name||'';
+  document.getElementById('sk-designer').textContent=dn;
+  var skillsToRate=(t.skills&&t.skills.length)?t.skills:SKILLS.map(function(s){return s.name;});
+  cont.innerHTML=skillsToRate.map(function(s){
+    return '<div class="mfield"><label>'+s+'</label><div class="sk-stars" data-skill="'+s+'" style="display:flex;gap:4px">'
+      +[1,2,3,4,5].map(function(n){return '<span data-v="'+n+'" onclick="setSkRating(this)" style="cursor:pointer;font-size:16px;color:var(--border2)">★</span>';}).join('')
+      +'</div></div>';
+  }).join('');
+  document.getElementById('sk-notes-wrap').style.display='block';
+}
+
+function setSkRating(el){
+  var v=parseInt(el.getAttribute('data-v'));
+  var wrap=el.parentElement;
+  Array.prototype.forEach.call(wrap.children,function(s){s.style.color=parseInt(s.getAttribute('data-v'))<=v?'#EF9F27':'var(--border2)';});
+  wrap.setAttribute('data-rating',v);
+}
+
+function submitSkillRatings(){
+  var taskId=document.getElementById('sk-task').value;
+  var t=(tasks||[]).find(function(x){return x.id===taskId;});
+  if(!t){toast('Please select a task');return;}
+  var dn=(t.designer_names&&t.designer_names[0])||t.designer_name||'';
+  var groups=document.querySelectorAll('#sk-skills-container .sk-stars');
+  var notes=document.getElementById('sk-notes').value.trim();
+  var added=0;
+  groups.forEach(function(g){
+    var v=parseInt(g.getAttribute('data-rating')||'0');
+    if(v>0){
+      skillRatings.push({id:'sr'+Date.now()+added,designer_name:dn,skill:g.getAttribute('data-skill'),self_rating:v,head_rating:v,task:t.name,created_at:new Date().toISOString(),notes:notes});
+      added++;
+    }
+  });
+  closeModal('moSkill');
+  toast(added?added+' rating(s) saved (demo)':'Select at least one rating');
+  if(added) render();
+}
+
+function openEditRating(id){
+  var r=(skillRatings||[]).find(function(x){return x.id===id;});
+  if(!r) return;
+  _editingRatingId=id;
+  document.getElementById('er-task').textContent=r.task||'';
+  document.getElementById('er-designer').textContent=r.designer_name||'';
+  document.getElementById('er-skill-display').textContent=r.skill||'';
+  document.getElementById('er-notes').value=r.notes||'';
+  renderErStars('er-self-stars',r.self_rating||0);
+  renderErStars('er-head-stars',r.head_rating||0);
+  openModal('moEditRating');
+}
+
+function renderErStars(containerId,val){
+  var c=document.getElementById(containerId);
+  c.setAttribute('data-rating',val);
+  c.innerHTML=[1,2,3,4,5].map(function(n){
+    return '<span data-v="'+n+'" onclick="setErRating(this)" style="cursor:pointer;font-size:16px;color:'+(n<=val?'#EF9F27':'var(--border2)')+'">★</span>';
+  }).join('');
+}
+
+function setErRating(el){
+  var v=parseInt(el.getAttribute('data-v'));
+  var c=el.parentElement;
+  c.setAttribute('data-rating',v);
+  Array.prototype.forEach.call(c.children,function(s){s.style.color=parseInt(s.getAttribute('data-v'))<=v?'#EF9F27':'var(--border2)';});
+}
+
+function saveEditRating(){
+  var r=(skillRatings||[]).find(function(x){return x.id===_editingRatingId;});
+  if(!r) return;
+  var selfEl=document.getElementById('er-self-stars');
+  var headEl=document.getElementById('er-head-stars');
+  r.self_rating=parseInt(selfEl.getAttribute('data-rating'))||r.self_rating;
+  r.head_rating=parseInt(headEl.getAttribute('data-rating'))||r.head_rating;
+  r.notes=document.getElementById('er-notes').value.trim();
+  closeModal('moEditRating');
+  toast('Rating updated (demo)');
+  render();
+}
+
+function deleteRating(){
+  skillRatings=skillRatings.filter(function(x){return x.id!==_editingRatingId;});
+  closeModal('moEditRating');
+  toast('Rating deleted');
+  render();
+}
+
+// ── DAILY TODO ADD ─────────────────────────────────────
+function openAddTodo(){
+  var sel=document.getElementById('todo-designer');
+  sel.innerHTML='<option value="">Select designer…</option>'+(DESIGNERS||[]).map(function(d){return '<option value="'+d.name+'">'+d.name+'</option>';}).join('');
+  document.getElementById('todo-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('todo-task').value='';
+  openModal('moTodo');
+}
+
+function submitTodo(){
+  var d=document.getElementById('todo-designer').value;
+  var date=document.getElementById('todo-date').value;
+  var task=document.getElementById('todo-task').value.trim();
+  if(!d||!task){toast('Please fill designer and task');return;}
+  dailyTodos.push({id:'dt'+Date.now(),designer_name:d,task:task,done:false,todo_date:date,sort_order:99,created_at:new Date().toISOString()});
+  closeModal('moTodo');
+  toast('Todo added (demo)');
+  render();
+}
+
+function deleteTask(){
+  if(!editTaskId) return;
+  tasks=tasks.filter(function(x){return x.id!==editTaskId;});
+  closeModal('moAdd');
+  toast('Task deleted (demo)');
+  render();
+}
+
+// ── SAFE STUBS (modals not currently reachable, kept for robustness) ──
+function submitGoal(){closeModal('moGoal');toast('Demo mode — goal changes are not saved');}
+function deleteGoal(){closeModal('moGoal');toast('Demo mode — goal changes are not saved');}
+function saveProgress(){closeModal('moProgress');toast('Demo mode — changes are not saved');}
+function submitMissedReason(){closeModal('moMissed');toast('Demo mode — changes are not saved');}
+function submitMarkLive(){closeModal('moLive');toast('Demo mode — changes are not saved');}
+
+// ── MISC UI ─────────────────────────────────────────────
+function resumeFromLog(taskId,taskName){toast('Resuming timer for "'+taskName+'" (demo)');}
+
+function copyPMLink(){
+  var url=location.origin+location.pathname.replace(/index[^/]*\.html$/,'')+'pm_request.html';
+  var done=function(){toast('Link copied to clipboard');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done).catch(function(){toast(url);});
+  } else { toast(url); }
+}
+
+function downloadCSV(rows,filename){
+  try{
+    var csv=rows.map(function(r){
+      return r.map(function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',');
+    }).join('\n');
+    var blob=new Blob([csv],{type:'text/csv'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+    toast('Exported '+filename);
+  }catch(e){
+    toast('Export is not supported in this preview');
+  }
+}
+
+function exportSkillsCSV(){
+  var rows=[['Task','Designer','Skill','Self rating','Head rating','Notes','Date']];
+  (skillRatings||[]).forEach(function(r){rows.push([r.task,r.designer_name,r.skill,r.self_rating,r.head_rating,(r.notes||'').replace(/,/g,';'),fmtD(r.created_at)]);});
+  downloadCSV(rows,'skill-ratings.csv');
+}
+
+function exportUXCSV(){
+  var rows=[['Title','Product','Category','Metric','Baseline','Result','Delta','Designer','Date']];
+  (uxLogs||[]).forEach(function(u){rows.push([u.title,u.product,u.category,u.metric,u.baseline,u.result,u.delta,u.designer_name,fmtD(u.created_at)]);});
+  downloadCSV(rows,'ux-impact-log.csv');
+}
+
+function askAI(topic){
+  var body=document.getElementById('aiBody');
+  var input=document.getElementById('aiInput');
+  if(!body) return;
+  var text='';
+  var load=getLoad();
+  if(topic==='bandwidth'){
+    var entries=Object.entries(load).sort(function(a,b){return a[1].effort-b[1].effort;});
+    text=entries.length?entries.slice(0,3).map(function(e){return e[0]+' — '+e[1].effort+' pts active';}).join('<br>'):'No active load data.';
+  } else if(topic==='risks'){
+    var risky=(tasks||[]).filter(function(t){return t.risk;});
+    text=risky.length?risky.map(function(t){return '⚠ '+t.name+' — '+t.risk_note;}).join('<br>'):'No risks flagged right now 🎉';
+  } else if(topic==='time'){
+    var totalPts=(tasks||[]).filter(function(t){return t.status!=='done';}).reduce(function(s,t){return s+t.effort;},0);
+    text='Team currently carrying <b>'+totalPts+' effort points</b> across '+Object.keys(load).length+' designers this sprint.';
+  } else if(topic==='standup'){
+    var inprog=(tasks||[]).filter(function(t){return t.status==='inprogress';}).length;
+    var review=(tasks||[]).filter(function(t){return t.status==='review';}).length;
+    var risky2=(tasks||[]).filter(function(t){return t.risk;}).length;
+    text=inprog+' tasks in progress, '+review+' in review, '+risky2+' flagged at risk. Overall sprint is on track.';
+  }
+  body.innerHTML=text||'Ask me about bandwidth, risks, time, skill gaps, or get a standup summary.';
+  if(input) input.value='';
+}
+
+function sendAI(){
+  var input=document.getElementById('aiInput');
+  var body=document.getElementById('aiBody');
+  if(!input||!body) return;
+  var q=input.value.trim();
+  if(!q) return;
+  body.innerHTML='That level of detail needs the full assistant — try the <a href="#" onclick="go(\'askchirag\');return false;" style="color:var(--blue)">Ask Chirag</a> tab for a complete answer to: "'+q+'".';
+  input.value='';
+}
+
+function toggleTheme(){
+  var isLight=document.documentElement.getAttribute('data-theme')==='light';
+  var icon=document.getElementById('themeIcon'),label=document.getElementById('themeLabel'),thumb=document.getElementById('themeThumb'),track=document.getElementById('themeTrack');
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    if(icon)icon.textContent='🌙';if(label)label.textContent='Dark mode';
+    if(thumb)thumb.style.transform='translateX(0)';if(track)track.style.background='var(--border2)';
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    if(icon)icon.textContent='☀️';if(label)label.textContent='Light mode';
+    if(thumb)thumb.style.transform='translateX(12px)';if(track)track.style.background='var(--blue)';
+  }
+  try{localStorage.setItem('dr_theme',isLight?'dark':'light');}catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════
+//  END RESTORED FUNCTIONS
+// ══════════════════════════════════════════════════════════
+
 initLock();
+
 
 
 // ══════════════════════════════════════════════════════════
