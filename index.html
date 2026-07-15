@@ -4944,13 +4944,14 @@ function vFeedback(){
       {item:'Fix 15-min chart candle rebuild',  evidence:countMatches(data,['candle','chart breaks'])+' reports', impact:'High: F&O trader trust'},
       {item:'Fix holdings not reflecting',      evidence:countMatches(data,['holding','not reflecting'])+' reports',impact:'Critical: financial accuracy'},
       {item:'Remove startup buzzing sound',     evidence:'Multiple reports',                                impact:'Low effort, quick win'},
+      {item:'Dark Mode — monitor post-launch',  evidence:countMatches(data,['dark mode','dark theme'])+' mentions', impact:'Shipped ✓ — track adoption & bug reports'},
     ],
     next:[
-      {item:'Ship Dark Mode',                   evidence:countMatches(data,['dark mode','dark theme'])+' requests', impact:'#1 feature, all segments'},
       {item:'Expand Watchlist to 10+',          evidence:countMatches(data,['watchlist'])+' mentions',     impact:'Daily usage blocker'},
       {item:'Restore I2D conversion',           evidence:countMatches(data,['intraday to delivery'])+' requests',  impact:'Power user need'},
       {item:'Fix portfolio navigation',         evidence:'Navigation confusion reported',                  impact:'Medium: UX recovery'},
       {item:'Bracket Orders',                   evidence:countMatches(data,['bracket'])+' requests',       impact:'Intraday trader retention'},
+      {item:'Commodities UX refinement',        evidence:countMatches(data,['commodity','commodities','gold','silver','crude','mcx','metal','bullion'])+' mentions', impact:'New segment — early adopter experience'},
     ],
     later:[
       {item:'Chart Trading (buy/sell on chart)', evidence:countMatches(data,['chart buy','buy on chart'])+' requests', impact:'Competitive parity w/ Zerodha'},
