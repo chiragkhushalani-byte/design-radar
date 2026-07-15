@@ -4690,7 +4690,7 @@ function vFeedback(){
 
   // ── THEMES ────────────────────────────────────────────────────────────────
   var THEMES=[
-    {id:'dark_mode',     label:'Dark Mode',              icon:'🌙', col:'#6E40C9', kws:['dark mode','dark theme','night mode'],               segment:'All'},
+    {id:'dark_mode',     label:'Dark Mode',              icon:'🌙', col:'#6E40C9', kws:['dark mode','dark theme','night mode','dark mode is','dark mode looks','love the dark','dark mode works'],  segment:'All'},
     {id:'performance',   label:'Performance / Speed',    icon:'⚡', col:'#FF3B5C', kws:['slow','lag','crash','freeze','hang','loading'],        segment:'All'},
     {id:'portfolio',     label:'Portfolio & Holdings',   icon:'💼', col:'#00B4FF', kws:['portfolio','holding','p&l','pnl','profit','loss'],     segment:'Investors'},
     {id:'charts',        label:'Chart Experience',       icon:'📈', col:'#00E5FF', kws:['chart','candle','tradingview','candlestick'],          segment:'Traders'},
@@ -4705,6 +4705,7 @@ function vFeedback(){
     {id:'chart_trade',   label:'Chart Trading',          icon:'🖱️', col:'#00E5FF', kws:['chart buy','buy on chart','sell on chart','chart trading','drag'], segment:'Traders'},
     {id:'screener',      label:'Screener',               icon:'🔍', col:'#34C759', kws:['screener','stock screener','screen stocks'],          segment:'Traders'},
     {id:'i2d',           label:'Intraday→Delivery',      icon:'🔄', col:'#FF9F0A', kws:['intraday to delivery','i2d','cnc mis','mis to cnc'], segment:'Traders'},
+    {id:'commodities',   label:'Commodities',            icon:'🥇', col:'#FF9F0A', kws:['commodity','commodities','gold','silver','crude','mcx','agri','agro','metal','bullion'], segment:'Traders'},
   ];
 
   var themeData=THEMES.map(function(th){
@@ -4870,6 +4871,7 @@ function vFeedback(){
     {label:'Watchlist',    kws:['watchlist']},
     {label:'Orders',       kws:['order','execution','bracket']},
     {label:'Navigation',   kws:['confus','navigate','find','difficult']},
+    {label:'Commodities',  kws:['commodity','commodities','gold','silver','crude','mcx','metal','bullion']},
   ];
   var compRows=COMP_THEMES.map(function(ct){
     // Ventura %: use store reviews if loaded, else Tally feedback
@@ -4902,8 +4904,9 @@ function vFeedback(){
     {job:'Monitor options positions',   kws:['option chain','f&o','options'], pain:'Incomplete option chain, no basket',  opp:'Full-featured option chain with basket'},
     {job:'Find the right stock',        kws:['screener','search','filter'],   pain:'No in-app screener',                  opp:'Build screener to rival Zerodha'},
     {job:'Switch between day/delivery', kws:['intraday','delivery','cnc'],    pain:'I2D conversion removed',              opp:'Restore I2D with one-tap conversion'},
-    {job:'Trade after dark',            kws:['dark mode','dark theme','eye'], pain:'No dark mode, eye strain',            opp:'Dark mode = #1 feature request'},
+    {job:'Trade after dark',            kws:['dark mode','dark theme','eye','dark mode is','love the dark'], pain:'Dark mode shipped — track adoption feedback',  opp:'Monitor post-launch sentiment & report issues'},
     {job:'Automate trading strategy',   kws:['algo','strategy','automated'],  pain:'No automation tools',                 opp:'Strategy builder for quant traders'},
+    {job:'Trade commodities',           kws:['commodity','commodities','gold','silver','crude','mcx','metal','bullion'], pain:'Commodity segment newly launched — feedback incoming', opp:'Refine commodity trading UX based on early users'},
   ];
   var jtbdData=JTBD.map(function(j){
     var cnt=countMatches(data,j.kws);
@@ -4912,7 +4915,7 @@ function vFeedback(){
 
   // ── OPPORTUNITY MATRIX ────────────────────────────────────────────────────
   var OPP=[
-    {label:'Dark Mode',          effort:'Low',  impact:'High', cat:'Quick Win',       mentions:countMatches(data,['dark mode','dark theme'])},
+    {label:'Dark Mode (shipped)',  effort:'Low',  impact:'High', cat:'Quick Win',       mentions:countMatches(data,['dark mode','dark theme'])},
     {label:'Fix Login Bug',      effort:'Low',  impact:'High', cat:'Must Fix',        mentions:countMatches(data,['login','otp'])},
     {label:'Fix Holdings View',  effort:'Low',  impact:'High', cat:'Must Fix',        mentions:countMatches(data,['holding','not reflecting'])},
     {label:'Watchlist 10+',      effort:'Low',  impact:'Med',  cat:'Quick Win',       mentions:countMatches(data,['watchlist'])},
@@ -4923,6 +4926,7 @@ function vFeedback(){
     {label:'I2D Conversion',     effort:'Med',  impact:'Med',  cat:'Quick Win',       mentions:countMatches(data,['intraday to delivery','i2d'])},
     {label:'AI Insights',        effort:'High', impact:'Med',  cat:'Innovation',      mentions:countMatches(data,['ai','artificial intelligence','algorithm'])},
     {label:'Trading Journal',    effort:'Med',  impact:'Low',  cat:'Delighter',       mentions:countMatches(data,['journal','diary'])},
+    {label:'Commodities UX',    effort:'Med',  impact:'High', cat:'High Impact',     mentions:countMatches(data,['commodity','commodities','gold','silver','crude','mcx','metal','bullion'])},
   ].filter(function(o){return o.mentions>0;}).sort(function(a,b){return b.mentions-a.mentions;});
   var OPP_CATS={
     'Must Fix':     {col:'#FF3B5C',bg:'rgba(255,59,92,0.1)'},
