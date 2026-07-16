@@ -314,20 +314,30 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shado
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 @keyframes bounceIn{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.1) rotate(3deg)}80%{transform:scale(0.95) rotate(-1deg)}100%{transform:scale(1) rotate(0deg)}}
 
-/* ── SARCASM TOAST ─────────────────────────────────────────────────────── */
-#sarcasmToast{position:fixed;bottom:24px;right:24px;z-index:9990;max-width:320px;background:var(--surface);border:1px solid rgba(255,59,92,0.35);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,59,92,0.1);transform:translateX(380px);transition:transform .5s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;opacity:0}
-#sarcasmToast.show{transform:translateX(0);pointer-events:auto;opacity:1;animation:sarcasmShake .4s ease .5s}
-@keyframes sarcasmShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
-#sarcasmToast .s-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-#sarcasmToast .s-emoji{font-size:22px}
-#sarcasmToast .s-label{font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.08em}
-#sarcasmToast .s-msg{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:12px}
-#sarcasmToast .s-task{font-size:11px;color:var(--text3);margin-bottom:12px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#sarcasmToast .s-footer{display:flex;gap:6px}
-#sarcasmToast .s-dismiss{flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);transition:background .15s}
-#sarcasmToast .s-dismiss:hover{background:var(--surface2)}
-#sarcasmToast .s-goto{flex:1;padding:7px;border:none;border-radius:8px;background:rgba(255,59,92,0.12);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .15s}
-#sarcasmToast .s-goto:hover{background:rgba(255,59,92,0.22)}
+/* ── SARCASM PANEL ─────────────────────────────────────────────────────── */
+#sarcasmOverlay{position:fixed;inset:0;z-index:9980;background:rgba(0,0,0,0.4);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .35s}
+#sarcasmOverlay.show{opacity:1;pointer-events:auto}
+#sarcasmPanel{position:fixed;top:0;right:0;bottom:0;width:360px;z-index:9981;background:var(--surface);border-left:1px solid rgba(255,59,92,0.3);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .45s cubic-bezier(0.34,1.56,0.64,1);box-shadow:-8px 0 40px rgba(0,0,0,0.5)}
+#sarcasmPanel.show{transform:translateX(0);animation:sarcasmShake .4s ease .5s}
+.sp-header{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+.sp-label{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.sp-title{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.02em;margin-bottom:4px}
+.sp-sub{font-size:12px;color:var(--text3);line-height:1.5}
+.sp-close{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font);transition:background .15s}
+.sp-close:hover{background:var(--surface2)}
+.sp-list{flex:1;overflow-y:auto;padding:10px 0}
+.sp-task-row{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;transition:background .15s}
+.sp-task-row:hover{background:var(--surface2)}
+.sp-task-row:last-child{border-bottom:none}
+.sp-days{flex-shrink:0;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(255,59,92,0.12);color:var(--red);margin-top:2px;white-space:nowrap}
+.sp-days.warn{background:rgba(255,179,71,0.12);color:var(--amber)}
+.sp-task-info{flex:1;min-width:0}
+.sp-task-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.4;margin-bottom:3px}
+.sp-task-designer{font-size:11px;color:var(--accent);font-weight:500}
+.sp-task-status{font-size:10px;color:var(--text3);margin-top:2px}
+.sp-footer{padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0}
+.sp-goto{width:100%;padding:10px;border:none;border-radius:10px;background:rgba(255,59,92,0.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .15s}
+.sp-goto:hover{background:rgba(255,59,92,0.2)}
 select option{background:var(--surface2);color:var(--text)}
 input[type=range]{accent-color:var(--blue)}
 /* Scan glow keyframe for radar */
@@ -348,17 +358,20 @@ input[type=range]{accent-color:var(--blue)}
   </div>
 </div>
 
-<!-- ── SARCASM TOAST ─────────────────────────────────────────────────── -->
-<div id="sarcasmToast">
-  <div class="s-header">
-    <span class="s-emoji" id="sarcasmEmoji">👻</span>
-    <span class="s-label">Gentle Reminder</span>
+<!-- ── SARCASM PANEL ──────────────────────────────────────────────────────── -->
+<div id="sarcasmOverlay" onclick="dismissSarcasm()"></div>
+<div id="sarcasmPanel">
+  <div class="sp-header">
+    <div>
+      <div class="sp-label">👻 Hall of Shame</div>
+      <div class="sp-title" id="sarcasmPanelTitle"></div>
+      <div class="sp-sub" id="sarcasmPanelSub"></div>
+    </div>
+    <button class="sp-close" onclick="dismissSarcasm()">✕</button>
   </div>
-  <div class="s-msg" id="sarcasmMsg"></div>
-  <div class="s-task" id="sarcasmTaskName"></div>
-  <div class="s-footer">
-    <button class="s-dismiss" onclick="dismissSarcasm()">Ignore (again)</button>
-    <button class="s-goto" onclick="sarcasmGoToTask()">Go fix it →</button>
+  <div class="sp-list" id="sarcasmList"></div>
+  <div class="sp-footer">
+    <button class="sp-goto" onclick="dismissSarcasm();go('sprint')">Go to Sprint tasks →</button>
   </div>
 </div>
 <div class="app">
@@ -2737,10 +2750,13 @@ function daysInBucketBadge(task){
 // CELEBRATION + SARCASM ENGINE
 // ══════════════════════════════════════════════════════════════════════════════
 
-var _sarcasmShownThisSession = {};
+var _sarcasmLastShown = 0;
+var _sarcasmLastTaskId = null;
 var _sarcasmCurrentTaskId = null;
 var _sarcasmTimeout = null;
 var _confettiPieces = [];
+
+var SARCASM_EXCLUDED_VIEWS = ['askchirag','pulse','cobkyc','martech'];
 
 var CELEB_MESSAGES = [
   { emoji:'⚡', title:'Bhai, tu fast hai!', sub:'Done in {n} days. The sprint board thanks you.' },
@@ -2834,62 +2850,75 @@ function closeCeleb(){
 // ── SARCASM ──────────────────────────────────────────────────────────────────
 function checkSarcasm(){
   if(!tasks||!tasks.length) return;
-  if(currentRole==='pm') return; // don't show sarcasm to PM
+  if(currentRole==='pm') return;
+  if(SARCASM_EXCLUDED_VIEWS.indexOf(view)!==-1) return;
+
+  var now = Date.now();
+  if(now - _sarcasmLastShown < 12000) return;
 
   var stale = tasks.filter(function(t){
     if(t.status==='done'||t.status==='live'||t.status==='onhold') return false;
-    if(_sarcasmShownThisSession[t.id]) return false;
     var days = Math.floor((new Date() - new Date(t.created_at)) / (1000*60*60*24));
     return days >= 14;
   });
 
-  if(!stale.length) return;
-
-  // For designers, only show their own tasks
   if(currentRole==='designer'){
     stale = stale.filter(function(t){
       var designers = (t.designer_names&&t.designer_names.length>0)
         ? t.designer_names
         : (t.designer_name?[t.designer_name]:[]);
-      return designers.includes(currentUser);
+      return designers.indexOf(currentUser)!==-1;
     });
   }
 
   if(!stale.length) return;
 
-  // Pick the stalest one
-  stale.sort(function(a,b){
-    return new Date(a.created_at) - new Date(b.created_at);
-  });
-  var task = stale[0];
-  var days = Math.floor((new Date() - new Date(task.created_at)) / (1000*60*60*24));
+  // Sort stalest first
+  stale.sort(function(a,b){ return new Date(a.created_at)-new Date(b.created_at); });
+  _sarcasmLastShown = now;
 
-  var designers = (task.designer_names&&task.designer_names.length>0)
-    ? task.designer_names
-    : (task.designer_name&&task.designer_name!=='—'?[task.designer_name]:[]);
-  var name = designers.length>0 ? designers[0].split(' ')[0] : 'Someone';
+  // Pick a random sarcastic header
+  var PANEL_HEADERS = [
+    { title: stale.length+' tasks are collecting dust.', sub: 'These have been pending for 14+ days. Just saying.' },
+    { title: 'The backlog called.', sub: stale.length+' tasks want to know if you\'re okay.' },
+    { title: stale.length+' ghosts in the sprint.', sub: 'Assigned. Forgotten. Still here. Day after day.' },
+    { title: 'Hall of Shame is full.', sub: stale.length+' tasks have outlived their welcome.' },
+    { title: 'These tasks have trust issues.', sub: 'Been waiting '+stale.length+'+ tasks worth of patience.' },
+  ];
+  var hdr = _pickRandom(PANEL_HEADERS);
+  document.getElementById('sarcasmPanelTitle').textContent = hdr.title;
+  document.getElementById('sarcasmPanelSub').textContent = hdr.sub;
 
-  var msg = _pickRandom(SARCASM_MESSAGES);
-  var data = { name:name, task:(task.name||'this task').slice(0,35), n:String(days) };
+  // Render task rows
+  var listHtml = stale.map(function(t){
+    var days = Math.floor((new Date() - new Date(t.created_at)) / (1000*60*60*24));
+    var designers = (t.designer_names&&t.designer_names.length>0)
+      ? t.designer_names
+      : (t.designer_name&&t.designer_name!=='—'?[t.designer_name]:[]);
+    var designerStr = designers.join(', ') || '—';
+    var daysClass = days >= 30 ? 'sp-days' : 'sp-days warn';
+    var statusLabel = t.status==='inprogress'?'In progress':t.status==='review'?'In review':t.status==='todo'?'Not started':t.status;
+    return '<div class="sp-task-row">'
+      +'<span class="'+daysClass+'">'+days+'d</span>'
+      +'<div class="sp-task-info">'
+      +'<div class="sp-task-name">'+acEscape(t.name||'Untitled')+'</div>'
+      +'<div class="sp-task-designer">'+acEscape(designerStr)+'</div>'
+      +'<div class="sp-task-status">'+statusLabel+(t.jira_ref?' · '+t.jira_ref:'')+'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
 
-  document.getElementById('sarcasmEmoji').textContent = msg.emoji;
-  document.getElementById('sarcasmMsg').textContent = _fillTemplate(msg.msg, data);
-  document.getElementById('sarcasmTaskName').textContent = '📌 ' + (task.name||'').slice(0,50);
-  _sarcasmCurrentTaskId = task.id;
+  document.getElementById('sarcasmList').innerHTML = listHtml;
 
-  var el = document.getElementById('sarcasmToast');
-  el.classList.remove('show');
-  void el.offsetWidth; // reflow to restart animation
-  el.classList.add('show');
-
-  // Auto-dismiss after 8s
-  if(_sarcasmTimeout) clearTimeout(_sarcasmTimeout);
-  _sarcasmTimeout = setTimeout(function(){ dismissSarcasm(); }, 8000);
+  var panel = document.getElementById('sarcasmPanel');
+  var overlay = document.getElementById('sarcasmOverlay');
+  panel.classList.add('show');
+  overlay.classList.add('show');
 }
 
 function dismissSarcasm(){
-  if(_sarcasmCurrentTaskId) _sarcasmShownThisSession[_sarcasmCurrentTaskId] = true;
-  document.getElementById('sarcasmToast').classList.remove('show');
+  document.getElementById('sarcasmPanel').classList.remove('show');
+  document.getElementById('sarcasmOverlay').classList.remove('show');
   if(_sarcasmTimeout){ clearTimeout(_sarcasmTimeout); _sarcasmTimeout=null; }
 }
 
