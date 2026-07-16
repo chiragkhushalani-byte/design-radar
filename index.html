@@ -298,6 +298,36 @@ tr.task-row.dragover{outline:2px solid var(--blue);outline-offset:-1px;box-shado
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── CELEBRATION OVERLAY ────────────────────────────────────────────────── */
+#celebOverlay{position:fixed;inset:0;z-index:9999;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s}
+#celebOverlay.active{pointer-events:auto;opacity:1}
+#celebCard{background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:32px 36px;text-align:center;max-width:380px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.05);transform:scale(.7) translateY(30px);transition:transform .45s cubic-bezier(0.34,1.56,0.64,1),opacity .3s;opacity:0;position:relative;z-index:2}
+#celebOverlay.active #celebCard{transform:scale(1) translateY(0);opacity:1}
+#celebEmoji{font-size:52px;margin-bottom:12px;display:block;animation:bounceIn .6s cubic-bezier(0.34,1.56,0.64,1) .1s both}
+#celebTitle{font-size:22px;font-weight:700;letter-spacing:-.03em;color:var(--text);margin-bottom:6px}
+#celebSub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+#celebClose{padding:10px 28px;border:none;border-radius:50px;background:var(--accent);color:#000;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:transform .15s,box-shadow .15s;box-shadow:0 0 20px rgba(212,168,75,0.4)}
+#celebClose:hover{transform:scale(1.04);box-shadow:0 0 30px rgba(212,168,75,0.6)}
+#celebBg{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.confetti-piece{position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:9998;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+@keyframes bounceIn{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.1) rotate(3deg)}80%{transform:scale(0.95) rotate(-1deg)}100%{transform:scale(1) rotate(0deg)}}
+
+/* ── SARCASM TOAST ─────────────────────────────────────────────────────── */
+#sarcasmToast{position:fixed;bottom:24px;right:24px;z-index:9990;max-width:320px;background:var(--surface);border:1px solid rgba(255,59,92,0.35);border-radius:16px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,59,92,0.1);transform:translateX(380px);transition:transform .5s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;opacity:0}
+#sarcasmToast.show{transform:translateX(0);pointer-events:auto;opacity:1;animation:sarcasmShake .4s ease .5s}
+@keyframes sarcasmShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+#sarcasmToast .s-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#sarcasmToast .s-emoji{font-size:22px}
+#sarcasmToast .s-label{font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.08em}
+#sarcasmToast .s-msg{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:12px}
+#sarcasmToast .s-task{font-size:11px;color:var(--text3);margin-bottom:12px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sarcasmToast .s-footer{display:flex;gap:6px}
+#sarcasmToast .s-dismiss{flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);transition:background .15s}
+#sarcasmToast .s-dismiss:hover{background:var(--surface2)}
+#sarcasmToast .s-goto{flex:1;padding:7px;border:none;border-radius:8px;background:rgba(255,59,92,0.12);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .15s}
+#sarcasmToast .s-goto:hover{background:rgba(255,59,92,0.22)}
 select option{background:var(--surface2);color:var(--text)}
 input[type=range]{accent-color:var(--blue)}
 /* Scan glow keyframe for radar */
@@ -306,6 +336,31 @@ input[type=range]{accent-color:var(--blue)}
 </style>
 </head>
 <body>
+
+<!-- ── CELEBRATION OVERLAY ───────────────────────────────────────────── -->
+<div id="celebOverlay">
+  <div id="celebBg" onclick="closeCeleb()"></div>
+  <div id="celebCard">
+    <span id="celebEmoji">🎉</span>
+    <div id="celebTitle"></div>
+    <div id="celebSub"></div>
+    <button id="celebClose" onclick="closeCeleb()">Wah bhai! 🙌</button>
+  </div>
+</div>
+
+<!-- ── SARCASM TOAST ─────────────────────────────────────────────────── -->
+<div id="sarcasmToast">
+  <div class="s-header">
+    <span class="s-emoji" id="sarcasmEmoji">👻</span>
+    <span class="s-label">Gentle Reminder</span>
+  </div>
+  <div class="s-msg" id="sarcasmMsg"></div>
+  <div class="s-task" id="sarcasmTaskName"></div>
+  <div class="s-footer">
+    <button class="s-dismiss" onclick="dismissSarcasm()">Ignore (again)</button>
+    <button class="s-goto" onclick="sarcasmGoToTask()">Go fix it →</button>
+  </div>
+</div>
 <div class="app">
   <div class="sidebar">
     <div class="logo">
@@ -889,6 +944,7 @@ function go(v){
   const titles={dashboard:'Dashboard',sprint:'Sprint tasks',inbox:'PM requests',capacity:'Team capacity',uximpact:'UX impact',skills:'Skills',tracker:'Daily tracker',shipped:'Shipped log',pmform:'PM request form',askchirag:'Ask Chirag',growthplans:'Team plans',pulse:'Market Pulse',cobkyc:'COB / KYC Issues',martech:'Martech Analytics'};
   document.getElementById('viewTitle').textContent=titles[v]||v;
   render();
+  setTimeout(function(){ checkSarcasm(); }, 1500);
 }
 
 function render(){
@@ -2677,7 +2733,172 @@ function daysInBucketBadge(task){
 }
 
 
-// ── FEATURE 1: MARK TASK DONE ─────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// CELEBRATION + SARCASM ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+var _sarcasmShownThisSession = {};
+var _sarcasmCurrentTaskId = null;
+var _sarcasmTimeout = null;
+var _confettiPieces = [];
+
+var CELEB_MESSAGES = [
+  { emoji:'⚡', title:'Bhai, tu fast hai!', sub:'Done in {n} days. The sprint board thanks you.' },
+  { emoji:'🔥', title:'Khatam. Seedha.', sub:'{name} wrapped "{task}" in {n} days. Respect.' },
+  { emoji:'🏆', title:'Speed run unlocked', sub:'{n} days mein done. {name} is built different.' },
+  { emoji:'💫', title:'No procrastination here.', sub:'"{task}" is done before anyone noticed it started.' },
+  { emoji:'🚀', title:'Aaj ka MVP', sub:'{name} said no to backlog life. {n} days, done.' },
+  { emoji:'🎯', title:'Direct hit.', sub:'"{task}" — assigned, started, done. That\'s it. That\'s the tweet.' },
+];
+
+var SARCASM_MESSAGES = [
+  { emoji:'🦕', msg:'"{task}" has been sitting here for {n} days. It\'s basically a fossil now, {name}.' },
+  { emoji:'👻', msg:'{name} bhai, "{task}" woke up today, looked at its status, cried, and went back to sleep. Day {n}.' },
+  { emoji:'📅', msg:'Day {n}. "{task}" has filed a formal complaint with HR. Recipient: {name}.' },
+  { emoji:'🕰️', msg:'"{task}" started before some of us had lunch plans. {n} days ago, to be exact.' },
+  { emoji:'🌵', msg:'{name}, "{task}" has survived {n} days of neglect. It\'s thriving, honestly. But please.' },
+  { emoji:'😐', msg:'{n} days. "{task}" has given up hoping. It just exists now. Thanks, {name}.' },
+  { emoji:'🪦', msg:'RIP productivity. "{task}" has been pending for {n} days under {name}\'s watch.' },
+  { emoji:'🤡', msg:'"{task}" — {n} days old, still in progress. Is it a task or a lifestyle, {name}?' },
+];
+
+function _pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function _fillTemplate(str, data){
+  return str
+    .replace(/{name}/g, data.name||'Designer')
+    .replace(/{task}/g, data.task||'this task')
+    .replace(/{n}/g, data.n||'?');
+}
+
+// ── CONFETTI ─────────────────────────────────────────────────────────────────
+var CONFETTI_COLORS = ['#D4A84B','#00B4FF','#34C759','#FF9F0A','#BF5AF2','#FF3B5C','#00E5FF','#fff'];
+
+function launchConfetti(){
+  var existing = document.querySelectorAll('.confetti-piece');
+  existing.forEach(function(e){ e.remove(); });
+  _confettiPieces = [];
+  var count = 90;
+  for(var i=0; i<count; i++){
+    (function(i){
+      setTimeout(function(){
+        var el = document.createElement('div');
+        el.className = 'confetti-piece';
+        var x = Math.random()*100;
+        var delay = 0;
+        var dur = 1.8 + Math.random()*1.8;
+        var color = CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)];
+        var size = 6 + Math.random()*8;
+        var borderRadius = Math.random()>0.5 ? '50%' : '2px';
+        el.style.cssText = 'left:'+x+'vw;top:-20px;width:'+size+'px;height:'+size+'px;background:'+color+';border-radius:'+borderRadius+';animation-duration:'+dur+'s;animation-delay:0s';
+        document.body.appendChild(el);
+        _confettiPieces.push(el);
+        setTimeout(function(){ if(el.parentNode) el.remove(); }, dur*1000+100);
+      }, i*18);
+    })(i);
+  }
+}
+
+// ── CELEBRATION ──────────────────────────────────────────────────────────────
+function triggerCelebration(task){
+  if(!task) return;
+  var effort = parseInt(task.effort)||0;
+  if(effort > 3) return; // only low (1-2) and medium (3)
+  var days = Math.floor((new Date() - new Date(task.created_at)) / (1000*60*60*24));
+  if(days > 7) return; // must be within 7 days
+
+  var msg = _pickRandom(CELEB_MESSAGES);
+  var designers = (task.designer_names&&task.designer_names.length>0)
+    ? task.designer_names
+    : (task.designer_name&&task.designer_name!=='—'?[task.designer_name]:[]);
+  var name = designers.length>0 ? designers[0].split(' ')[0] : 'Designer';
+  var data = { name:name, task:(task.name||'this task').slice(0,40), n:days===0?'<1':String(days) };
+
+  document.getElementById('celebEmoji').textContent = msg.emoji;
+  document.getElementById('celebTitle').textContent = msg.title;
+  document.getElementById('celebSub').textContent = _fillTemplate(msg.sub, data);
+
+  var overlay = document.getElementById('celebOverlay');
+  overlay.classList.add('active');
+  launchConfetti();
+
+  // Auto-dismiss after 6s
+  setTimeout(function(){ closeCeleb(); }, 6000);
+}
+
+function closeCeleb(){
+  var overlay = document.getElementById('celebOverlay');
+  overlay.classList.remove('active');
+}
+
+// ── SARCASM ──────────────────────────────────────────────────────────────────
+function checkSarcasm(){
+  if(!tasks||!tasks.length) return;
+  if(currentRole==='pm') return; // don't show sarcasm to PM
+
+  var stale = tasks.filter(function(t){
+    if(t.status==='done'||t.status==='live'||t.status==='onhold') return false;
+    if(_sarcasmShownThisSession[t.id]) return false;
+    var days = Math.floor((new Date() - new Date(t.created_at)) / (1000*60*60*24));
+    return days >= 14;
+  });
+
+  if(!stale.length) return;
+
+  // For designers, only show their own tasks
+  if(currentRole==='designer'){
+    stale = stale.filter(function(t){
+      var designers = (t.designer_names&&t.designer_names.length>0)
+        ? t.designer_names
+        : (t.designer_name?[t.designer_name]:[]);
+      return designers.includes(currentUser);
+    });
+  }
+
+  if(!stale.length) return;
+
+  // Pick the stalest one
+  stale.sort(function(a,b){
+    return new Date(a.created_at) - new Date(b.created_at);
+  });
+  var task = stale[0];
+  var days = Math.floor((new Date() - new Date(task.created_at)) / (1000*60*60*24));
+
+  var designers = (task.designer_names&&task.designer_names.length>0)
+    ? task.designer_names
+    : (task.designer_name&&task.designer_name!=='—'?[task.designer_name]:[]);
+  var name = designers.length>0 ? designers[0].split(' ')[0] : 'Someone';
+
+  var msg = _pickRandom(SARCASM_MESSAGES);
+  var data = { name:name, task:(task.name||'this task').slice(0,35), n:String(days) };
+
+  document.getElementById('sarcasmEmoji').textContent = msg.emoji;
+  document.getElementById('sarcasmMsg').textContent = _fillTemplate(msg.msg, data);
+  document.getElementById('sarcasmTaskName').textContent = '📌 ' + (task.name||'').slice(0,50);
+  _sarcasmCurrentTaskId = task.id;
+
+  var el = document.getElementById('sarcasmToast');
+  el.classList.remove('show');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('show');
+
+  // Auto-dismiss after 8s
+  if(_sarcasmTimeout) clearTimeout(_sarcasmTimeout);
+  _sarcasmTimeout = setTimeout(function(){ dismissSarcasm(); }, 8000);
+}
+
+function dismissSarcasm(){
+  if(_sarcasmCurrentTaskId) _sarcasmShownThisSession[_sarcasmCurrentTaskId] = true;
+  document.getElementById('sarcasmToast').classList.remove('show');
+  if(_sarcasmTimeout){ clearTimeout(_sarcasmTimeout); _sarcasmTimeout=null; }
+}
+
+function sarcasmGoToTask(){
+  dismissSarcasm();
+  go('sprint');
+}
+
+
 async function toggleTaskDone(id, isDone){
   const newStatus = isDone==='1' ? 'inprogress' : 'done';
   const patch = {status:newStatus};
@@ -2689,6 +2910,7 @@ async function toggleTaskDone(id, isDone){
     if(t){ t.status=newStatus; t.completed_at=patch.completed_at; autoFlagRisks(); }
     render();
     toast(newStatus==='done'?'Task marked done ✓':'Task reopened');
+    if(newStatus==='done' && t) setTimeout(function(){ triggerCelebration(t); }, 400);
   } catch(e){toast('Error: '+e.message);}
 }
 
@@ -2712,6 +2934,7 @@ async function submitMarkLive(){
     closeModal('moLive');
     render();
     toast('Task marked live 🚀');
+    if(t) setTimeout(function(){ triggerCelebration(t); }, 400);
   } catch(e){toast('Error: '+e.message);}
 }
 
